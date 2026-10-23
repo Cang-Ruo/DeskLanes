@@ -1,0 +1,144 @@
+<UserControl x:Class="DeskSpace.App.Views.FreePanelsView"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:local="clr-namespace:DeskSpace.App.Views">
+    <UserControl.Resources>
+        <local:BindingProxy x:Key="VM" Data="{Binding}" />
+        <BooleanToVisibilityConverter x:Key="BoolToVis" />
+    </UserControl.Resources>
+
+    <DockPanel>
+        <!-- 工具栏 -->
+        <StackPanel DockPanel.Dock="Top" Orientation="Horizontal" Margin="0,0,0,8">
+            <Button Content="新建分区" Padding="12,4" Margin="0,0,6,0"
+                    Command="{Binding NewPanelCommand}" />
+            <Button Content="重命名" Padding="12,4" Margin="0,0,6,0"
+                    Command="{Binding RenamePanelCommand}" />
+            <Button Content="删除" Padding="12,4" Margin="0,0,6,0"
+                    Command="{Binding DeletePanelCommand}" />
+            <Button Content="上移" Padding="12,4" Margin="0,0,6,0"
+                    Command="{Binding MovePanelUpCommand}" />
+            <Button Content="下移" Padding="12,4" Margin="0,0,14,0"
+                    Command="{Binding MovePanelDownCommand}" />
+            <TextBlock FontSize="12" Foreground="#6B7280" VerticalAlignment="Center"
+                       TextTrimming="CharacterEllipsis">
+                <Run Text="当前分区：" />
+                <Run Text="{Binding SelectedPanelTitle, Mode=OneWay}" />
+            </TextBlock>
+        </StackPanel>
+
+        <!-- 虚拟画布：1600×900，用 ScaleTransform 等比缩放到可用空间
+             （不用 Viewbox：Viewbox 与 RenderTargetBitmap 截图不兼容，且对动态内容有渲染怪癖） -->
+        <Grid x:Name="CanvasHost" ClipToBounds="True" Margin="0,0,0,8" SizeChanged="OnCanvasHostSizeChanged">
+            <Border x:Name="CanvasBorder" Width="1600" Height="900" Background="#EEF1F5" CornerRadius="8"
+                    HorizontalAlignment="Left" VerticalAlignment="Top">
+                <Border.RenderTransform>
+                    <TransformGroup>
+                        <ScaleTransform x:Name="CanvasScale" />
+                        <TranslateTransform x:Name="CanvasOffset" />
+                    </TransformGroup>
+                </Border.RenderTransform>
+                <ItemsControl ItemsSource="{Binding Panels}">
+                    <ItemsControl.ItemsPanel>
+                        <ItemsPanelTemplate>
+                            <Canvas />
+                        </ItemsPanelTemplate>
+                    </ItemsControl.ItemsPanel>
+                    <!-- Canvas 只识别直接子元素（项容器 ContentPresenter）的附加属性，
+                         几何绑定必须写在 ItemContainerStyle 上，写在 DataTemplate 内部无效 -->
+                    <ItemsControl.ItemContainerStyle>
+                        <Style TargetType="ContentPresenter">
+                            <Setter Property="Canvas.Left" Value="{Binding X}" />
+                            <Setter Property="Canvas.Top" Value="{Binding Y}" />
+                            <Setter Property="Width" Value="{Binding Width}" />
+                            <Setter Property="Height" Value="{Binding Height}" />
+                        </Style>
+                    </ItemsControl.ItemContainerStyle>
+                    <ItemsControl.ItemTemplate>
+                        <DataTemplate>
+                            <local:PanelView
+                                OpenItemCommand="{Binding DataContext.OpenItemCommand, RelativeSource={RelativeSource AncestorType=ItemsControl}}"
+                                RemoveItemCommand="{Binding DataContext.RemoveItemCommand, RelativeSource={RelativeSource AncestorType=ItemsControl}}"
+                                ReturnToPoolCommand="{Binding ReturnToPoolCommand}" />
+                        </DataTemplate>
+                    </ItemsControl.ItemTemplate>
+                </ItemsControl>
+            </Border>
+        </Grid>
+
+        <!-- 底部：未分区项目池 + 移除区 -->
+        <StackPanel DockPanel.Dock="Bottom">
+            <Border Background="#F8F9FB" BorderBrush="#E4E7EC" BorderThickness="1"
+                    CornerRadius="6" Padding="10,8" Margin="0,0,0,8"
+                    AllowDrop="True" Drop="OnPoolDrop" DragOver="OnPoolDragOver">
+                <DockPanel>
+                    <TextBlock DockPanel.Dock="Top" Text="{Binding PoolHeaderText}"
+                               FontSize="12" FontWeight="SemiBold" Foreground="#344054"
+                               Margin="0,0,0,6" />
+                    <ListBox ItemsSource="{Binding PoolItems}"
+                             Background="Transparent" BorderThickness="0"
+                             MaxHeight="150"
+                             ScrollViewer.HorizontalScrollBarVisibility="Disabled"
+                             Visibility="{Binding HasPoolItems, Converter={StaticResource BoolToVis}}">
+                        <ListBox.ItemsPanel>
+                            <ItemsPanelTemplate>
+                                <WrapPanel Orientation="Horizontal" />
+                            </ItemsPanelTemplate>
+                        </ListBox.ItemsPanel>
+                        <ListBox.ItemContainerStyle>
+                            <Style TargetType="ListBoxItem">
+                                <Setter Property="HorizontalContentAlignment" Value="Center" />
+                                <Setter Property="VerticalContentAlignment" Value="Center" />
+                                <Setter Property="Template">
+                                    <Setter.Value>
+                                        <ControlTemplate TargetType="ListBoxItem">
+                                            <Border Background="Transparent" CornerRadius="8">
+                                                <ContentPresenter />
+                                            </Border>
+                                        </ControlTemplate>
+                                    </Setter.Value>
+                                </Setter>
+                                <Setter Property="ContextMenu">
+                                    <Setter.Value>
+                                        <ContextMenu>
+                                            <MenuItem Header="打开"
+                                                      Command="{Binding Data.OpenItemCommand, Source={StaticResource VM}}"
+                                                      CommandParameter="{Binding PlacementTarget.DataContext, RelativeSource={RelativeSource AncestorType=ContextMenu}}" />
+                                            <MenuItem Header="从工作区移除"
+                                                      Command="{Binding Data.RemoveItemCommand, Source={StaticResource VM}}"
+                                                      CommandParameter="{Binding PlacementTarget.DataContext, RelativeSource={RelativeSource AncestorType=ContextMenu}}" />
+                                        </ContextMenu>
+                                    </Setter.Value>
+                                </Setter>
+                            </Style>
+                        </ListBox.ItemContainerStyle>
+                        <ListBox.ItemTemplate>
+                            <DataTemplate>
+                                <local:ItemTile />
+                            </DataTemplate>
+                        </ListBox.ItemTemplate>
+                        <ListBox.InputBindings>
+                            <MouseBinding Gesture="LeftDoubleClick"
+                                          Command="{Binding OpenItemCommand}"
+                                          CommandParameter="{Binding SelectedItem, RelativeSource={RelativeSource AncestorType=ListBox}}" />
+                            <KeyBinding Key="Enter"
+                                        Command="{Binding OpenItemCommand}"
+                                        CommandParameter="{Binding SelectedItem, RelativeSource={RelativeSource AncestorType=ListBox}}" />
+                        </ListBox.InputBindings>
+                    </ListBox>
+                    <TextBlock Text="未分区项目都显示在这里，把项目拖到上方分区即可加入。"
+                               FontSize="11" Foreground="#9CA3AF"
+                               Visibility="{Binding HasNoPoolItems, Converter={StaticResource BoolToVis}}" />
+                </DockPanel>
+            </Border>
+
+            <!-- 移除区 -->
+            <Border Background="#FEF3F2" BorderBrush="#FDA29B" BorderThickness="1"
+                    CornerRadius="6" Padding="10,6"
+                    AllowDrop="True" Drop="OnRemoveDrop" DragOver="OnRemoveDragOver">
+                <TextBlock Text="🗑 把项目拖到这里，从工作区移除（不会删除桌面文件）"
+                           FontSize="12" Foreground="#B42318" HorizontalAlignment="Center" />
+            </Border>
+        </StackPanel>
+    </DockPanel>
+</UserControl>

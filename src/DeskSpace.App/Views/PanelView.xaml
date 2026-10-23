@@ -1,0 +1,125 @@
+<UserControl x:Class="DeskSpace.App.Views.PanelView"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:local="clr-namespace:DeskSpace.App.Views">
+    <UserControl.Resources>
+        <BooleanToVisibilityConverter x:Key="BoolToVis" />
+    </UserControl.Resources>
+    <!-- 几何（Canvas.Left/Top/Width/Height）由外层 DataTemplate 绑定在 PanelView 元素上，
+         Canvas 只识别直接子元素的附加属性；内部 Border 撑满 UserControl 即可 -->
+    <Border x:Name="PanelBorder" BorderBrush="#D0D5DD" BorderThickness="1"
+            Background="#FFFFFF" CornerRadius="8"
+            MouseLeftButtonDown="OnPanelMouseLeftButtonDown">
+        <Grid>
+            <Grid.RowDefinitions>
+                <RowDefinition Height="Auto" />
+                <RowDefinition Height="*" />
+            </Grid.RowDefinitions>
+
+            <!-- 标题栏：按住拖动移动面板，单击选中 -->
+            <Thumb x:Name="MoveThumb" Grid.Row="0" Cursor="SizeAll"
+                   DragDelta="OnMoveDragDelta" DragStarted="OnMoveDragStarted"
+                   PreviewMouseLeftButtonDown="OnMoveThumbPreviewMouseLeftButtonDown">
+                <Thumb.Template>
+                    <ControlTemplate TargetType="Thumb">
+                        <Border Background="#F2F4F7" CornerRadius="8,8,0,0" Padding="10,6">
+                            <Grid>
+                                <TextBlock Text="{Binding Title}" FontSize="13" FontWeight="SemiBold"
+                                           Foreground="#1B1F24" TextTrimming="CharacterEllipsis" />
+                                <TextBlock Text="{Binding ItemCount}" FontSize="11" Foreground="#9CA3AF"
+                                           HorizontalAlignment="Right" VerticalAlignment="Center" />
+                            </Grid>
+                        </Border>
+                    </ControlTemplate>
+                </Thumb.Template>
+            </Thumb>
+
+            <!-- 项目区：拖放目标 -->
+            <ListBox Grid.Row="1"
+                     ItemsSource="{Binding Items}"
+                     Background="Transparent" BorderThickness="0" Padding="6"
+                     AllowDrop="True" Drop="OnItemDrop" DragOver="OnItemDragOver"
+                     ScrollViewer.HorizontalScrollBarVisibility="Disabled"
+                     Visibility="{Binding HasItems, Converter={StaticResource BoolToVis}}">
+                <ListBox.ItemsPanel>
+                    <ItemsPanelTemplate>
+                        <WrapPanel Orientation="Horizontal" />
+                    </ItemsPanelTemplate>
+                </ListBox.ItemsPanel>
+                <ListBox.ItemContainerStyle>
+                    <Style TargetType="ListBoxItem">
+                        <Setter Property="HorizontalContentAlignment" Value="Center" />
+                        <Setter Property="VerticalContentAlignment" Value="Center" />
+                        <Setter Property="Template">
+                            <Setter.Value>
+                                <ControlTemplate TargetType="ListBoxItem">
+                                    <Border Background="Transparent" CornerRadius="8">
+                                        <ContentPresenter />
+                                    </Border>
+                                </ControlTemplate>
+                            </Setter.Value>
+                        </Setter>
+                        <Setter Property="ContextMenu">
+                            <Setter.Value>
+                                <ContextMenu>
+                                    <MenuItem Header="打开"
+                                              Command="{Binding OpenItemCommand, RelativeSource={RelativeSource AncestorType=UserControl}}"
+                                              CommandParameter="{Binding PlacementTarget.DataContext, RelativeSource={RelativeSource AncestorType=ContextMenu}}" />
+                                    <MenuItem Header="放回未分区池"
+                                              Command="{Binding ReturnToPoolCommand, RelativeSource={RelativeSource AncestorType=UserControl}}"
+                                              CommandParameter="{Binding PlacementTarget.DataContext, RelativeSource={RelativeSource AncestorType=ContextMenu}}" />
+                                    <MenuItem Header="从工作区移除"
+                                              Command="{Binding RemoveItemCommand, RelativeSource={RelativeSource AncestorType=UserControl}}"
+                                              CommandParameter="{Binding PlacementTarget.DataContext, RelativeSource={RelativeSource AncestorType=ContextMenu}}" />
+                                </ContextMenu>
+                            </Setter.Value>
+                        </Setter>
+                    </Style>
+                </ListBox.ItemContainerStyle>
+                <ListBox.ItemTemplate>
+                    <DataTemplate>
+                        <local:ItemTile />
+                    </DataTemplate>
+                </ListBox.ItemTemplate>
+                <ListBox.InputBindings>
+                    <MouseBinding Gesture="LeftDoubleClick"
+                                  Command="{Binding OpenItemCommand, RelativeSource={RelativeSource AncestorType=UserControl}}"
+                                  CommandParameter="{Binding SelectedItem, RelativeSource={RelativeSource AncestorType=ListBox}}" />
+                    <KeyBinding Key="Enter"
+                                Command="{Binding OpenItemCommand, RelativeSource={RelativeSource AncestorType=UserControl}}"
+                                CommandParameter="{Binding SelectedItem, RelativeSource={RelativeSource AncestorType=ListBox}}" />
+                </ListBox.InputBindings>
+            </ListBox>
+
+            <!-- 空分区提示 -->
+            <TextBlock Grid.Row="1" Text="把项目拖到这里" FontSize="12" Foreground="#9CA3AF"
+                       HorizontalAlignment="Center" VerticalAlignment="Center">
+                <TextBlock.Style>
+                    <Style TargetType="TextBlock">
+                        <Setter Property="Visibility" Value="Collapsed" />
+                        <Style.Triggers>
+                            <DataTrigger Binding="{Binding IsEmpty}" Value="True">
+                                <Setter Property="Visibility" Value="Visible" />
+                            </DataTrigger>
+                        </Style.Triggers>
+                    </Style>
+                </TextBlock.Style>
+            </TextBlock>
+
+            <!-- 右下角缩放手柄 -->
+            <Thumb Grid.Row="1" HorizontalAlignment="Right" VerticalAlignment="Bottom"
+                   Width="16" Height="16" Cursor="SizeNWSE" DragDelta="OnResizeDragDelta">
+                <Thumb.Template>
+                    <ControlTemplate TargetType="Thumb">
+                        <Border Background="Transparent">
+                            <Path Data="M 14 2 L 2 14 M 14 8 L 8 14 M 14 14 L 14 14"
+                                  Stroke="#98A2B3" StrokeThickness="1.5"
+                                  HorizontalAlignment="Right" VerticalAlignment="Bottom"
+                                  Margin="0,0,3,3" />
+                        </Border>
+                    </ControlTemplate>
+                </Thumb.Template>
+            </Thumb>
+        </Grid>
+    </Border>
+</UserControl>

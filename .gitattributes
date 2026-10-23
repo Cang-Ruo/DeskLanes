@@ -1,0 +1,9 @@
+# 统一换行符：工作区按系统（CRLF），仓库内按 LF 归一化
+* text=auto
+
+# 二进制资源不做换行转换
+*.png binary
+*.ico binary
+*.exe binary
+*.dll binary
+*.pdb binary

@@ -1,0 +1,15 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <OutputType>WinExe</OutputType>
+    <TargetFramework>net10.0-windows</TargetFramework>
+    <UseWPF>true</UseWPF>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+    <AssemblyName>DeskSpace.UiSnapshot</AssemblyName>
+    <RootNamespace>DeskSpace.UiSnapshot</RootNamespace>
+  </PropertyGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\..\src\DeskSpace.Core\DeskSpace.Core.csproj" />
+    <ProjectReference Include="..\..\src\DeskSpace.App\DeskSpace.App.csproj" />
+  </ItemGroup>
+</Project>
