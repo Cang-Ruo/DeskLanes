@@ -1,0 +1,12 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <!-- 与 DeskSpace 主项目一致使用 .NET 10；若本机只装了 .NET 9 SDK，改成 net9.0 -->
+    <TargetFramework>net10.0</TargetFramework>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+    <AssemblyName>DeskSpace.Stage0.Probe</AssemblyName>
+    <RootNamespace>DeskSpace.Stage0.Probe</RootNamespace>
+    <InvariantGlobalization>true</InvariantGlobalization>
+  </PropertyGroup>
+</Project>

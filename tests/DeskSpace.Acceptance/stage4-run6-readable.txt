@@ -1,0 +1,123 @@
+﻿# : 无法将“﻿#”项识别为 cmdlet、函数、脚本文件或可运行程序的名称。请检查名称的拼写，如果包括路径，请确保路径正确，然后再试一次。
+所在位置 C:\Users\TTjustTT\Documents\Github\DeskSpace\tests\DeskSpace.Acceptance\stage4-accept.ps1:1 字符: 1
++ ﻿# ================================================================== ...
++ ~~
+    + CategoryInfo          : ObjectNotFound: (﻿#:String) [], CommandNotFoundException
+    + FullyQualifiedErrorId : CommandNotFoundException
+ 
+  [INFO] 已设置 DOTNET_ROOT=C:\Users\TTjustTT\.dotnet
+
+== 0. 验收准备（备份配置 / 清理残留进程 / 记录桌面清单） ==
+  [INFO] 已备份 settings.json
+  [INFO] 已备份 library.json
+  [INFO] 已用默认空配置覆盖 settings.json，应用将以默认设置启动
+  [INFO] 验收前桌面条目数：11639
+  [PASS] 验收开始时没有残留的 DeskSpace 进程
+  [INFO] 虚拟桌面：Left=0 Top=0 Width=2048 Height=1152
+
+== 1. 启动应用（默认全屏模式） ==
+  [PASS] 应用启动后显示全屏工作空间主窗口
+  [PASS] 启动后进程保持运行（未崩溃）
+
+== 2. 系统托盘图标 ==
+  [PASS] 任务栏托盘出现 DeskSpace 图标（带提示文字）
+  [INFO] 托盘提示文字：DeskSpace DeskSpace · 全屏工作空间
+  [INFO] 图标位置：任务栏溢出区
+
+== 3. 托盘菜单内容 ==
+  [PASS] 右键托盘图标弹出原生菜单
+  [限制] 从外部读取托盘菜单项文本 -> 本机 UIA / MN_GETHMENU / MSAA 三条路径都读不到 #32768 菜单内容；改为用后续各项的实际行为验证菜单每一个条目
+
+== 4. 托盘切换到侧边栏模式 ==
+  [PASS] 托盘菜单可点击第 4 项（侧边栏模式）
+  [PASS] 切换后侧边栏窗口出现
+  [PASS] 切换后全屏主窗口已隐藏（三种模式互斥）
+
+== 5. 侧边栏：停靠切换（多显示器虚拟桌面范围内） ==
+  [INFO] 侧边栏初始位置：Left=1768 Right=2048（虚拟桌面 0..2048，DPI 缩放 1.25）
+  [PASS] 侧边栏「停靠到左侧」按钮可点击
+  [INFO] 停靠左侧后：Left=0 Right=280
+  [PASS] 停靠到屏幕左侧（贴近虚拟桌面左缘）
+  [INFO] 停靠右侧后：Left=1768 Right=2048
+  [PASS] 停靠到屏幕右侧（贴近虚拟桌面右缘）
+
+== 6. 侧边栏：展开 / 收起 ==
+  [PASS] 侧边栏「收起」按钮可点击（展开态文案为收起）
+  [INFO] 展开宽 350 -> 收起宽 55
+  [PASS] 收起后只保留窄条，展开后恢复完整宽度
+  [PASS] 再次点击恢复展开
+
+== 7. 侧边栏：失焦自动收起（默认开启） ==
+  [PASS] 失焦后侧边栏自动收起（不遮挡系统操作）
+
+== 8. 全局快捷键：Ctrl+Alt+Space 呼出 / 隐藏悬浮窗 ==
+  [PASS] Ctrl+Alt+Space 呼出悬浮窗
+  [PASS] 悬浮窗实际置顶（WS_EX_TOPMOST，非仅视觉效果）
+  [PASS] 悬浮窗呼出后获得前台焦点
+  [PASS] 再次按下快捷键隐藏悬浮窗
+
+== 9. 悬浮窗：搜索 / Esc 隐藏 ==
+  [PASS] 悬浮窗包含搜索框
+  [PASS] 悬浮窗按关键词过滤项目
+  [PASS] 过滤结果均包含关键词
+  [PASS] Esc 隐藏悬浮窗
+
+== 10. 悬浮窗：双击启动桌面项目（只启动一个文件夹） ==
+  [INFO] 状态栏：全屏
+  [INFO] 双击未触发启动，退化测试：选中项目后回车启动
+  [限制] 双击/回车启动桌面项目（状态栏「已启动」反馈） -> 合成输入无法稳定触发 WPF ListBox 双击/回车绑定；OpenItem 代码路径已确认正确，真实输入可用
+
+== 11. 悬浮窗：失焦自动隐藏（默认开启） ==
+  [PASS] 失焦后悬浮窗自动隐藏
+
+== 12. 全屏模式：任务栏尊重 / 关闭=最小化到托盘 ==
+  [PASS] 切回全屏模式主窗口显示
+  [INFO] 主窗口 Bottom=1115 任务栏 Top=1380
+  [PASS] 全屏模式不覆盖任务栏（任务栏仍可操作）
+  [PASS] 全屏工作空间不是永久置顶窗口
+  [FAIL] 切换后主窗口获得焦点 
+  [PASS] 关闭主窗口后隐藏到托盘（不退出应用）
+  [PASS] 隐藏到托盘后应用进程仍在运行（热键与监听不中断）
+
+== 13. 单实例：第二个实例只唤起已有实例 ==
+  [PASS] 重复启动不会产生第二个实例
+  [PASS] 第二个实例检测到已在运行后自行退出
+  [INFO] 被唤起的窗口：DeskSpace
+  [PASS] 第二个实例的启动请求唤起了已有实例的窗口
+
+== 14. 设置窗口：修改窗口模式与全局快捷键 ==
+  [FAIL] 托盘菜单可打开设置窗口 
+
+== 15. Explorer 重启后托盘图标自动恢复 ==
+  [INFO] 重启 Explorer（任务栏会重新出现，约 5-10 秒）…
+  [FAIL] Explorer 重启后 DeskSpace 主进程未崩溃（托盘服务仍在运行） 
+  [限制] Explorer 重启后托盘图标自动恢复（图标可见性） -> 图标已按 TaskbarCreated 重注册（TrayIconService.HandleMessage 已确认），但 Win11 溢出区图标本机 UIA 不可
+见，无法自动断言可见性
+
+== 16. 退出：托盘菜单退出并释放资源 ==
+  [INFO] 找不到 DeskSpace 消息宿主窗口，无法以消息方式打开托盘菜单
+  [INFO] 找不到 DeskSpace 消息宿主窗口，无法以消息方式打开托盘菜单
+  [INFO] 找不到 DeskSpace 消息宿主窗口，无法以消息方式打开托盘菜单
+  [FAIL] 托盘菜单可点击第 8 项（退出 DeskSpace） 
+  [PASS] 退出后应用进程完全结束
+  [PASS] 退出后所有窗口都不再存在
+  [PASS] 退出后全局快捷键已释放（可被其他程序注册同一组合）
+
+== 17. 清理：关闭进程 / 还原配置 / 校验桌面零残留 ==
+  [INFO] 已还原 settings.json
+  [INFO] 已还原 library.json
+  [INFO] 备份副本保留在 TEMP，可手动删除：C:\Users\TTjustTT\AppData\Local\Temp\DeskSpaceBackup_S4_d4a73337
+  [PASS] 验收后桌面与验收前完全一致（零残留）
+  [INFO] 配置目录日志：C:\Users\TTjustTT\AppData\Local\DeskSpace\logs
+
+== 阶段 4 真实验收汇总 ==
+托盘菜单驱动方式：托盘回调消息
+  自动化限制: 从外部读取托盘菜单项文本 -> 本机 UIA / MN_GETHMENU / MSAA 三条路径都读不到 #32768 菜单内容；改为用后续各项的实际行为验证菜单每一个条目
+  自动化限制: 双击/回车启动桌面项目（状态栏「已启动」反馈） -> 合成输入无法稳定触发 WPF ListBox 双击/回车绑定；OpenItem 代码路径已确认正确，真实输入可用
+  自动化限制: Explorer 重启后托盘图标自动恢复（图标可见性） -> 图标已按 TaskbarCreated 重注册（TrayIconService.HandleMessage 已确认），但 Win11 溢出区图标本机 UIA 
+不可见，无法自动断言可见性
+===== 真实验收：通过 36 项，失败 4 项 =====
+  失败项: 切换后主窗口获得焦点
+  失败项: 托盘菜单可打开设置窗口
+  失败项: Explorer 重启后 DeskSpace 主进程未崩溃（托盘服务仍在运行）
+  失败项: 托盘菜单可点击第 8 项（退出 DeskSpace）

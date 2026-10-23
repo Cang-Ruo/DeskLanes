@@ -1,0 +1,20 @@
+# 构建输出
+bin/
+obj/
+publish/
+
+# Visual Studio / Rider 用户文件
+*.user
+*.suo
+*.userprefs
+.vs/
+.idea/
+
+# 阶段 5 的截图证据（48MB 的可再生诊断材料，不入仓库）
+docs/stage5-evidence/
+
+# 测试与诊断产生的日志
+*.log
+
+# 智能体工作目录（项目记忆，非源码）
+.workbuddy/
