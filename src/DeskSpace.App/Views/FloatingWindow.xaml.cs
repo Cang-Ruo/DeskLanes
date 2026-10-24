@@ -29,11 +29,11 @@ public partial class FloatingWindow : Window
         ContentRendered += (_, _) => _ = _controller.EnsureInitializedAsync();
     }
 
-    /// <summary>显示并激活窗口（快捷键呼出）。</summary>
-    public void ShowAndActivate()
+    /// <summary>显示并激活窗口（快捷键呼出）。快捷键属于用户显式操作，允许强制前台。</summary>
+    public void ShowAndActivate(bool forceForeground = true)
     {
         Show();
-        WindowActivator.Activate(this);
+        WindowActivator.Activate(this, forceForeground);
         SearchBox.Focus();
         SearchBox.SelectAll();
     }

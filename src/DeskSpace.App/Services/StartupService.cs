@@ -27,6 +27,9 @@ public interface IStartupService
     /// <summary>开机自启对应的命令行（供提示与排错）。</summary>
     string CommandLine { get; }
 
+    /// <summary>重新读取启动项状态。用户或第三方工具可能在软件运行期间改过。</summary>
+    void Refresh();
+
     /// <summary>启用或停用开机自启。</summary>
     OperationResult SetEnabled(bool enabled);
 }

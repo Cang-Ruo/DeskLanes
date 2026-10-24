@@ -61,6 +61,7 @@ public sealed class SettingsViewModel : ObservableObject
         TestHotkeyCommand = new RelayCommand(_ => TestHotkey());
         SaveCommand = new RelayCommand(_ => Save());
         CancelCommand = new RelayCommand(_ => Cancelled?.Invoke(this, EventArgs.Empty));
+        CleanupForUninstallCommand = new RelayCommand(_ => CleanupForUninstall());
 
         RefreshHotkeyStatus();
     }
@@ -226,8 +227,11 @@ public sealed class SettingsViewModel : ObservableObject
     /// <summary>开机自启的说明/异常提示（无异常时为 null）。</summary>
     public string? AutoStartStatus => _startupService?.StatusText;
 
-    /// <summary>没有启动服务时禁用勾选框，避免"勾了却不生效"。</summary>
-    public bool CanEditAutoStart => _startupService is not null;
+    /// <summary>
+    /// 没有启动服务、或读取启动项失败（状态未知）时禁用勾选框，
+    /// 避免"勾了却不生效"或"在未知状态下覆盖系统设置"。
+    /// </summary>
+    public bool CanEditAutoStart => _startupService is not null && _startupService.StatusText is null;
 
     /// <summary>是否隐藏桌面图标。</summary>
     public bool HideDesktopIcons
@@ -239,14 +243,17 @@ public sealed class SettingsViewModel : ObservableObject
     /// <summary>桌面图标服务的说明/异常提示。</summary>
     public string? DesktopIconStatus => _desktopIconService?.StatusText;
 
-    /// <summary>没有桌面图标服务时禁用勾选框。</summary>
-    public bool CanEditDesktopIcons => _desktopIconService is not null;
+    /// <summary>没有服务、或读取系统状态失败（状态未知）时禁用勾选框。</summary>
+    public bool CanEditDesktopIcons => _desktopIconService is not null && _desktopIconService.StatusText is null;
 
     public RelayCommand TestHotkeyCommand { get; }
 
     public RelayCommand SaveCommand { get; }
 
     public RelayCommand CancelCommand { get; }
+
+    /// <summary>卸载 / 移除 DeskSpace 前的系统清理（删除自启项 + 恢复桌面图标）。</summary>
+    public RelayCommand CleanupForUninstallCommand { get; }
 
     /// <summary>当前已注册的快捷键说明（打开设置时展示）。</summary>
     public string CurrentHotkeyText
@@ -376,5 +383,82 @@ public sealed class SettingsViewModel : ObservableObject
 
         _workspace.Save();
         Saved?.Invoke(this, EventArgs.Empty);
+    }
+
+    /// <summary>
+    /// 卸载 / 移除 DeskSpace 前的系统清理：删除自启项、恢复桌面图标，并把配置同步成清理后的状态，
+    /// 避免下次启动又把"已启用 / 已隐藏"写回系统。DeskSpace 本身不提供卸载器，这是唯一的清理入口。
+    /// </summary>
+    private void CleanupForUninstall()
+    {
+        bool confirmed = _dialogService.Confirm(
+            "即将为移除 DeskSpace 做系统清理，共两步：\n\n" +
+            "1. 删除当前用户的开机自启启动项（HKCU Run 里的 DeskSpace）。\n" +
+            "2. 恢复桌面图标显示（仅当前处于隐藏状态时执行）。\n\n" +
+            "不会移动、删除或修改任何桌面文件，也不会重启资源管理器。\n\n确定要执行清理吗？",
+            "卸载前清理");
+        if (!confirmed)
+        {
+            return;
+        }
+
+        List<string> problems = new();
+
+        if (_startupService is not null)
+        {
+            OperationResult r = _startupService.SetEnabled(false);
+            if (r.Success)
+            {
+                AutoStartEnabled = false;
+            }
+            else
+            {
+                problems.Add("· 删除开机自启失败：" + r.ErrorMessage);
+            }
+        }
+
+        if (_desktopIconService is not null)
+        {
+            _desktopIconService.Refresh();
+            if (_desktopIconService.IsHidden)
+            {
+                OperationResult r = _desktopIconService.SetHidden(false);
+                if (r.Success)
+                {
+                    HideDesktopIcons = false;
+                }
+                else
+                {
+                    problems.Add("· 恢复桌面图标失败：" + r.ErrorMessage);
+                }
+            }
+        }
+
+        // 把配置同步成清理后的真实状态，避免下次启动把旧行为写回系统
+        if (_workspace.Settings.AutoStartEnabled != AutoStartEnabled)
+        {
+            _workspace.Settings.AutoStartEnabled = AutoStartEnabled;
+        }
+
+        if (_workspace.Settings.HideDesktopIcons != HideDesktopIcons)
+        {
+            _workspace.Settings.HideDesktopIcons = HideDesktopIcons;
+        }
+
+        _workspace.Save();
+
+        if (problems.Count > 0)
+        {
+            _dialogService.ShowError(
+                "清理未全部完成：\n" + string.Join("\n", problems) +
+                "\n\n你可以手动检查注册表 HKCU\\Software\\Microsoft\\Windows\\CurrentVersion\\Run 与" +
+                "桌面右键菜单里的「查看 → 显示桌面图标」。",
+                "卸载前清理");
+            return;
+        }
+
+        _dialogService.ShowInfo(
+            "清理完成：\n· 开机自启已删除\n· 桌面图标已恢复显示\n\n现在可以放心移除 DeskSpace 程序文件。",
+            "卸载前清理");
     }
 }

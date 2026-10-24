@@ -20,8 +20,8 @@ namespace DeskSpace.App.Services;
 /// </summary>
 public static class WindowActivator
 {
-    /// <summary>激活窗口并保证它成为前台窗口。</summary>
-    public static void Activate(Window window)
+    /// <summary>激活窗口；<paramref name="forceForeground"/> 为 false 时不做强制前台兜底。</summary>
+    public static void Activate(Window window, bool forceForeground = true)
     {
         if (window is null)
         {
@@ -29,6 +29,11 @@ public static class WindowActivator
         }
 
         window.Activate();
+
+        if (!forceForeground)
+        {
+            return;
+        }
 
         IntPtr hwnd = new WindowInteropHelper(window).Handle;
         if (hwnd == IntPtr.Zero)

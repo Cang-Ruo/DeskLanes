@@ -45,6 +45,11 @@ public static class WindowInterop
     [return: MarshalAs(UnmanagedType.Bool)]
     public static extern bool BringWindowToTop(IntPtr hWnd);
 
+    /// <summary>判断窗口所属线程是否已停止响应（用于避免把输入队列挂到挂起的线程上）。</summary>
+    [DllImport("user32.dll")]
+    [return: MarshalAs(UnmanagedType.Bool)]
+    public static extern bool IsHungAppWindow(IntPtr hWnd);
+
     /// <summary>SW_RESTORE。</summary>
     public const int SwRestore = 9;
 
@@ -88,7 +93,11 @@ public static class WindowInterop
         uint currentThread = GetCurrentThreadId();
         bool attached = false;
 
-        if (foregroundThread != 0 && foregroundThread != currentThread)
+        // 目标线程如果已经无响应（挂起的窗口），AttachThreadInput 可能把本方 UI 线程一起拖住。
+        // 这种情况下放弃强制前台——窗口照样能显示，只是不抢焦点。
+        bool targetResponsive = foreground == IntPtr.Zero || !IsHungAppWindow(foreground);
+
+        if (foregroundThread != 0 && foregroundThread != currentThread && targetResponsive)
         {
             attached = AttachThreadInput(currentThread, foregroundThread, true);
         }

@@ -105,6 +105,14 @@
                           FontSize="12" Margin="0,0,0,6" />
                 <TextBlock Text="{Binding DesktopIconStatus}"
                            Foreground="#B45309" FontSize="11" TextWrapping="Wrap" />
+
+                <!-- 卸载前清理 -->
+                <TextBlock Text="卸载前清理" FontSize="13" FontWeight="SemiBold" Margin="0,18,0,6" />
+                <TextBlock Text="删除开机自启启动项，并恢复桌面图标显示。用于移除 DeskSpace 前清理系统痕迹，不会动任何桌面文件。"
+                           FontSize="11" Foreground="#777777" TextWrapping="Wrap" Margin="0,0,0,6" />
+                <Button Content="执行清理…"
+                        Command="{Binding CleanupForUninstallCommand}"
+                        Padding="14,5" HorizontalAlignment="Left" />
             </StackPanel>
         </ScrollViewer>
 
