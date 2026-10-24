@@ -52,6 +52,9 @@ public static class UN
     public static extern int GetClassName(IntPtr h, StringBuilder s, int n);
 
     [DllImport("user32.dll")]
+    public static extern bool IsWindowVisible(IntPtr h);
+
+    [DllImport("user32.dll")]
     public static extern IntPtr SendMessage(IntPtr h, uint msg, IntPtr w, IntPtr l);
 
     public static IntPtr FindTopWindowByClass(string cls)
@@ -59,7 +62,7 @@ public static class UN
         IntPtr found = IntPtr.Zero;
         EnumWindows(delegate(IntPtr h, IntPtr l) {
             var c = new StringBuilder(256); GetClassName(h, c, 256);
-            if (c.ToString() == cls) { found = h; return false; }
+            if (c.ToString() == cls && IsWindowVisible(h)) { found = h; return false; }
             return true;
         }, IntPtr.Zero);
         return found;
@@ -144,7 +147,8 @@ if ($null -ne $runVal) {
 # ---- 3. 恢复桌面图标显示 ----
 $hidden = Get-HideIcons
 if ($hidden -ne 0) {
-    $dv = [UN]::FindDesktopDefView()
+    $pm = [UN]::FindTopWindowByClass("Progman")
+    $dv = if ($pm -ne [IntPtr]::Zero) { [UN]::FindDesktopDefView() } else { [IntPtr]::Zero }
     if ($dv -ne [IntPtr]::Zero) {
         [UN]::ToggleDesktopIcons($dv)
         Start-Sleep -Milliseconds 1200
@@ -154,7 +158,28 @@ if ($hidden -ne 0) {
             Say '注意：已发送恢复命令，但系统状态仍未变回显示，请手动检查「查看 → 显示桌面图标」。'
         }
     } else {
-        Say '注意：找不到桌面图标窗口，无法自动恢复显示。请手动用桌面右键菜单「查看 → 显示桌面图标」。'
+        # 桌面窗口不在（Explorer 异常/刚被杀）：右键菜单此时不存在，不能那么建议。
+        # 兜底：直接把注册表改回显示态，这样 Explorer 一旦恢复，图标就会显示。
+        try {
+            Set-ItemProperty -Path $advKey -Name HideIcons -Value 0 -Type DWord -ErrorAction Stop
+            if ($pm -eq [IntPtr]::Zero) {
+                Say '注意：当前找不到桌面窗口（资源管理器异常），无法发恢复命令。'
+                Say '      已把注册表 HideIcons 直接改回 0（显示）。'
+                Say '      请用以下任一方式让桌面恢复：'
+                Say '        1) Ctrl+Shift+Esc 打开任务管理器 → 文件 → 运行新任务 → 输入 explorer.exe'
+                Say '        2) 或重启电脑'
+                Say '      桌面恢复后图标即为显示状态；如仍未显示，再跑一次本脚本即可。'
+            } else {
+                Say '注意：桌面窗口在，但找不到图标列表窗口（资源管理器可能刚重启）。'
+                Say '      已把注册表 HideIcons 直接改回 0（显示）。'
+                Say '      若图标仍未出现，请重启资源管理器（任务管理器 → 运行新任务 → explorer.exe）'
+                Say '      或注销重登，然后跑一次本脚本（-Silent）确认恢复。'
+            }
+        } catch {
+            Say ('注意：无法自动恢复桌面图标显示（' + $_.Exception.Message + '）。')
+            Say '      请手动在桌面空白处右键 → 查看 → 显示桌面图标；'
+            Say '      若桌面右键菜单也没有，请先重启资源管理器（任务管理器 → 运行新任务 → explorer.exe）。'
+        }
     }
 } else {
     Say '桌面图标：当前就是显示状态，无需恢复'

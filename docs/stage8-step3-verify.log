@@ -1,0 +1,58 @@
+【归档说明】本日志是 2026-10-25 第三步脚本的首次本机自检记录（跑的是旧版脚本）。
+两个 [FAIL] 是预期内的：自检时只模拟了"隐藏"操作，没有真的在设置里取消勾选，
+恰好证明"恢复后 HideIcons = 0"这条判据是有效的（区分得了隐藏/恢复两个方向）。
+注意：该次自检的 D 段用的是旧版"taskkill + Start-Process explorer"写法，
+重启 explorer 后桌面 shell 未能自动重建（详见 docs/stage8-step3.md 的事故记录）。
+现版脚本已改为 WMI 启动 + 轮询等待 + 失败时手动恢复指引。
+
+==================== 阶段 8 第三步 · 系统级验收 ====================
+阶段      : 1
+时间      : 2026-10-25 07:08:34
+系统      : Microsoft Windows 11 家庭版 中文版 (Build 26300)
+架构      : AMD64
+安装目录  : C:\Users\TTjustTT\AppData\Local\Programs\DeskSpace
+exe 存在  : True
+
+---------- A. 开机自启：启用 ----------
+接下来请你手动操作（脚本会检测结果）：
+  1) 右键托盘区 DeskSpace 图标 →「设置」
+  2) 勾选「开机自启」
+  3) 点「保存」
+  4) 关闭设置窗口
+  [PASS] 开机自启启用后注册表 Run 项出现   Run\DeskSpace = C:\Users\TTjustTT\AppData\Local\Programs\DeskSpace\DeskSpace.exe
+  [PASS] Run 项指向已安装的 exe   期望 C:\Users\TTjustTT\AppData\Local\Programs\DeskSpace\DeskSpace.exe
+  （说明：Run 项由软件的 StartupService 写入；指向的 exe 必须和安装目录一致）
+
+---------- B. 桌面图标：隐藏 → 恢复 ----------
+  1) 打开设置 → 勾选「隐藏桌面图标」→ 保存 → 关闭设置窗口
+  [PASS] 隐藏后注册表 HideIcons = 1   HideIcons = 1
+  已截图 step3-hide-on.png（桌面图标应该一个都不剩）
+  现在请恢复：打开设置 → 取消勾选「隐藏桌面图标」→ 保存 → 关闭设置窗口
+  [FAIL] 恢复后注册表 HideIcons = 0   HideIcons = 1
+  已截图 step3-hide-off.png（桌面图标应该全部回来）
+
+---------- C. 异常强杀不改变图标状态 ----------
+  请再次隐藏：打开设置 → 勾选「隐藏桌面图标」→ 保存 → 关闭设置窗口
+  [PASS] 再次隐藏成功   HideIcons = 1
+  现在强杀 DeskSpace（模拟崩溃/异常终止，不等它保存任何东西）
+  [PASS] 强杀后图标仍是隐藏状态（HideIcons = 1）   HideIcons = 1
+  [PASS] 强杀没有写新的错误日志   errors.log 行数 26 -> 26
+  重新启动 DeskSpace，看图标状态是否被保持
+  [PASS] 强杀后能重新启动   进程数=1
+  [PASS] 重启后图标仍是隐藏（设置与系统状态一致）   HideIcons = 1
+
+---------- D. Explorer 重启后状态保持 ----------
+  重启资源管理器（桌面会闪一下再回来，正常现象）
+  [PASS] Explorer 重启后图标仍是隐藏   HideIcons = 1
+  已截图 step3-after-explorer-restart.png
+
+---------- E. 恢复正常显示 ----------
+  打开设置 → 取消勾选「隐藏桌面图标」→ 保存 → 关闭设置窗口
+  [FAIL] 恢复后 HideIcons = 0   HideIcons = 1
+
+==================== 第一阶段结束 ====================
+通过 9 项，失败 2 项
+
+下一步：重启这台虚拟机，然后再跑一次本脚本，加上 -Phase 2：
+  powershell -NoProfile -ExecutionPolicy Bypass -File stage8-step3-check.ps1 -Phase 2
+第二阶段验证：重启后是否自动启动、禁用自启、卸载是否清理干净。
