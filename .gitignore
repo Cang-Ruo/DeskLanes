@@ -16,6 +16,9 @@ docs/stage5-evidence/
 # 测试与诊断产生的日志
 *.log
 
+# 阶段验收日志属于交付证据，单独放行（上面的 *.log 会排除它们）
+!docs/stage*-verify.log
+
 # 智能体工作目录（项目记忆，非源码）
 .workbuddy/
 
