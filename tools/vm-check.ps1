@@ -225,13 +225,13 @@ foreach ($t in $script:titles) {
 }
 
 if ($isErrorDialog) {
-    Say '结果      : ⚠ 启动被拦下了 —— 弹出了系统报错对话框（标题「' + $exeFileName + '」）'
+    Say ('结果      : 启动被拦下了 —— 弹出了系统报错对话框（标题「{0}」）' -f $exeFileName)
     if ($edition -like 'portable*' -and -not $rt) {
         Say '原因判断  : 这台机器没有 .NET 10 桌面运行时，便携版打不开 —— 失败是预期内的'
         Say '            现在要验证的是：这个提示本身够不够清楚'
     }
     $ok = Take-Screenshot $shotPath
-    if ($ok) { Say ('已截全屏  : ' + $shotPath + '  ← 请把这张图一起发回来，我要看对话框里的文字') }
+    if ($ok) { Say ('已截全屏  : {0}  ← 请把这张图一起发回来，我要看对话框里的文字' -f $shotPath) }
     else { Say '截图失败    : 无法自动截图，请把对话框上的文字抄回来发我' }
     Get-Process -Id $proc.Id -ErrorAction SilentlyContinue | Stop-Process -Force
     Set-Content -LiteralPath $reportPath -Value $lines -Encoding UTF8
