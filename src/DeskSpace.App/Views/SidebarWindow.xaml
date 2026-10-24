@@ -36,8 +36,11 @@
                 <RowDefinition Height="*" />
             </Grid.RowDefinitions>
 
-            <!-- 顶部：展开/收起 + 停靠切换 + 模式 + 关闭 -->
-            <StackPanel Grid.Row="0" Orientation="Horizontal" Margin="0,0,0,8">
+            <!-- 顶部：展开/收起 + 停靠切换 + 模式 + 关闭
+                 收起态窗口只有 MinWidth=44 的窄条，这一排放不下，整体隐藏；
+                 展开由下方收起态的「◀」按钮负责（同一命令） -->
+            <StackPanel Grid.Row="0" Orientation="Horizontal" Margin="0,0,0,8"
+                        Visibility="{Binding IsExpanded, Converter={StaticResource BoolToVis}}">
                 <Button Content="{Binding ExpandToggleText}" Padding="10,5" Margin="0,0,6,0" FontSize="12"
                         ToolTip="展开 / 收起侧边栏"
                         Command="{Binding ToggleExpandedCommand}" />

@@ -82,11 +82,16 @@ public partial class MainWindow : Window
     {
         if (DataContext is MainViewModel viewModel)
         {
+            // 侧边栏/悬浮窗模式下本窗口从未 Show 过，Left/Top 是 NaN；
+            // 非有限值一律按 null 传（Core 层也有同样的守卫）。
+            double rawLeft = WindowState == WindowState.Normal ? Left : double.NaN;
+            double rawTop = WindowState == WindowState.Normal ? Top : double.NaN;
+
             _controller.SaveWindowPreferences(
-                Width,
-                Height,
-                WindowState == WindowState.Normal ? Left : null,
-                WindowState == WindowState.Normal ? Top : null,
+                double.IsFinite(Width) ? Width : double.NaN,
+                double.IsFinite(Height) ? Height : double.NaN,
+                double.IsFinite(rawLeft) ? rawLeft : (double?)null,
+                double.IsFinite(rawTop) ? rawTop : (double?)null,
                 WindowState == WindowState.Maximized);
         }
     }
