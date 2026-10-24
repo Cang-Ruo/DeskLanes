@@ -36,6 +36,17 @@ Console.WriteLine("===== DesktopIconService 端到端可视化验证 =====");
 var service = new DesktopIconService();
 Console.WriteLine($"初始 IsHidden={service.IsHidden} Status={service.StatusText ?? "-"}");
 
+// 单步模式：只隐藏 / 只恢复，便于把某个状态留给别的脚本（如卸载脚本）去验证
+string mode = args.Length > 0 ? args[0] : "";
+if (mode == "hide" || mode == "show")
+{
+    bool want = mode == "hide";
+    var step = service.SetHidden(want);
+    Settle();
+    Console.WriteLine($"[{mode}] result={step.Success} IsHidden={service.IsHidden} Status={service.StatusText ?? "-"}");
+    return;
+}
+
 var b0 = Capture();
 Console.WriteLine($"[0 基线(显示)] md5={Save(b0, "svc-0-baseline.png")}");
 
