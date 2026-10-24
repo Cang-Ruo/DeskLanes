@@ -68,6 +68,66 @@ powershell -NoProfile -ExecutionPolicy Bypass -File tools\install.ps1
 
 ---
 
+## 在另一台电脑 / 虚拟机上安装
+
+### 先确认一件事：是不是 64 位 x64
+
+设置 → 系统 → 系统信息（或「关于」）→ **系统类型**。当前发布的版本是 `win-x64`：
+
+- **64 位操作系统，基于 x64 的处理器** → 直接可用
+- **ARM64**（例如 Apple 芯片上的虚拟机）→ x64 程序靠系统模拟也能跑，但会明显偏慢，仅建议用来验证
+
+### 推荐：用自包含版，什么都不用装
+
+虚拟机通常是干净系统，没装 .NET 10 桌面运行时，便携版打不开。所以**首选自包含版**（62 MB，自带运行时）。
+
+把这三个文件送进虚拟机（共享文件夹 / U 盘 / 网盘 / 拖拽都行）：
+
+```
+DeskSpace.exe      ← publish\win-x64-selfcontained\DeskSpace.exe（62 MB 那个）
+install.ps1
+uninstall.ps1
+```
+
+然后任选一种用法：
+
+**A. 绿色用法（最省事）**：双击 `DeskSpace.exe` 就能用，不写注册表、不留痕迹，删掉即卸载。
+
+**B. 完整安装（有开始菜单入口、可在「已安装的应用」里卸载）**：
+
+```powershell
+powershell -NoProfile -ExecutionPolicy Bypass -File install.ps1
+powershell -NoProfile -ExecutionPolicy Bypass -File install.ps1 -DesktopShortcut   # 顺便加桌面快捷方式
+```
+
+脚本会检测到同目录的 exe 是 62 MB 的自包含版，跳过运行时检查，装完即可用。
+
+### 想用便携版（0.5 MB）的话
+
+必须先装 **.NET 10 桌面运行时**（不是普通的 .NET Runtime）：
+https://dotnet.microsoft.com/download/dotnet/10.0 → 选「桌面运行时」→ Windows x64 安装包。
+装完再执行上面的安装命令即可。
+
+### 第一次运行会看到的提示
+
+没有数字签名，SmartScreen 可能弹「Windows 已保护你的电脑」，点**更多信息 → 仍要运行**。
+这是正常的（签名不在本阶段范围内）。
+
+### 顺便做一次体检（会帮到项目）
+
+这台虚拟机正好能验证「干净环境下能不能跑」。把 `vm-check.ps1` 和 exe 放同一目录，跑：
+
+```powershell
+powershell -NoProfile -ExecutionPolicy Bypass -File vm-check.ps1
+```
+
+它会输出：系统版本与 Build、是否 x64、DPI 缩放与显示器布局、有没有 .NET 10 桌面运行时、
+启动后窗口有没有出来、窗口有没有跑出屏幕、用的是自带运行时还是系统的；
+结果同时写进同目录 `vm-check-report.txt`，启动失败还会自动截一张 `vm-check-fail.png`。
+把报告（和失败截图，如果有的话）发回来即可 —— 这是阶段 8 第二步要的证据。
+
+---
+
 ## 卸载
 
 任选一种：
