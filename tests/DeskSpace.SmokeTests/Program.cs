@@ -1718,7 +1718,8 @@ Console.WriteLine("-- 14 开机自启（HKCU Run 启动项）--");
 // ---------------------------------------------------------------- 15. 桌面图标隐藏 / 恢复
 Console.WriteLine("-- 15 桌面图标隐藏 / 恢复 --");
 {
-    // 会短暂隐藏桌面图标并立即还原；只写 Explorer\Advanced\HideIcons 这一个值，不重启 Explorer。
+    // 通过切换命令（WM_COMMAND 0x7402，系统右键菜单同款）短暂隐藏桌面图标并立即还原。
+    // HideIcons 注册表值由资源管理器在切换时自己写，本服务不直接写注册表；不重启 Explorer。
     var iconSvc = new DeskSpace.App.Services.DesktopIconService();
     Check(iconSvc.StatusText is null, "桌面图标服务可读取当前状态", iconSvc.StatusText);
     bool originalHidden = iconSvc.IsHidden;
@@ -1731,12 +1732,30 @@ Console.WriteLine("-- 15 桌面图标隐藏 / 恢复 --");
     using (RegistryKey? adv = Registry.CurrentUser.OpenSubKey(
         @"Software\Microsoft\Windows\CurrentVersion\Explorer\Advanced", false))
     {
-        Check(adv?.GetValue("HideIcons") is int v && v != 0, "注册表 HideIcons 已写入 1");
+        Check(adv?.GetValue("HideIcons") is int v && v != 0, "切换后注册表 HideIcons 同步为 1");
     }
 
     OperationResult showResult = iconSvc.SetHidden(false);
     Check(showResult.Success, "可恢复桌面图标", showResult.ErrorMessage);
     Check(!iconSvc.IsHidden, "恢复后状态为显示中");
+
+    // ---- Refresh()：外部改注册表后，服务必须能读到系统真实状态 ----
+    // （对应阶段 7 修复项 5：用户可能用 Windows 右键菜单等软件外的途径改过）
+    using (RegistryKey adv = Registry.CurrentUser.CreateSubKey(
+        @"Software\Microsoft\Windows\CurrentVersion\Explorer\Advanced")!)
+    {
+        adv.SetValue("HideIcons", 1, RegistryValueKind.DWord);
+    }
+    iconSvc.Refresh();
+    Check(iconSvc.IsHidden, "Refresh() 能读到外部写入的隐藏状态");
+
+    using (RegistryKey adv = Registry.CurrentUser.CreateSubKey(
+        @"Software\Microsoft\Windows\CurrentVersion\Explorer\Advanced")!)
+    {
+        adv.SetValue("HideIcons", 0, RegistryValueKind.DWord);
+    }
+    iconSvc.Refresh();
+    Check(!iconSvc.IsHidden, "Refresh() 能读到外部写入的显示状态");
 
     // 还原测试前的真实状态
     iconSvc.SetHidden(originalHidden);
