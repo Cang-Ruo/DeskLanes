@@ -137,10 +137,8 @@ public sealed class AppController : IDisposable
         _sidebarViewModel.ModeSwitchRequested += OnModeSwitchRequested;
         _floatingViewModel.HideRequested += (_, _) => _modeManager.HideFloating();
 
-        // ---- 全局快捷键 ----
-        RegisterHotkeyWithFeedback();
-
         // ---- 系统托盘（自实现，纯 P/Invoke，消息走消息宿主窗口） ----
+        // 托盘要先于快捷键创建：快捷键注册失败时的气泡通知需要托盘已经就绪。
         _tray = new TrayIconService(_messageHostHandle)
         {
             ToolTipText = "DeskSpace",
@@ -159,10 +157,15 @@ public sealed class AppController : IDisposable
         };
         _tray.Activated += (_, _) => ShowCurrentMode();
         _tray.MenuCommand += OnTrayMenuCommand;
+
+        // ---- 全局快捷键（托盘已就绪，注册失败时气泡可用） ----
+        RegisterHotkeyWithFeedback();
+
         UpdateTrayText();
 
         // ---- 按当前模式显示对应窗口 ----
-        ApplyMode(_modeManager.CurrentMode, activate: true);
+        // 启动不做强制前台：开机自启会在登录阶段运行，此时不该与其他进程做线程输入挂接。
+        ApplyMode(_modeManager.CurrentMode, activate: true, forceForeground: false);
 
         _logger.Log(SyncLogLevel.Info, $"应用已启动，当前窗口模式：{_modeManager.CurrentMode}");
         return true;
@@ -463,7 +466,17 @@ public sealed class AppController : IDisposable
 
     // ---------- 窗口模式 ----------
 
-    private void ApplyMode(WindowMode mode, bool activate)
+    /// <summary>
+    /// 应用窗口模式。
+    /// </summary>
+    /// <param name="mode">目标模式。</param>
+    /// <param name="activate">是否把窗口带到前台。</param>
+    /// <param name="forceForeground">
+    /// 是否允许在常规 Activate 失败后走 <see cref="WindowInterop.ForceForeground"/>。
+    /// 默认开启（托盘菜单 / 热键 / 设置保存都是用户显式操作）；
+    /// <b>应用启动时传 false</b>——开机自启会在登录阶段运行，此时不应与其他线程做线程输入挂接。
+    /// </param>
+    private void ApplyMode(WindowMode mode, bool activate, bool forceForeground = true)
     {
         switch (mode)
         {
@@ -474,7 +487,7 @@ public sealed class AppController : IDisposable
                 {
                     if (activate)
                     {
-                        _floatingWindow.ShowAndActivate();
+                        _floatingWindow.ShowAndActivate(forceForeground);
                     }
                     else
                     {
@@ -489,16 +502,9 @@ public sealed class AppController : IDisposable
                 _floatingWindow?.Hide();
                 if (_sidebarWindow is not null)
                 {
-                    if (activate)
-                    {
-                        // ShowDocked() 内部已经 Show + Activate；这里不再叠加前台强制，
-                        // 避免与侧边栏「失焦自动收起」的判断互相干扰。
-                        _sidebarWindow.ShowDocked();
-                    }
-                    else
-                    {
-                        _sidebarWindow.Show();
-                    }
+                    // ShowDocked() 内部已经 Show + Activate；这里不再叠加前台强制，
+                    // 避免与侧边栏「失焦自动收起」的判断互相干扰。
+                    _sidebarWindow.ShowDocked();
                 }
 
                 break;
@@ -516,7 +522,7 @@ public sealed class AppController : IDisposable
                             _mainWindow.WindowState = WindowState.Normal;
                         }
 
-                        WindowActivator.Activate(_mainWindow);
+                        WindowActivator.Activate(_mainWindow, forceForeground);
                     }
                 }
 
@@ -581,6 +587,11 @@ public sealed class AppController : IDisposable
         {
             return;
         }
+
+        // 每次打开设置都重新读一次系统实际状态：用户可能在软件运行期间
+        // 用 Windows 自己的右键菜单 / 任务管理器改过这两项，启动时的快照会过时。
+        _desktopIconService?.Refresh();
+        _startupService?.Refresh();
 
         if (_settingsWindow is not null)
         {

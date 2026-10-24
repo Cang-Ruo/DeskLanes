@@ -93,7 +93,11 @@ public sealed class HotkeyService : IHotkeyService
             }
 
             // 切换快捷键前先释放旧的，避免同进程内重复注册冲突
-            UnregisterCore();
+            if (!UnregisterCore())
+            {
+                return OperationResult.Fail(
+                    $"无法释放原快捷键 {_current?.DisplayText}（错误码 {Marshal.GetLastWin32Error()}），新快捷键未设置。");
+            }
 
             if (!HotkeyInterop.RegisterHotKey(
                     _windowHandle,
@@ -129,7 +133,13 @@ public sealed class HotkeyService : IHotkeyService
         }
 
         bool success = HotkeyInterop.UnregisterHotKey(_windowHandle, HotkeyId);
-        _current = null;
+        if (success)
+        {
+            // 只有真的注销成功才清空状态；失败时保留 _current，
+            // 让"内存状态"和"系统里仍被占用的热键"保持一致，而不是自欺欺人。
+            _current = null;
+        }
+
         return success;
     }
 

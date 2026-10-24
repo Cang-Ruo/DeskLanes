@@ -8,6 +8,19 @@
     <AssemblyName>DeskSpace</AssemblyName>
     <RootNamespace>DeskSpace.App</RootNamespace>
     <ApplicationTitle>DeskSpace</ApplicationTitle>
+
+    <!-- 应用图标：同时用于 exe / 任务栏 / Alt-Tab / 托盘（TrayIconService 从 exe 提取） -->
+    <ApplicationIcon>Assets\app.ico</ApplicationIcon>
+
+    <!-- 版本与文件属性：此前缺失导致产物没有版本资源，无法从文件属性辨认版本 -->
+    <Version>0.1.0</Version>
+    <AssemblyVersion>0.1.0.0</AssemblyVersion>
+    <FileVersion>0.1.0.0</FileVersion>
+    <Company>DeskSpace</Company>
+    <Product>DeskSpace</Product>
+    <Description>Windows 11 本地桌面工作空间管理器</Description>
+    <Copyright>Copyright © 2026</Copyright>
+    <NeutralLanguage>zh-CN</NeutralLanguage>
   </PropertyGroup>
   <ItemGroup>
     <ProjectReference Include="..\DeskSpace.Core\DeskSpace.Core.csproj" />
