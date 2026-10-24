@@ -934,6 +934,19 @@ try
     Check(syncWorkspace.Settings.WindowWidth == 1000 && syncWorkspace.Settings.WindowLeft == 10,
         "同步后窗口偏好保留");
 
+    // ---- 12.10 窗口未显示时保存偏好不能把配置写坏 ----
+    // 侧边栏/悬浮窗模式下主窗口从未 Show，Left/Top 是 NaN；NaN 无法写进 JSON，
+    // System.Text.Json 会抛 ArgumentException（虚拟机实测踩到过）。
+    syncWorkspace.SaveWindowPreferences(double.NaN, double.NaN, null, null, false);
+    Check(syncWorkspace.Settings.WindowWidth == 1000 && syncWorkspace.Settings.WindowHeight == 800,
+        "尺寸为 NaN 时保留原窗口尺寸（不写坏配置）");
+    Check(syncWorkspace.Settings.WindowLeft is null && syncWorkspace.Settings.WindowTop is null,
+        "位置为 null 时清空窗口位置");
+    syncWorkspace.SaveWindowPreferences(1200, 900, double.NaN, 30, false);
+    Check(syncWorkspace.Settings.WindowWidth == 1200 && syncWorkspace.Settings.WindowLeft is null
+        && syncWorkspace.Settings.WindowTop == 30,
+        "位置为 NaN 时按 null 处理、其余字段照常保存");
+
     // ---- 12.9 局部重扫不误伤未扫描目录 ----
     string victimPath = Path.Combine(syncPublic, "批量0.txt");
     File.Delete(victimPath);

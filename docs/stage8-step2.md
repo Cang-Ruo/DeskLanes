@@ -107,6 +107,58 @@
 考虑到 WPF Per-Monitor V2 是系统级行为、且已覆盖 100%/125% 两档 + 全屏/悬浮窗两种窗口类型，
 风险可控，记录为已知限制而非阻塞项。
 
-### 3.3 第 3 项：侧边栏（单显示器）
+### 3.3 第 3 项：侧边栏（单显示器）—— 截图暴露两个缺陷，已修复
 
-用户已切换并截了「侧边栏展示.png」，但截图未随报告送达，需补发。
+虚拟机截图（收起态侧边栏）显示：窄条贴右、通高，但顶部能看到**被裁掉一半的「展」按钮**。
+
+**缺陷 1：收起态按钮排溢出。** `SidebarWindow.xaml` 的顶部 StackPanel（展开/停靠/全屏/悬浮/关闭
+五个按钮）没有绑定可见性，而收起态窗口只有 `MinWidth="44"` —— 五个按钮必然溢出，只剩裁切的残影。
+
+修复：给该 StackPanel 加 `Visibility="{Binding IsExpanded, ...}"`，收起态整体隐藏
+（展开由收起态的「◀」按钮负责，同一命令）。
+
+本机验证（`tools/probe-sidebar.ps1`，用新构建）：
+
+```
+侧边栏窗口: (2505,245)-(2560,1195)  宽=55 高=950        ← 贴右停靠、通高
+窗口内按钮总数: 1
+  按钮「◀」 离屏=False 矩形=(2514,259,37x100)
+可见按钮数: 1  ← 修复后应为 1（只剩收起态的展开按钮）
+结论: PASS
+```
+
+**缺陷 2（顺带发现，更严重）：侧边栏/悬浮窗模式下退出会写一条错误日志。**
+排查侧边栏时翻 `errors.log` 发现：
+
+```
+System.ArgumentException: .NET number values such as positive and negative infinity
+cannot be written as valid JSON.
+   at ...JsonStore`1.Save() ... WorkspaceService.SaveWindowPreferences(...)
+   at ...MainWindow.OnClosing(...)
+```
+
+根因：这两种模式下 `MainWindow` 从未 `Show()`，WPF 的 `Left`/`Top` 是 **NaN**，
+而 `WindowState` 仍是 `Normal` → NaN 被传给 `SaveWindowPreferences` → `System.Text.Json`
+无法序列化 NaN → 抛异常。被全局兜底接住写了 errors.log，**用户看不到崩溃，
+但窗口位置偏好每次退出都丢失，且日志被污染**。
+
+修复（两层）：
+
+1. `WorkspaceService.SaveWindowPreferences`：逐项校验 —— 尺寸非有限就保留原值，
+   位置非有限就置 null（语义：这次没有可信的位置可存）。
+2. `MainWindow.OnClosing`：不把 NaN 传下去。
+3. 冒烟测试新增 3 条回归断言 → **292/292 通过**（原 289）。
+
+验证：`errors.log` 行数 26 → 26，退出不再写新错误。
+
+### 3.4 第二步结论
+
+| 验收标准 | 证据 | 结论 |
+|---|---|---|
+| 有/无 .NET 10 桌面运行时都能跑 | 无运行时的干净 Win11：自包含版直接运行；便携版弹明确报错框 | ✅ |
+| 启动失败有明确提示 | .NET 宿主报错框 + Download it now 按钮（不是静默消失） | ✅ |
+| 窗口不跑出屏幕 | 100% 与 125% 两档 DPI × 两种分辨率 × 两种版本，中心点均在屏内 | ✅ |
+| 不因缩放失去可用性 | 125% 下窗口按物理像素缩放（1375×900）不变形；侧边栏贴右通高 | ✅ |
+| 单显示器下的三种模式 | 全屏（首次默认）✅、悬浮窗 ✅、侧边栏 ✅（修了两个缺陷后） | ✅ |
+
+**第二步完成。** 已知限制：DPI 150%/200% 未测；报错框语言未在中文系统上验证。

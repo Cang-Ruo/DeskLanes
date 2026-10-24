@@ -607,10 +607,21 @@ public sealed class WorkspaceService : IWorkspaceService
 
     public void SaveWindowPreferences(double width, double height, double? left, double? top, bool maximized)
     {
-        SettingsData.WindowWidth = width;
-        SettingsData.WindowHeight = height;
-        SettingsData.WindowLeft = left;
-        SettingsData.WindowTop = top;
+        // 窗口从未显示过时（例如一直在侧边栏/悬浮窗模式下运行），WPF 的 Left/Top 是 NaN，
+        // Width/Height 也可能取到非有限值。NaN 无法写进 JSON（System.Text.Json 会直接抛
+        // ArgumentException），所以这里逐项校验：尺寸非有限就保留原值，位置非有限就置空。
+        if (double.IsFinite(width) && width > 0)
+        {
+            SettingsData.WindowWidth = width;
+        }
+
+        if (double.IsFinite(height) && height > 0)
+        {
+            SettingsData.WindowHeight = height;
+        }
+
+        SettingsData.WindowLeft = left is double l && double.IsFinite(l) ? l : null;
+        SettingsData.WindowTop = top is double t && double.IsFinite(t) ? t : null;
         SettingsData.WindowMaximized = maximized;
         Save();
     }
