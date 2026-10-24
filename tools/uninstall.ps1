@@ -111,6 +111,11 @@ if ([string]::IsNullOrWhiteSpace($InstallDir)) {
     exit 1
 }
 Say ("安装目录: {0}" -f $InstallDir)
+$ed = (Get-ItemProperty -Path $uninstallKeyPath -Name 'Edition' -ErrorAction SilentlyContinue).Edition
+if ($ed) {
+    $edLabel = if ($ed -eq 'selfcontained') { '自包含版（自带运行时）' } else { '便携版（依赖 .NET 10 桌面运行时）' }
+    Say ("已安装版本: {0}  [{1}]" -f $ed, $edLabel)
+}
 
 if (-not $Silent) {
     $ans = Read-Host ('确认卸载 DeskSpace？会删除该目录里的程序文件 (y/N)')
