@@ -18,3 +18,6 @@ docs/stage5-evidence/
 
 # 智能体工作目录（项目记忆，非源码）
 .workbuddy/
+
+# 阶段 7 的截图证据（33MB 的可再生诊断材料，不入仓库；关键小图用 git add -f 单独收）
+docs/stage7-evidence/

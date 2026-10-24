@@ -1,5 +1,7 @@
 using System;
+using System.Collections.Generic;
 using System.Runtime.InteropServices;
+using System.Text;
 using Microsoft.Win32;
 using DeskSpace.Core.Services;
 
@@ -9,19 +11,32 @@ namespace DeskSpace.App.Services;
 /// 桌面图标隐藏 / 恢复。
 /// </summary>
 /// <remarks>
-/// 实现方式（本机 Win11 26H2 实测有效，见 docs/stage5-evidence 的 p2-* 截图对比）：
-///   写入 HKCU\...\Explorer\Advanced\HideIcons（与系统右键"查看 → 显示桌面图标"写的是同一个值），
-///   再向所有顶层窗口广播 WM_SETTINGCHANGE，让 Explorer 立即生效——不需要重启 Explorer。
-///   只写注册表而不广播是无效的（stage5-probe v1 已验证：截图前后完全一致）。
+/// <b>实现方式（2026-10-25 实机复测后重写，旧方案在本机无效）：</b>
+///
+/// 旧方案是"写 HKCU\...\Explorer\Advanced\HideIcons + 广播 WM_SETTINGCHANGE"。
+/// 阶段 7 授权复测（docs/stage7-fixes.md §测试2、tools/verify-hideicons-final.ps1）证明它在
+/// 本机（Win11 26H2 / Build 26300）上<b>根本不生效</b>：注册表写成功了、广播也返回成功，
+/// 但桌面图标一直显示——历史 stage5 证据是用"全屏截图 MD5 是否变化"判定的，
+/// 被屏幕上无关内容的变化干扰，结论是错的。
+///
+/// 新方案改用资源管理器<b>自己的</b>机制：向桌面图标视图（SHELLDLL_DefView）发送
+/// WM_COMMAND 0x7402——与桌面右键菜单「查看 → 显示桌面图标」是同一条命令。
+/// 实测它立即生效，并且会把 HideIcons 注册表值同步成切换后的真实状态
+/// （它按"当前视觉状态"取反，不是按注册表取反）。
+///
+/// 因此：
+///   - 注册表值只作为"状态记录"读给用户看，不再由本服务直接写；
+///   - 切换前按注册表判断是否需要动作（正常使用中注册表与视觉状态保持同步，
+///     因为所有变更都走这条命令）；切换后回读注册表校验命令真的被应用了。
 ///
 /// 安全红线（与项目约定一致）：
-///   - 只写这一个值，不碰其他注册表项；不动桌面上的任何文件；不重启 Explorer；
+///   - 不直接写任何注册表值（HideIcons 由资源管理器自己写）；不动桌面文件；不重启 Explorer；
 ///   - 默认关闭，且每次启用都要用户明确确认（窗口里走 Confirm 授权）；
-///   - 恢复时写回 0；注册表不可访问时返回失败原因，不静默吞掉。
+///   - 找不到桌面窗口或命令未被应用时如实返回失败，不静默吞掉。
 /// </remarks>
 public interface IDesktopIconService
 {
-    /// <summary>当前桌面图标是否处于隐藏状态（按注册表实际值判断）。</summary>
+    /// <summary>当前桌面图标是否处于隐藏状态（按注册表记录的状态；切换命令会同步它）。</summary>
     bool IsHidden { get; }
 
     /// <summary>读取状态时的说明（成功为 null）。</summary>
@@ -72,59 +87,138 @@ public sealed class DesktopIconService : IDesktopIconService
 
     public OperationResult SetHidden(bool hidden)
     {
-        try
-        {
-            using RegistryKey key = Registry.CurrentUser.CreateSubKey(AdvancedKeyPath);
-            key.SetValue(ValueName, hidden ? 1 : 0, RegistryValueKind.DWord);
-        }
-        catch (Exception ex) when (ex is System.IO.IOException or System.Security.SecurityException or UnauthorizedAccessException or ObjectDisposedException)
-        {
-            return OperationResult.Fail($"设置桌面图标失败：{ex.Message}");
-        }
-
-        // 广播设置变更：这一步是生效的关键（不广播则 Explorer 不会重绘，等于没改）。
-        // 广播失败必须如实反馈——否则用户会以为已经生效。
-        bool broadcastOk = NativeMethods.BroadcastSettingChange();
-
-        // 回读校验：写入成功不等于状态正确，以注册表实际值为准，不凭"刚写过的值"下结论。
         Refresh();
-
-        if (IsHidden != hidden)
+        if (StatusText is not null)
         {
-            StatusText = "已写入注册表，但回读结果不一致，桌面图标当前状态未知。";
+            return OperationResult.Fail($"无法确认桌面图标当前状态，拒绝盲切：{StatusText}");
+        }
+
+        if (IsHidden == hidden)
+        {
+            // 注册表与视觉状态在"所有变更都走切换命令"的前提下保持同步
+            StatusText = null;
+            return OperationResult.Ok();
+        }
+
+        IntPtr defView = NativeMethods.FindDesktopDefView();
+        if (defView == IntPtr.Zero)
+        {
+            StatusText = "找不到桌面图标窗口（SHELLDLL_DefView），本次未做任何修改。" +
+                         "可能被第三方桌面工具接管了桌面。";
             return OperationResult.Fail(StatusText);
         }
 
-        if (!broadcastOk)
+        NativeMethods.SendToggleDesktopIcons(defView);
+
+        // 切换命令会把 HideIcons 同步成新的视觉状态；轮询确认它真的被应用了
+        for (int waitedMs = 0; waitedMs <= 1500; waitedMs += 150)
         {
-            StatusText = "已写入注册表，但通知资源管理器失败，桌面可能要等注销或重启资源管理器后才会变化。";
-            return OperationResult.Fail(StatusText);
+            Refresh();
+            if (StatusText is null && IsHidden == hidden)
+            {
+                StatusText = null;
+                return OperationResult.Ok();
+            }
+            System.Threading.Thread.Sleep(150);
         }
 
-        StatusText = null;
-        return OperationResult.Ok();
+        Refresh();
+        StatusText = "已发送切换命令，但系统没有应用（注册表状态与目标不一致）。" +
+                     "桌面图标当前状态以屏幕实际显示为准。";
+        return OperationResult.Fail(StatusText);
     }
 
     private static class NativeMethods
     {
-        private const uint WmSettingChange = 0x001A;
-        private const uint SmtoAbortIfHung = 0x0002;
-        private static readonly IntPtr HwndBroadcast = new(0xFFFF);
+        private const uint WmCommand = 0x0111;
+        private const int CmdToggleDesktopIcons = 0x7402;
 
-        [DllImport("user32.dll", CharSet = CharSet.Unicode, SetLastError = true)]
-        private static extern IntPtr SendMessageTimeout(
-            IntPtr hWnd, uint msg, IntPtr wParam, string? lParam, uint fuFlags, uint uTimeout, out IntPtr lpdwResult);
+        public delegate bool EnumWindowsProc(IntPtr hWnd, IntPtr lParam);
+
+        [DllImport("user32.dll")]
+        private static extern bool EnumWindows(EnumWindowsProc cb, IntPtr lParam);
+
+        [DllImport("user32.dll")]
+        private static extern bool EnumChildWindows(IntPtr parent, EnumWindowsProc cb, IntPtr lParam);
+
+        [DllImport("user32.dll", CharSet = CharSet.Unicode)]
+        private static extern IntPtr FindWindowEx(IntPtr parent, IntPtr after, string className, string? windowName);
+
+        [DllImport("user32.dll", CharSet = CharSet.Unicode)]
+        private static extern int GetClassName(IntPtr hWnd, StringBuilder buffer, int maxCount);
+
+        [DllImport("user32.dll")]
+        private static extern IntPtr SendMessage(IntPtr hWnd, uint msg, IntPtr wParam, IntPtr lParam);
 
         /// <summary>
-        /// 通知所有顶层窗口"设置已变更"，让 Explorer 立即应用而不重启。
-        /// 返回是否广播成功；失败时由调用方向用户如实反馈
-        /// （注册表值已写入，注销或重启资源管理器后仍会生效）。
+        /// 找承载桌面图标的视图窗口（SHELLDLL_DefView）。
+        /// 常规情况下挂在 Progman 下；用了壁纸/桌面工具时会移到某个 WorkerW 下，两种都找。
+        /// 用 EnumWindows / EnumChildWindows 而不是 FindWindow——实测 FindWindow 在部分进程里不可靠。
         /// </summary>
-        public static bool BroadcastSettingChange()
+        public static IntPtr FindDesktopDefView()
         {
-            return SendMessageTimeout(
-                HwndBroadcast, WmSettingChange, IntPtr.Zero, "Environment", SmtoAbortIfHung, 2000, out _)
-                != IntPtr.Zero;
+            IntPtr progman = FindTopWindowByClass("Progman");
+            if (progman != IntPtr.Zero)
+            {
+                IntPtr dv = FindChildByClass(progman, "SHELLDLL_DefView");
+                if (dv != IntPtr.Zero)
+                {
+                    return dv;
+                }
+            }
+
+            // 兜底：遍历所有 WorkerW 顶层窗口，看谁托管着 DefView
+            IntPtr found = IntPtr.Zero;
+            EnumWindows(delegate(IntPtr hWnd, IntPtr _)
+            {
+                var cls = new StringBuilder(64);
+                GetClassName(hWnd, cls, 64);
+                if (cls.ToString() != "WorkerW")
+                {
+                    return true;
+                }
+                IntPtr dv = FindChildByClass(hWnd, "SHELLDLL_DefView");
+                if (dv != IntPtr.Zero)
+                {
+                    found = dv;
+                    return false;
+                }
+                return true;
+            }, IntPtr.Zero);
+            return found;
+        }
+
+        /// <summary>
+        /// 发送「显示桌面图标」切换命令（与桌面右键菜单同一条）。
+        /// 命令本身无法可靠判断是否被接受（SendMessage 返回值语义不定），
+        /// 真正的成败由调用方的注册表回读确认。
+        /// </summary>
+        public static void SendToggleDesktopIcons(IntPtr defView)
+        {
+            SendMessage(defView, WmCommand, new IntPtr(CmdToggleDesktopIcons), IntPtr.Zero);
+        }
+
+        private static IntPtr FindTopWindowByClass(string className)
+        {
+            IntPtr found = IntPtr.Zero;
+            EnumWindows(delegate(IntPtr hWnd, IntPtr _)
+            {
+                var cls = new StringBuilder(64);
+                GetClassName(hWnd, cls, 64);
+                if (cls.ToString() == className)
+                {
+                    found = hWnd;
+                    return false;
+                }
+                return true;
+            }, IntPtr.Zero);
+            return found;
+        }
+
+        private static IntPtr FindChildByClass(IntPtr parent, string className)
+        {
+            // FindWindowEx 对"查找子窗口"这一用途在本机实测可靠，直接用它
+            return FindWindowEx(parent, IntPtr.Zero, className, null);
         }
     }
 }
