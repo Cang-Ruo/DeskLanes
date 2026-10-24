@@ -207,24 +207,52 @@ foreach ($t in $script:titles) {
 
 if (@($script:titles).Count -eq 0) {
     $ok = Take-Screenshot $shotPath
-    if ($ok) { Say ('没发现可见窗口，已截全屏: ' + $shotPath) }
-} else {
-    # 窗口中心点是否落在某一块屏幕的可视范围内（第二步要验的"窗口不跑出屏幕"）
-    try {
-        Add-Type -AssemblyName System.Windows.Forms
-        $r = $script:rects[0]
-        $cx = [math]::Round(($r.L + $r.R) / 2)
-        $cy = [math]::Round(($r.T + $r.B) / 2)
-        $inside = $false
-        foreach ($s in [System.Windows.Forms.Screen]::AllScreens) {
-            $b = $s.Bounds
-            if ($cx -ge $b.X -and $cx -lt ($b.X + $b.Width) -and $cy -ge $b.Y -and $cy -lt ($b.Y + $b.Height)) { $inside = $true }
-        }
-        if ($inside) { Say ('窗口定位  : ✓ 中心点 (' + $cx + ',' + $cy + ') 在某块屏幕范围内，没有跑出屏幕') }
-        else { Say ('窗口定位  : ✗ 中心点 (' + $cx + ',' + $cy + ') 不在任何屏幕内 —— 请把这个数字和显示器列表发回来') }
-    } catch {
-        Say ('窗口定位  : 无法判定（' + $_.Exception.Message + '）')
+    if ($ok) { Say ('没发现可见窗口，已截全屏: ' + $shotPath + '  ← 请把这张图发回来') }
+    else { Say '截图失败    : 无法自动截图，请把屏幕上的情况抄回来' }
+    Get-Process -Id $proc.Id -ErrorAction SilentlyContinue | Stop-Process -Force
+    Set-Content -LiteralPath $reportPath -Value $lines -Encoding UTF8
+    Say ('报告已写入: ' + $reportPath)
+    exit 2
+}
+
+# 错误对话框识别：唯一可见窗口的标题 == exe 文件名（如「DeskSpace.exe」）。
+# 应用自己的窗口标题是「DeskSpace」或「DeskSpace 快速启动」，绝不会带 .exe 后缀；
+# 标题等于文件名的是系统弹的报错对话框（典型就是缺 .NET 运行时）。
+$exeFileName = [System.IO.Path]::GetFileName($Exe)
+$isErrorDialog = $false
+foreach ($t in $script:titles) {
+    if ($t -eq $exeFileName) { $isErrorDialog = $true }
+}
+
+if ($isErrorDialog) {
+    Say '结果      : ⚠ 启动被拦下了 —— 弹出了系统报错对话框（标题「' + $exeFileName + '」）'
+    if ($edition -like 'portable*' -and -not $rt) {
+        Say '原因判断  : 这台机器没有 .NET 10 桌面运行时，便携版打不开 —— 失败是预期内的'
+        Say '            现在要验证的是：这个提示本身够不够清楚'
     }
+    $ok = Take-Screenshot $shotPath
+    if ($ok) { Say ('已截全屏  : ' + $shotPath + '  ← 请把这张图一起发回来，我要看对话框里的文字') }
+    else { Say '截图失败    : 无法自动截图，请把对话框上的文字抄回来发我' }
+    Get-Process -Id $proc.Id -ErrorAction SilentlyContinue | Stop-Process -Force
+    Set-Content -LiteralPath $reportPath -Value $lines -Encoding UTF8
+    Say ('报告已写入: ' + $reportPath)
+    exit 2
+}
+# 窗口中心点是否落在某一块屏幕的可视范围内（第二步要验的"窗口不跑出屏幕"）
+try {
+    Add-Type -AssemblyName System.Windows.Forms
+    $r = $script:rects[0]
+    $cx = [math]::Round(($r.L + $r.R) / 2)
+    $cy = [math]::Round(($r.T + $r.B) / 2)
+    $inside = $false
+    foreach ($s in [System.Windows.Forms.Screen]::AllScreens) {
+        $b = $s.Bounds
+        if ($cx -ge $b.X -and $cx -lt ($b.X + $b.Width) -and $cy -ge $b.Y -and $cy -lt ($b.Y + $b.Height)) { $inside = $true }
+    }
+    if ($inside) { Say ('窗口定位  : ✓ 中心点 (' + $cx + ',' + $cy + ') 在某块屏幕范围内，没有跑出屏幕') }
+    else { Say ('窗口定位  : ✗ 中心点 (' + $cx + ',' + $cy + ') 不在任何屏幕内 —— 请把这个数字和显示器列表发回来') }
+} catch {
+    Say ('窗口定位  : 无法判定（' + $_.Exception.Message + '）')
 }
 
 $wpf = Get-ChildItem -Path $extractRoot -Filter 'wpfgfx_cor3.dll' -Recurse -ErrorAction SilentlyContinue
