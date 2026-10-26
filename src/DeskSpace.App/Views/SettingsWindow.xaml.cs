@@ -1,4 +1,5 @@
 using System.Windows;
+using DeskSpace.App.Services;
 using DeskSpace.App.ViewModels;
 
 namespace DeskSpace.App.Views;
@@ -10,6 +11,8 @@ public partial class SettingsWindow : Window
     {
         DataContext = viewModel ?? throw new ArgumentNullException(nameof(viewModel));
         InitializeComponent();
+        // 与 MainWindow 同一套轻玻璃背景（Mica 优先，失败自动回退不透明底色）
+        WindowBackdropService.Attach(this);
 
         viewModel.Saved += (_, _) => DialogResult = true;
         viewModel.Cancelled += (_, _) => DialogResult = false;

@@ -1,4 +1,5 @@
 using System.Windows;
+using DeskSpace.App.Services;
 
 namespace DeskSpace.App.Views;
 
@@ -11,6 +12,8 @@ public partial class TextInputDialog : Window
     public TextInputDialog(string title, string message, string initialValue = "")
     {
         InitializeComponent();
+        // 与 MainWindow / 设置窗口同一套轻玻璃背景（分层窗口由 XAML 自己处理）
+        WindowBackdropService.Attach(this);
         Title = title;
         MessageText.Text = message;
         InputBox.Text = initialValue;

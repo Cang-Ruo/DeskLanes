@@ -10,27 +10,92 @@
     <DockPanel>
         <!-- 工具栏 -->
         <StackPanel DockPanel.Dock="Top" Orientation="Horizontal" Margin="0,0,0,8">
-            <Button Content="新建分区" Padding="12,4" Margin="0,0,6,0"
+            <Button Content="新建分区" Padding="12,4" Margin="0,0,6,0" FontSize="12"
                     Command="{Binding NewPanelCommand}" />
-            <Button Content="重命名" Padding="12,4" Margin="0,0,6,0"
+            <Button Content="重命名" Padding="12,4" Margin="0,0,6,0" FontSize="12"
                     Command="{Binding RenamePanelCommand}" />
-            <Button Content="删除" Padding="12,4" Margin="0,0,6,0"
+            <Button Content="删除" Padding="12,4" Margin="0,0,6,0" FontSize="12"
                     Command="{Binding DeletePanelCommand}" />
-            <Button Content="上移" Padding="12,4" Margin="0,0,6,0"
+            <Button Content="上移" Padding="12,4" Margin="0,0,6,0" FontSize="12"
                     Command="{Binding MovePanelUpCommand}" />
-            <Button Content="下移" Padding="12,4" Margin="0,0,14,0"
+            <Button Content="下移" Padding="12,4" Margin="0,0,14,0" FontSize="12"
                     Command="{Binding MovePanelDownCommand}" />
-            <TextBlock FontSize="12" Foreground="#6B7280" VerticalAlignment="Center"
+            <TextBlock FontSize="12" Foreground="{StaticResource BrushTextSecondary}" VerticalAlignment="Center"
                        TextTrimming="CharacterEllipsis">
                 <Run Text="当前分区：" />
                 <Run Text="{Binding SelectedPanelTitle, Mode=OneWay}" />
             </TextBlock>
         </StackPanel>
 
+        <!-- 底部：未分区项目池 + 移除区
+             （必须在画布之前声明并停靠底部：画布 Grid 是最后子元素、填充剩余空间；
+               若画布在池区之前声明，它会按默认 Left 停靠占满全高，把池区挤成 0 高度） -->
+        <StackPanel DockPanel.Dock="Bottom">
+            <Border Style="{StaticResource DropZone}" Margin="0,0,0,8"
+                    AllowDrop="True" Drop="OnPoolDrop" DragOver="OnPoolDragOver">
+                <DockPanel>
+                    <TextBlock DockPanel.Dock="Top" Text="{Binding PoolHeaderText}"
+                               FontSize="12" FontWeight="SemiBold" Foreground="{StaticResource BrushTextPrimary}"
+                               Margin="2,0,0,6" />
+                    <ListBox ItemsSource="{Binding PoolItems}"
+                             Background="Transparent" BorderThickness="0"
+                             MaxHeight="150"
+                             ScrollViewer.HorizontalScrollBarVisibility="Disabled"
+                             Visibility="{Binding HasPoolItems, Converter={StaticResource BoolToVis}}">
+                        <ListBox.ItemsPanel>
+                            <ItemsPanelTemplate>
+                                <WrapPanel Orientation="Horizontal" />
+                            </ItemsPanelTemplate>
+                        </ListBox.ItemsPanel>
+                        <ListBox.ItemContainerStyle>
+                            <Style TargetType="ListBoxItem" BasedOn="{StaticResource {x:Type ListBoxItem}}">
+                                <Setter Property="ContextMenu">
+                                    <Setter.Value>
+                                        <ContextMenu>
+                                            <MenuItem Header="打开"
+                                                      Command="{Binding Data.OpenItemCommand, Source={StaticResource VM}}"
+                                                      CommandParameter="{Binding PlacementTarget.DataContext, RelativeSource={RelativeSource AncestorType=ContextMenu}}" />
+                                            <MenuItem Header="从工作区移除"
+                                                      Command="{Binding Data.RemoveItemCommand, Source={StaticResource VM}}"
+                                                      CommandParameter="{Binding PlacementTarget.DataContext, RelativeSource={RelativeSource AncestorType=ContextMenu}}" />
+                                        </ContextMenu>
+                                    </Setter.Value>
+                                </Setter>
+                            </Style>
+                        </ListBox.ItemContainerStyle>
+                        <ListBox.ItemTemplate>
+                            <DataTemplate>
+                                <local:ItemTile />
+                            </DataTemplate>
+                        </ListBox.ItemTemplate>
+                        <ListBox.InputBindings>
+                            <MouseBinding Gesture="LeftDoubleClick"
+                                          Command="{Binding OpenItemCommand}"
+                                          CommandParameter="{Binding SelectedItem, RelativeSource={RelativeSource AncestorType=ListBox}}" />
+                            <KeyBinding Key="Enter"
+                                        Command="{Binding OpenItemCommand}"
+                                        CommandParameter="{Binding SelectedItem, RelativeSource={RelativeSource AncestorType=ListBox}}" />
+                        </ListBox.InputBindings>
+                    </ListBox>
+                    <TextBlock Text="未分区项目都显示在这里，把项目拖到上方分区即可加入。"
+                               Style="{StaticResource HintText}"
+                               Visibility="{Binding HasNoPoolItems, Converter={StaticResource BoolToVis}}" />
+                </DockPanel>
+            </Border>
+
+            <!-- 移除区 -->
+            <Border Style="{StaticResource DangerZone}"
+                    AllowDrop="True" Drop="OnRemoveDrop" DragOver="OnRemoveDragOver">
+                <TextBlock Text="🗑 把项目拖到这里，从工作区移除（不会删除桌面文件）"
+                           FontSize="12" Foreground="{StaticResource BrushDangerText}" HorizontalAlignment="Center" />
+            </Border>
+        </StackPanel>
+
         <!-- 虚拟画布：1600×900，用 ScaleTransform 等比缩放到可用空间
              （不用 Viewbox：Viewbox 与 RenderTargetBitmap 截图不兼容，且对动态内容有渲染怪癖） -->
-        <Grid x:Name="CanvasHost" ClipToBounds="True" Margin="0,0,0,8" SizeChanged="OnCanvasHostSizeChanged">
-            <Border x:Name="CanvasBorder" Width="1600" Height="900" Background="#EEF1F5" CornerRadius="8"
+        <Grid x:Name="CanvasHost" ClipToBounds="True" SizeChanged="OnCanvasHostSizeChanged">
+            <Border x:Name="CanvasBorder" Width="1600" Height="900" CornerRadius="10"
+                    Background="#2E20334A" BorderBrush="{StaticResource BrushBorderGlass}" BorderThickness="1"
                     HorizontalAlignment="Left" VerticalAlignment="Top">
                 <Border.RenderTransform>
                     <TransformGroup>
@@ -65,80 +130,5 @@
                 </ItemsControl>
             </Border>
         </Grid>
-
-        <!-- 底部：未分区项目池 + 移除区 -->
-        <StackPanel DockPanel.Dock="Bottom">
-            <Border Background="#F8F9FB" BorderBrush="#E4E7EC" BorderThickness="1"
-                    CornerRadius="6" Padding="10,8" Margin="0,0,0,8"
-                    AllowDrop="True" Drop="OnPoolDrop" DragOver="OnPoolDragOver">
-                <DockPanel>
-                    <TextBlock DockPanel.Dock="Top" Text="{Binding PoolHeaderText}"
-                               FontSize="12" FontWeight="SemiBold" Foreground="#344054"
-                               Margin="0,0,0,6" />
-                    <ListBox ItemsSource="{Binding PoolItems}"
-                             Background="Transparent" BorderThickness="0"
-                             MaxHeight="150"
-                             ScrollViewer.HorizontalScrollBarVisibility="Disabled"
-                             Visibility="{Binding HasPoolItems, Converter={StaticResource BoolToVis}}">
-                        <ListBox.ItemsPanel>
-                            <ItemsPanelTemplate>
-                                <WrapPanel Orientation="Horizontal" />
-                            </ItemsPanelTemplate>
-                        </ListBox.ItemsPanel>
-                        <ListBox.ItemContainerStyle>
-                            <Style TargetType="ListBoxItem">
-                                <Setter Property="HorizontalContentAlignment" Value="Center" />
-                                <Setter Property="VerticalContentAlignment" Value="Center" />
-                                <Setter Property="Template">
-                                    <Setter.Value>
-                                        <ControlTemplate TargetType="ListBoxItem">
-                                            <Border Background="Transparent" CornerRadius="8">
-                                                <ContentPresenter />
-                                            </Border>
-                                        </ControlTemplate>
-                                    </Setter.Value>
-                                </Setter>
-                                <Setter Property="ContextMenu">
-                                    <Setter.Value>
-                                        <ContextMenu>
-                                            <MenuItem Header="打开"
-                                                      Command="{Binding Data.OpenItemCommand, Source={StaticResource VM}}"
-                                                      CommandParameter="{Binding PlacementTarget.DataContext, RelativeSource={RelativeSource AncestorType=ContextMenu}}" />
-                                            <MenuItem Header="从工作区移除"
-                                                      Command="{Binding Data.RemoveItemCommand, Source={StaticResource VM}}"
-                                                      CommandParameter="{Binding PlacementTarget.DataContext, RelativeSource={RelativeSource AncestorType=ContextMenu}}" />
-                                        </ContextMenu>
-                                    </Setter.Value>
-                                </Setter>
-                            </Style>
-                        </ListBox.ItemContainerStyle>
-                        <ListBox.ItemTemplate>
-                            <DataTemplate>
-                                <local:ItemTile />
-                            </DataTemplate>
-                        </ListBox.ItemTemplate>
-                        <ListBox.InputBindings>
-                            <MouseBinding Gesture="LeftDoubleClick"
-                                          Command="{Binding OpenItemCommand}"
-                                          CommandParameter="{Binding SelectedItem, RelativeSource={RelativeSource AncestorType=ListBox}}" />
-                            <KeyBinding Key="Enter"
-                                        Command="{Binding OpenItemCommand}"
-                                        CommandParameter="{Binding SelectedItem, RelativeSource={RelativeSource AncestorType=ListBox}}" />
-                        </ListBox.InputBindings>
-                    </ListBox>
-                    <TextBlock Text="未分区项目都显示在这里，把项目拖到上方分区即可加入。"
-                               FontSize="11" Foreground="#9CA3AF"
-                               Visibility="{Binding HasNoPoolItems, Converter={StaticResource BoolToVis}}" />
-                </DockPanel>
-            </Border>
-
-            <!-- 移除区 -->
-            <Border Background="#FEF3F2" BorderBrush="#FDA29B" BorderThickness="1"
-                    CornerRadius="6" Padding="10,6"
-                    AllowDrop="True" Drop="OnRemoveDrop" DragOver="OnRemoveDragOver">
-                <TextBlock Text="🗑 把项目拖到这里，从工作区移除（不会删除桌面文件）"
-                           FontSize="12" Foreground="#B42318" HorizontalAlignment="Center" />
-            </Border>
-        </StackPanel>
     </DockPanel>
 </UserControl>

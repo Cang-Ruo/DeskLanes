@@ -325,9 +325,9 @@ public sealed class AppSettings : IVersionedData
 
     // ---------- 悬浮窗 ----------
 
-    public double FloatingWindowWidth { get; set; } = 620;
+    public double FloatingWindowWidth { get; set; } = 780;
 
-    public double FloatingWindowHeight { get; set; } = 520;
+    public double FloatingWindowHeight { get; set; } = 540;
 
     public double? FloatingWindowLeft { get; set; }
 
