@@ -7,8 +7,8 @@
     </UserControl.Resources>
     <!-- 几何（Canvas.Left/Top/Width/Height）由外层 DataTemplate 绑定在 PanelView 元素上，
          Canvas 只识别直接子元素的附加属性；内部 Border 撑满 UserControl 即可 -->
-    <Border x:Name="PanelBorder" BorderBrush="#D0D5DD" BorderThickness="1"
-            Background="#FFFFFF" CornerRadius="8"
+    <Border x:Name="PanelBorder" BorderBrush="{StaticResource BrushBorderGlass}" BorderThickness="1"
+            Background="{StaticResource BrushCardGlass}" CornerRadius="10"
             MouseLeftButtonDown="OnPanelMouseLeftButtonDown">
         <Grid>
             <Grid.RowDefinitions>
@@ -22,11 +22,11 @@
                    PreviewMouseLeftButtonDown="OnMoveThumbPreviewMouseLeftButtonDown">
                 <Thumb.Template>
                     <ControlTemplate TargetType="Thumb">
-                        <Border Background="#F2F4F7" CornerRadius="8,8,0,0" Padding="10,6">
+                        <Border Background="#2E17283B" CornerRadius="9,9,0,0" Padding="10,7">
                             <Grid>
                                 <TextBlock Text="{Binding Title}" FontSize="13" FontWeight="SemiBold"
-                                           Foreground="#1B1F24" TextTrimming="CharacterEllipsis" />
-                                <TextBlock Text="{Binding ItemCount}" FontSize="11" Foreground="#9CA3AF"
+                                           Foreground="{StaticResource BrushTextPrimary}" TextTrimming="CharacterEllipsis" />
+                                <TextBlock Text="{Binding ItemCount}" FontSize="11" Foreground="{StaticResource BrushTextTertiary}"
                                            HorizontalAlignment="Right" VerticalAlignment="Center" />
                             </Grid>
                         </Border>
@@ -47,18 +47,7 @@
                     </ItemsPanelTemplate>
                 </ListBox.ItemsPanel>
                 <ListBox.ItemContainerStyle>
-                    <Style TargetType="ListBoxItem">
-                        <Setter Property="HorizontalContentAlignment" Value="Center" />
-                        <Setter Property="VerticalContentAlignment" Value="Center" />
-                        <Setter Property="Template">
-                            <Setter.Value>
-                                <ControlTemplate TargetType="ListBoxItem">
-                                    <Border Background="Transparent" CornerRadius="8">
-                                        <ContentPresenter />
-                                    </Border>
-                                </ControlTemplate>
-                            </Setter.Value>
-                        </Setter>
+                    <Style TargetType="ListBoxItem" BasedOn="{StaticResource {x:Type ListBoxItem}}">
                         <Setter Property="ContextMenu">
                             <Setter.Value>
                                 <ContextMenu>
@@ -92,7 +81,7 @@
             </ListBox>
 
             <!-- 空分区提示 -->
-            <TextBlock Grid.Row="1" Text="把项目拖到这里" FontSize="12" Foreground="#9CA3AF"
+            <TextBlock Grid.Row="1" Text="把项目拖到这里" FontSize="12" Foreground="{StaticResource BrushTextTertiary}"
                        HorizontalAlignment="Center" VerticalAlignment="Center">
                 <TextBlock.Style>
                     <Style TargetType="TextBlock">
@@ -112,10 +101,10 @@
                 <Thumb.Template>
                     <ControlTemplate TargetType="Thumb">
                         <Border Background="Transparent">
-                            <Path Data="M 14 2 L 2 14 M 14 8 L 8 14 M 14 14 L 14 14"
-                                  Stroke="#98A2B3" StrokeThickness="1.5"
-                                  HorizontalAlignment="Right" VerticalAlignment="Bottom"
-                                  Margin="0,0,3,3" />
+                        <Path Data="M 14 2 L 2 14 M 14 8 L 8 14 M 14 14 L 14 14"
+                              Stroke="#59FFFFFF" StrokeThickness="1.5"
+                              HorizontalAlignment="Right" VerticalAlignment="Bottom"
+                              Margin="0,0,3,3" />
                         </Border>
                     </ControlTemplate>
                 </Thumb.Template>

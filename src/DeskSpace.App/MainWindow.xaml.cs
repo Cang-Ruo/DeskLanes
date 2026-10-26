@@ -17,6 +17,9 @@ public partial class MainWindow : Window
         _controller = controller ?? throw new ArgumentNullException(nameof(controller));
         DataContext = viewModel ?? throw new ArgumentNullException(nameof(viewModel));
         InitializeComponent();
+
+        // 轻玻璃背景：Win11 原生 DWM 材料（Acrylic → Mica），失败自动回退不透明底色
+        WindowBackdropService.Attach(this);
     }
 
     /// <summary>窗口渲染完成后自动开始首次扫描与桌面监听（窗口先出现，避免白屏等待）。</summary>

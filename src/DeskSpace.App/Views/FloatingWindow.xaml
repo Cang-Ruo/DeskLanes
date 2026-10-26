@@ -4,22 +4,24 @@
         xmlns:vm="clr-namespace:DeskSpace.App.ViewModels"
         xmlns:local="clr-namespace:DeskSpace.App.Views"
         Title="DeskSpace 快速启动"
-        Width="620" Height="520" MinWidth="420" MinHeight="360"
+        Width="780" Height="540" MinWidth="420" MinHeight="360"
         WindowStyle="None" AllowsTransparency="True" Background="Transparent"
         Topmost="True" ShowInTaskbar="False"
         WindowStartupLocation="Manual"
         KeyDown="OnWindowKeyDown">
+    <!-- 分层窗口（AllowsTransparency=True）无法使用 DWM 系统背景材料，
+         按规格回退为高不透明度玻璃底色：文字与图标保持全不透明（见 GlassTheme.xaml） -->
     <Window.Resources>
         <BooleanToVisibilityConverter x:Key="BoolToVis" />
     </Window.Resources>
 
-    <Border Background="#FFFFFFFF" CornerRadius="12" Padding="12"
-            BorderBrush="#D7DCE3" BorderThickness="1">
+    <Border Background="{StaticResource BrushFloatingGlass}" CornerRadius="12" Padding="14"
+            BorderBrush="{StaticResource BrushBorderGlass}" BorderThickness="1">
         <Border.Effect>
-            <DropShadowEffect BlurRadius="18" ShadowDepth="3" Opacity="0.22" Color="#1B1F24" />
+            <DropShadowEffect BlurRadius="18" ShadowDepth="3" Opacity="0.28" Color="#101820" />
         </Border.Effect>
 
-        <Grid>
+        <Grid TextElement.Foreground="{StaticResource BrushTextPrimary}">
             <Grid.RowDefinitions>
                 <RowDefinition Height="Auto" />
                 <RowDefinition Height="Auto" />
@@ -28,13 +30,13 @@
             </Grid.RowDefinitions>
 
             <!-- 顶部：搜索框 + 模式切换 + 关闭 -->
-            <Grid Grid.Row="0" Margin="0,0,0,8">
+            <Grid Grid.Row="0" Margin="0,0,0,10">
                 <TextBox x:Name="SearchBox"
                          Text="{Binding SearchText, UpdateSourceTrigger=PropertyChanged}"
                          FontSize="15" Padding="12,10"
                          VerticalContentAlignment="Center" />
                 <TextBlock Text="搜索桌面项目（不区分大小写）…"
-                           Foreground="#9CA3AF" FontSize="14" Margin="16,0,0,0"
+                           Foreground="{StaticResource BrushTextTertiary}" FontSize="14" Margin="17,0,0,0"
                            VerticalAlignment="Center" IsHitTestVisible="False"
                            Visibility="{Binding IsSearchEmpty, Converter={StaticResource BoolToVis}}" />
                 <StackPanel Orientation="Horizontal" HorizontalAlignment="Right" VerticalAlignment="Center">
@@ -45,7 +47,7 @@
                             ToolTip="切换到侧边栏模式（数据共用）"
                             Command="{Binding ToggleSidebarModeCommand}" />
                     <Button Content="✕" Width="28" Height="24" Padding="0" Background="Transparent"
-                            BorderThickness="0" Foreground="#6B7280" ToolTip="隐藏窗口（Esc）"
+                            BorderThickness="0" Foreground="{StaticResource BrushTextSecondary}" ToolTip="隐藏窗口（Esc）"
                             Command="{Binding HideWindowCommand}" />
                 </StackPanel>
             </Grid>
@@ -55,22 +57,31 @@
                      SelectedItem="{Binding SelectedCategory}"
                      Background="Transparent" BorderThickness="0"
                      ScrollViewer.HorizontalScrollBarVisibility="Disabled"
-                     Margin="0,0,0,8">
+                     Margin="0,0,0,10">
                 <ListBox.ItemsPanel>
                     <ItemsPanelTemplate>
                         <WrapPanel Orientation="Horizontal" />
                     </ItemsPanelTemplate>
                 </ListBox.ItemsPanel>
                 <ListBox.ItemContainerStyle>
-                    <Style TargetType="ListBoxItem">
-                        <Setter Property="Padding" Value="10,4" />
-                        <Setter Property="Margin" Value="0,0,6,4" />
+                    <Style TargetType="ListBoxItem" BasedOn="{StaticResource {x:Type ListBoxItem}}">
+                        <Setter Property="Margin" Value="0,0,6,6" />
                         <Setter Property="Template">
                             <Setter.Value>
                                 <ControlTemplate TargetType="ListBoxItem">
-                                    <Border Background="Transparent" CornerRadius="14" Padding="10,4">
+                                    <Border x:Name="Bd" Background="Transparent" CornerRadius="14"
+                                            BorderBrush="Transparent" BorderThickness="1" Padding="12,5">
                                         <ContentPresenter />
                                     </Border>
+                                    <ControlTemplate.Triggers>
+                                        <Trigger Property="IsMouseOver" Value="True">
+                                            <Setter TargetName="Bd" Property="Background" Value="{StaticResource BrushHoverGlass}" />
+                                        </Trigger>
+                                        <Trigger Property="IsSelected" Value="True">
+                                            <Setter TargetName="Bd" Property="Background" Value="{StaticResource BrushSelectedGlass}" />
+                                            <Setter TargetName="Bd" Property="BorderBrush" Value="{StaticResource BrushFocusBorder}" />
+                                        </Trigger>
+                                    </ControlTemplate.Triggers>
                                 </ControlTemplate>
                             </Setter.Value>
                         </Setter>
@@ -80,7 +91,7 @@
                     <DataTemplate>
                         <StackPanel Orientation="Horizontal">
                             <TextBlock Text="{Binding Name}" FontSize="13" VerticalAlignment="Center" />
-                            <TextBlock Text="{Binding ItemCount}" FontSize="11" Foreground="#9CA3AF"
+                            <TextBlock Text="{Binding ItemCount}" FontSize="11" Foreground="{StaticResource BrushTextTertiary}"
                                        Margin="6,0,0,0" VerticalAlignment="Center" />
                         </StackPanel>
                     </DataTemplate>
@@ -100,19 +111,7 @@
                     </ItemsPanelTemplate>
                 </ListBox.ItemsPanel>
                 <ListBox.ItemContainerStyle>
-                    <Style TargetType="ListBoxItem">
-                        <Setter Property="HorizontalContentAlignment" Value="Center" />
-                        <Setter Property="VerticalContentAlignment" Value="Center" />
-                        <Setter Property="Template">
-                            <Setter.Value>
-                                <ControlTemplate TargetType="ListBoxItem">
-                                    <Border Background="Transparent" CornerRadius="8">
-                                        <ContentPresenter />
-                                    </Border>
-                                </ControlTemplate>
-                            </Setter.Value>
-                        </Setter>
-                    </Style>
+                    <Style TargetType="ListBoxItem" BasedOn="{StaticResource {x:Type ListBoxItem}}" />
                 </ListBox.ItemContainerStyle>
                 <ListBox.ItemTemplate>
                     <DataTemplate>
@@ -131,11 +130,12 @@
 
             <!-- 空状态 -->
             <TextBlock Grid.Row="2" Text="{Binding EmptyStateText}" FontSize="13"
-                       Foreground="#9CA3AF" HorizontalAlignment="Center" VerticalAlignment="Center"
+                       Foreground="{StaticResource BrushTextTertiary}" HorizontalAlignment="Center" VerticalAlignment="Center"
+                       TextWrapping="Wrap"
                        Visibility="{Binding HasNoItems, Converter={StaticResource BoolToVis}}" />
 
             <!-- 底部状态栏 -->
-            <TextBlock Grid.Row="3" Text="{Binding StatusText}" FontSize="11" Foreground="#6B7280"
+            <TextBlock Grid.Row="3" Text="{Binding StatusText}" FontSize="11" Foreground="{StaticResource BrushTextTertiary}"
                        Margin="0,8,0,0" TextTrimming="CharacterEllipsis" />
         </Grid>
     </Border>

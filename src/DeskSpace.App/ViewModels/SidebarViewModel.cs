@@ -127,6 +127,9 @@ public sealed class SidebarViewModel : ObservableObject
 
     public bool HasItems => Items.Count > 0;
 
+    /// <summary>与 HasItems 互补：空状态文字的可见性绑定（悬浮窗 VM 同名同义）。</summary>
+    public bool HasNoItems => Items.Count == 0;
+
     public string EmptyStateText => _shellState.IsSearching
         ? $"没有包含“{_shellState.SearchText.Trim()}”的项目。"
         : "这个分类还没有项目。";
@@ -224,6 +227,7 @@ public sealed class SidebarViewModel : ObservableObject
         }
 
         OnPropertyChanged(nameof(HasItems));
+        OnPropertyChanged(nameof(HasNoItems));
         OnPropertyChanged(nameof(EmptyStateText));
     }
 }

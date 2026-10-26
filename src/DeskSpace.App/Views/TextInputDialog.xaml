@@ -4,19 +4,24 @@
         Height="180" Width="420"
         WindowStartupLocation="CenterOwner"
         ShowInTaskbar="False"
-        ResizeMode="NoResize">
-    <Grid Margin="16">
+        ResizeMode="NoResize"
+        Background="Transparent"
+        TextOptions.TextFormattingMode="Ideal"
+        UseLayoutRounding="True">
+    <!-- 背景由 WindowBackdropService 在 SourceInitialized 后统一处理（Mica / 回退底色） -->
+    <Grid Margin="16" TextElement.Foreground="{StaticResource BrushTextPrimary}">
         <Grid.RowDefinitions>
             <RowDefinition Height="Auto"/>
             <RowDefinition Height="Auto"/>
             <RowDefinition Height="*"/>
             <RowDefinition Height="Auto"/>
         </Grid.RowDefinitions>
-        <TextBlock x:Name="MessageText" Grid.Row="0" TextWrapping="Wrap" Margin="0,0,0,10"/>
-        <TextBox x:Name="InputBox" Grid.Row="1" Margin="0,0,0,12"/>
+        <TextBlock x:Name="MessageText" Grid.Row="0" TextWrapping="Wrap" Margin="0,0,0,10"
+                   FontSize="13" />
+        <TextBox x:Name="InputBox" Grid.Row="1" Margin="0,0,0,12" FontSize="13" />
         <StackPanel Grid.Row="3" Orientation="Horizontal" HorizontalAlignment="Right">
-            <Button Content="确定" Width="80" Margin="0,0,8,0" IsDefault="True" Click="OnOk"/>
-            <Button Content="取消" Width="80" IsCancel="True"/>
+            <Button Content="确定" Width="80" Margin="0,0,8,0" IsDefault="True" Click="OnOk" />
+            <Button Content="取消" Width="80" IsCancel="True" />
         </StackPanel>
     </Grid>
 </Window>
