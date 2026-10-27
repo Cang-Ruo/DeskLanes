@@ -1,0 +1,48 @@
+﻿==================== 阶段 8 第三步 · 系统级验收 ====================
+阶段      : 2
+时间      : 2026-10-27 09:38:03
+系统      : Microsoft Windows 11 专业版 (Build 26200)
+架构      : AMD64
+屏幕      : 1920 x 1080
+安装目录  : C:\Users\27992\AppData\Local\Programs\DeskSpace
+exe 存在  : True
+
+---------- F. 重启后开机自启是否生效 ----------
+  [PASS] 重启后 Run 项仍然存在   Run\DeskSpace = "C:\Users\27992\AppData\Local\Programs\DeskSpace\DeskSpace.exe"
+  [PASS] 重启后 DeskSpace 自动启动了   进程数=1
+
+---------- G. 禁用开机自启 ----------
+  打开设置 → 取消勾选「开机自启」→ 保存 → 关闭设置窗口
+  [PASS] 禁用后 Run 项被删除   Run\DeskSpace = (不存在)
+
+---------- H. 卸载清理（含恢复桌面图标） ----------
+  先制造一个「卸载时正隐藏着图标」的场景：
+  打开设置 → 勾选「隐藏桌面图标」→ 保存 → 关闭设置窗口
+  [PASS] 卸载前图标处于隐藏态   HideIcons = 1
+  执行卸载: C:\Users\27992\AppData\Local\Programs\DeskSpace\uninstall.ps1
+    | ===== DeskSpace 卸载 =====
+    | 安装目录: C:\Users\27992\AppData\Local\Programs\DeskSpace
+    | 已安装版本: selfcontained  [自包含版（自带运行时）]
+    | DeskSpace 未在运行
+    | 开机自启项：本来就没有
+    | 已恢复桌面图标显示
+    | 已删除开始菜单目录: C:\Users\27992\AppData\Roaming\Microsoft\Windows\Start Menu\Programs\DeskSpace
+    | 已删除「已安装的应用」里的卸载项
+    | 已删除安装目录: C:\Users\27992\AppData\Local\Programs\DeskSpace
+    | 配置目录已保留（分类与布局都在这里）: C:\Users\27992\AppData\Local\DeskSpace
+    |                 想彻底清除请手动删除，或用 uninstall.ps1 -RemoveConfig 重跑。
+    | 
+    | ===== 卸载完成 =====
+    | DeskSpace 已从这台机器移除。桌面上的文件从未被改动过。
+  [PASS] 卸载后桌面图标已恢复显示（HideIcons = 0）   HideIcons = 0
+  [PASS] 卸载后 Run 项不存在   Run\DeskSpace
+  [PASS] 卸载后安装目录已删除   C:\Users\27992\AppData\Local\Programs\DeskSpace
+  [PASS] 卸载后卸载项已删除   HKCU:\Software\Microsoft\Windows\CurrentVersion\Uninstall\DeskSpace
+  [PASS] 卸载后开始菜单目录已删除   C:\Users\27992\AppData\Roaming\Microsoft\Windows\Start Menu\Programs\DeskSpace
+  [PASS] 配置目录按预期保留   C:\Users\27992\AppData\Local\DeskSpace
+  已截图: step3-after-uninstall.png
+  （step3-after-uninstall.png：桌面图标应全部可见）
+
+==================== 第二阶段结束 ====================
+通过 10 项，失败 0 项
+第三步验收通过：开机自启与桌面图标的系统级行为都有可复现的记录。

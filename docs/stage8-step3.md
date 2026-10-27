@@ -92,10 +92,35 @@ Explorer 重启后应自动重注册——`TrayIconService.HandleMessage` 已实
 该次自检跑的是旧版脚本（D 段危险写法），现版脚本已按 §3 重写并通过语法解析 +
 函数级自检（`ShellComplete=True`、截图最小化/恢复循环正常）。
 
-## 6. 待办（虚拟机实测）
+## 6. 虚拟机实测（2026-10-27 完成，Phase 2 全过）
 
-1. 用户把 `publish/vm-package/` 里的新 `DeskSpace.exe`（含侧边栏按钮排 + NaN 两个修复）
-   重拷进虚拟机并重装；
-2. 跑 Phase 1 → 重启虚拟机 → 跑 Phase 2；
-3. 回传 `stage8-step3-report.txt` 与 4 张截图；
-4. 全绿后第三步收口，进入第四步（全局异常兜底复核 + 数据迁移测试 + 诊断日志）。
+环境：干净 Win11 专业版 Build 26200 / x64 / 1920×1080 / **无 .NET 10 桌面运行时** /
+**100% DPI / 单显示器**。安装的是阶段 8.0 重发布的**自包含版**
+（65,064,093 B，MD5 `b8f3e6ef…`，即包含 UI 轻玻璃改版的最新构建）。
+
+### Phase 2 结果：通过 10 项，失败 0 项
+
+| 场景 | 结果 | 关键证据 |
+|---|---|---|
+| F 重启后自启生效 | PASS | Run 项仍在 + 重启后 DeskSpace 进程自动拉起（进程数=1） |
+| G 禁用自启删 Run 项 | PASS | 设置里取消勾选 → Run\DeskSpace 不存在 |
+| H 卸载清理含图标恢复 | PASS | 先制造"卸载时正隐藏图标"（HideIcons=1）→ uninstall.ps1 识别 selfcontained 版 → 恢复图标（HideIcons=0）、删 Run 项/安装目录/卸载项/开始菜单，**配置目录按预期保留** |
+
+截图（`docs/stage8-step3-evidence/vm/`）：`step3-hide-on.png`（图标全隐藏）→
+`step3-hide-off.png`（恢复显示）→ `step3-after-explorer-restart.png`（Explorer 重启后
+shell 完整、图标可见）→ `step3-after-uninstall.png`（卸载后图标全可见、应用已移除）。
+
+### 附加证据（vm-check-report.txt）
+
+- 自包含版在**无运行时的干净机**上直接跑起来（解压出 `wpfgfx_cor3.dll`，自带运行时确认）
+- 窗口为侧边栏**收起态**：44×760 @(1876,160)，中心点 (1898,540) 在屏内 ——
+  顺带补上了 100% DPI 下侧边栏收起态的跨设备证据（此前缺虚拟机侧边栏证据）
+
+### 已知缺口与修复
+
+- **Phase 1 的文字报告被 Phase 2 覆盖**（两阶段写同一文件）：A–E 场景只有截图
+  （B 隐藏/恢复、D Explorer 重启）没有 PASS/FAIL 文字记录。脚本已改为按阶段
+  分别写 `stage8-step3-report-phase1.txt` / `-phase2.txt`；如需 A–E 的文字证据，
+  在虚拟机上重跑一次 Phase 1 并在重启前把 phase1 报告拷出来即可。
+- C 段（异常强杀后状态保持 + errors.log 不增长）本机自检已验证有效，
+  虚拟机侧无文字记录，列为本步骤唯一残留缺口（低风险：逻辑与本机相同）。

@@ -1,0 +1,29 @@
+﻿==================== DeskSpace 虚拟机 / 第二台机器 体检 ====================
+体检时间: 2026-10-27 09:28:46
+
+--- 1. 机器信息 ---
+系统      : Microsoft Windows 11 专业版 (Build 26200)
+版本      : 10.0.26200
+架构      : AMD64（x64 才能跑当前发布的版本；ARM64 靠模拟也能跑但会慢）
+系统 DPI  : 96（100% 缩放）
+显示器数  : 1
+  屏 1: 主屏=True  分辨率=1920x1080  位置=(0,0)  工作区=1920x1032 @(0,0)
+
+--- 2. .NET 10 桌面运行时（便携版的硬依赖） ---
+未发现    : Microsoft.WindowsDesktop.App 10.x
+结论      : 便携版打不开；自包含版不受影响，应当能直接跑
+           需要便携版的话先装：https://dotnet.microsoft.com/download/dotnet/10.0 → 桌面运行时
+
+--- 3. DeskSpace.exe ---
+路径      : C:\Users\27992\Desktop\vm-package\DeskSpace.exe
+大小      : 65064093 字节 → selfcontained（自包含版，自带运行时）
+
+--- 4. 启动验证 ---
+结果      : ✓ 进程仍在运行（15 秒后）
+可见窗口  : 1 个
+   「DeskSpace 侧边栏」 位置=(1876,160) 大小=44x760
+窗口定位  : ✓ 中心点 (1898,540) 在某块屏幕范围内，没有跑出屏幕
+运行时来源: 自带（解压出 wpfgfx_cor3.dll）→ C:\Users\27992\AppData\Local\Temp\.net\DeskSpace\0C0HgAB89Ru7\wpfgfx_cor3.dll
+已结束 DeskSpace（-KeepRunning 可留着不关）
+
+==================== 体检结束 ====================
