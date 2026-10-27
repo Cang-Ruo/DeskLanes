@@ -249,7 +249,10 @@ if ($Phase -eq '1') {
     Wait-User '上面 4 步做完后按回车'
     $runVal = Get-RunValue
     Check '开机自启启用后注册表 Run 项出现' ($null -ne $runVal) ('Run\DeskSpace = ' + $(if ($null -eq $runVal) { '(不存在)' } else { $runVal }))
-    Check 'Run 项指向已安装的 exe' ($runVal -eq $targetExe) ('期望 ' + $targetExe)
+    # StartupService 写入的是**带引号**的命令行（路径含空格时也安全，是 Run 项的标准写法），
+    # 所以比较前必须先去掉两侧引号；同时大小写不敏感（2026-10-27 虚拟机实测误报过一次 FAIL）
+    $runUnquoted = if ($null -eq $runVal) { $null } else { $runVal.Trim().Trim('"') }
+    Check 'Run 项指向已安装的 exe' ($runUnquoted -ieq $targetExe) ('实际 ' + $(if ($null -eq $runVal) { '(不存在)' } else { $runVal }) + '   期望 ' + $targetExe)
     Say '  （说明：Run 项由软件的 StartupService 写入；指向的 exe 必须和安装目录一致）'
 
     Say ''
