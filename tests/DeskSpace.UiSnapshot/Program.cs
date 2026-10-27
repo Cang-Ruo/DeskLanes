@@ -26,6 +26,7 @@ using System.Linq;
 using System.Runtime.InteropServices;
 using System.Threading.Tasks;
 using System.Windows;
+using System.Windows.Controls;
 using System.Windows.Interop;
 using System.Windows.Media;
 using System.Windows.Media.Imaging;
@@ -225,6 +226,22 @@ public static class Program
                     }
 
                     await Task.Delay(800); // 布局与图标稳定
+
+                    // 设置窗口内容需要滚动：取证时滚到底，才能拍到末尾的分区
+                    if (mode == "settings")
+                    {
+                        // 注意：窗口里还有 TextBox 模板自带的 ScrollViewer（PART_ContentHost），
+                        // 只取"第一个"会滚错对象，这里按实际高度取内容区那个
+                        var scrollers = FindVisualChildren<ScrollViewer>(window);
+                        ScrollViewer? content = scrollers
+                            .OrderByDescending(s => s.ActualHeight)
+                            .FirstOrDefault();
+                        content?.ScrollToBottom();
+
+                        // 滚动需要一次渲染才会上屏，屏幕合成截图必须等它画完再拍
+                        await Task.Delay(400);
+                    }
+
                     window.UpdateLayout();
 
                     Directory.CreateDirectory(Path.GetDirectoryName(output)!);
@@ -400,6 +417,28 @@ public static class Program
             ReleaseDC(IntPtr.Zero, screenDc);
         }
     }
+
+    /// <summary>收集视觉树里所有指定类型的子元素（取证用，不影响应用行为）。</summary>
+    private static List<T> FindVisualChildren<T>(DependencyObject parent) where T : DependencyObject
+    {
+        var found = new List<T>();
+        int count = VisualTreeHelper.GetChildrenCount(parent);
+        for (int i = 0; i < count; i++)
+        {
+            DependencyObject child = VisualTreeHelper.GetChild(parent, i);
+            if (child is T typed)
+            {
+                found.Add(typed);
+            }
+
+            found.AddRange(FindVisualChildren<T>(child));
+        }
+
+        return found;
+    }
+
+    private static T? FindVisualChild<T>(DependencyObject parent) where T : DependencyObject
+        => FindVisualChildren<T>(parent).FirstOrDefault();
 
     private static void SeedCategories(IWorkspaceService workspace)
     {

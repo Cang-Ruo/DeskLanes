@@ -118,7 +118,17 @@
                            Style="{StaticResource HintText}" Margin="0,0,0,6" />
                 <Button Content="执行清理…"
                         Command="{Binding CleanupForUninstallCommand}"
+                        Padding="14,5" HorizontalAlignment="Left" Margin="0,0,0,18" />
+
+                <!-- 诊断与排障 -->
+                <TextBlock Text="诊断与排障" Style="{StaticResource SectionTitle}" Margin="0,0,0,6" />
+                <TextBlock Text="把设置、项目库与日志打成一个 zip 放到桌面，便于在另一台电脑上排查问题。只读取文件，不修改任何数据。"
+                           Style="{StaticResource HintText}" Margin="0,0,0,6" />
+                <Button Content="导出诊断包…"
+                        Command="{Binding ExportDiagnosticsCommand}"
                         Padding="14,5" HorizontalAlignment="Left" />
+                <TextBlock Text="{Binding DiagnosticsStatus}" FontSize="11" TextWrapping="Wrap"
+                           Foreground="{StaticResource BrushTextSecondary}" Margin="0,6,0,0" />
             </StackPanel>
         </ScrollViewer>
 
