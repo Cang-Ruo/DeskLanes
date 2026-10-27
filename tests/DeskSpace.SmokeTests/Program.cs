@@ -12,6 +12,7 @@
 
 using System.Diagnostics;
 using System.IO;
+using System.IO.Compression;
 using System.Runtime.InteropServices;
 using System.Text;
 using Microsoft.Win32;
@@ -1773,6 +1774,108 @@ Console.WriteLine("-- 15 桌面图标隐藏 / 恢复 --");
     // 还原测试前的真实状态
     iconSvc.SetHidden(originalHidden);
     Check(iconSvc.IsHidden == originalHidden, "测试后已还原为原始状态");
+}
+
+// ---------------------------------------------------------------- 16. 诊断包导出（阶段 8.3）
+Console.WriteLine("-- 16 诊断包导出 --");
+{
+    string root = Path.Combine(Path.GetTempPath(), "DeskSpaceSmokeDiag_" + Guid.NewGuid().ToString("N")[..8]);
+    string configDir = Path.Combine(root, "config");
+    string logsDir = Path.Combine(configDir, "logs");
+    Directory.CreateDirectory(logsDir);
+
+    try
+    {
+        // ---- 16.1 空配置目录也要能导出（不崩，至少有 manifest） ----
+        var emptyExporter = new DiagnosticExporter(configDir);
+        string emptyZip = Path.Combine(root, "empty.zip");
+        OperationResult emptyResult = emptyExporter.Export(emptyZip);
+        Check(emptyResult.Success, "空配置目录也能导出诊断包", emptyResult.ErrorMessage);
+        Check(File.Exists(emptyZip), "空配置目录导出的 zip 存在");
+
+        using (ZipArchive z = ZipFile.OpenRead(emptyZip))
+        {
+            Check(z.GetEntry("manifest.txt") is not null, "空配置目录导出仍包含 manifest.txt");
+        }
+
+        // ---- 16.2 有配置与日志时，内容必须进包 ----
+        File.WriteAllText(Path.Combine(configDir, "settings.json"), "{\"Version\":1}");
+        File.WriteAllText(Path.Combine(configDir, "library.json"), "{\"Items\":[]}");
+        File.WriteAllText(Path.Combine(logsDir, "sync.log"), "sync line\n");
+        File.WriteAllText(Path.Combine(logsDir, "errors.log"), "error line\n");
+
+        var exporter = new DiagnosticExporter(configDir);
+        string zipPath = Path.Combine(root, "diag.zip");
+        OperationResult result = exporter.Export(zipPath);
+        Check(result.Success, "导出诊断包成功", result.ErrorMessage);
+        Check(File.Exists(zipPath), "诊断包文件已生成");
+
+        using (ZipArchive z = ZipFile.OpenRead(zipPath))
+        {
+            Check(z.GetEntry("settings.json") is not null, "包含 settings.json");
+            Check(z.GetEntry("library.json") is not null, "包含 library.json");
+            Check(z.GetEntry("logs/sync.log") is not null, "包含 logs/sync.log");
+            Check(z.GetEntry("logs/errors.log") is not null, "包含 logs/errors.log");
+
+            ZipArchiveEntry? manifest = z.GetEntry("manifest.txt");
+            Check(manifest is not null, "包含 manifest.txt");
+            if (manifest is not null)
+            {
+                using var reader = new StreamReader(manifest.Open());
+                string text = reader.ReadToEnd();
+                Check(text.Contains(configDir), "manifest 记录了配置目录");
+                Check(text.Contains("个人文件路径"), "manifest 含隐私提示（分享前确认）");
+            }
+        }
+
+        // ---- 16.3 日志正被写入时仍能导出（不能因为文件被锁就失败） ----
+        string lockLog = Path.Combine(logsDir, "errors.log");
+        using (FileStream held = new(lockLog, FileMode.Open, FileAccess.Write, FileShare.ReadWrite))
+        {
+            held.Write(Encoding.UTF8.GetBytes("written by app\n"));
+            held.Flush(true);
+
+            string lockZip = Path.Combine(root, "diag-locked.zip");
+            OperationResult lockResult = exporter.Export(lockZip);
+            Check(lockResult.Success, "日志被占用时仍能导出", lockResult.ErrorMessage);
+            using ZipArchive z = ZipFile.OpenRead(lockZip);
+            Check(z.GetEntry("logs/errors.log") is not null, "被占用日志仍进包");
+        }
+
+        // ---- 16.4 重复导出同一路径：覆盖而不是报错 ----
+        OperationResult again = exporter.Export(zipPath);
+        Check(again.Success, "重复导出同一路径会覆盖", again.ErrorMessage);
+
+        // ---- 16.5 输出路径非法时返回失败而不是抛异常 ----
+        OperationResult bad = exporter.Export("   ");
+        Check(!bad.Success && !string.IsNullOrEmpty(bad.ErrorMessage), "空输出路径返回失败", bad.ErrorMessage);
+
+        // ---- 16.6 备份目录只统计不打包内容（避免诊断包过大） ----
+        string backupDir = Path.Combine(configDir, "backups");
+        Directory.CreateDirectory(backupDir);
+        File.WriteAllText(Path.Combine(backupDir, "library-corrupt-20260101.json"), "{\"x\":1}");
+        string backupZip = Path.Combine(root, "diag-backup.zip");
+        OperationResult backupResult = exporter.Export(backupZip);
+        Check(backupResult.Success, "存在备份目录时导出成功", backupResult.ErrorMessage);
+        using (ZipArchive z = ZipFile.OpenRead(backupZip))
+        {
+            Check(z.GetEntry("backups/library-corrupt-20260101.json") is null, "备份文件内容不进包（只记清单）");
+            ZipArchiveEntry? m = z.GetEntry("manifest.txt");
+            using var reader = new StreamReader(m!.Open());
+            Check(reader.ReadToEnd().Contains("library-corrupt-20260101.json"), "manifest 列出备份文件名");
+        }
+    }
+    finally
+    {
+        try
+        {
+            Directory.Delete(root, true);
+        }
+        catch
+        {
+            // 临时目录清理失败不影响结果
+        }
+    }
 }
 
 // ---------------------------------------------------------------- 汇总

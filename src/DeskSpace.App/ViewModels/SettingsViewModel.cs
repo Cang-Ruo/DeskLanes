@@ -1,3 +1,4 @@
+using System.IO;
 using DeskSpace.Core.Infrastructure;
 using DeskSpace.Core.Models;
 using DeskSpace.Core.Services;
@@ -16,6 +17,8 @@ public sealed class SettingsViewModel : ObservableObject
     private readonly IDialogService _dialogService;
     private readonly IStartupService? _startupService;
     private readonly IDesktopIconService? _desktopIconService;
+    private readonly string _configDir;
+    private string _diagnosticsStatus = string.Empty;
 
     private WindowMode _selectedMode;
     private string _hotkeyText;
@@ -34,10 +37,16 @@ public sealed class SettingsViewModel : ObservableObject
         IHotkeyService hotkeyService,
         IDialogService dialogService,
         IStartupService? startupService = null,
-        IDesktopIconService? desktopIconService = null)
+        IDesktopIconService? desktopIconService = null,
+        string? configDir = null)
     {
         _startupService = startupService;
         _desktopIconService = desktopIconService;
+        // 诊断包要知道配置与日志在哪；没传就退回默认的 %LocalAppData%\DeskSpace
+        _configDir = string.IsNullOrWhiteSpace(configDir)
+            ? Path.Combine(
+                Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "DeskSpace")
+            : configDir;
         _workspace = workspace ?? throw new ArgumentNullException(nameof(workspace));
         _hotkeyService = hotkeyService ?? throw new ArgumentNullException(nameof(hotkeyService));
         _dialogService = dialogService ?? throw new ArgumentNullException(nameof(dialogService));
@@ -62,6 +71,7 @@ public sealed class SettingsViewModel : ObservableObject
         SaveCommand = new RelayCommand(_ => Save());
         CancelCommand = new RelayCommand(_ => Cancelled?.Invoke(this, EventArgs.Empty));
         CleanupForUninstallCommand = new RelayCommand(_ => CleanupForUninstall());
+        ExportDiagnosticsCommand = new RelayCommand(_ => ExportDiagnostics());
 
         RefreshHotkeyStatus();
     }
@@ -254,6 +264,24 @@ public sealed class SettingsViewModel : ObservableObject
 
     /// <summary>卸载 / 移除 DeskSpace 前的系统清理（删除自启项 + 恢复桌面图标）。</summary>
     public RelayCommand CleanupForUninstallCommand { get; }
+
+    /// <summary>导出诊断包（配置 + 日志 + 备份清单），用于跨设备排障。</summary>
+    public RelayCommand ExportDiagnosticsCommand { get; }
+
+    /// <summary>最近一次诊断包导出的结果说明（空则不显示）。</summary>
+    public string DiagnosticsStatus
+    {
+        get => _diagnosticsStatus;
+        private set
+        {
+            if (SetProperty(ref _diagnosticsStatus, value))
+            {
+                OnPropertyChanged(nameof(HasDiagnosticsStatus));
+            }
+        }
+    }
+
+    public bool HasDiagnosticsStatus => !string.IsNullOrEmpty(DiagnosticsStatus);
 
     /// <summary>当前已注册的快捷键说明（打开设置时展示）。</summary>
     public string CurrentHotkeyText
@@ -460,5 +488,47 @@ public sealed class SettingsViewModel : ObservableObject
         _dialogService.ShowInfo(
             "清理完成：\n· 开机自启已删除\n· 桌面图标已恢复显示\n\n现在可以放心移除 DeskSpace 程序文件。",
             "卸载前清理");
+    }
+
+    /// <summary>
+    /// 导出诊断包：把 settings.json / library.json / logs\*.log 与备份清单打成一个 zip 放到桌面。
+    /// 跨设备排障时这是唯一可靠的现场还原手段；包内含个人文件路径，导出前明确告知用户。
+    /// </summary>
+    private void ExportDiagnostics()
+    {
+        bool confirmed = _dialogService.Confirm(
+            "即将把以下内容打包成一个 zip 放到桌面：\n\n" +
+            "· 设置文件 settings.json\n" +
+            "· 项目库 library.json（分类、自由分区与项目关联）\n" +
+            "· 日志 logs\\sync.log 与 logs\\errors.log\n" +
+            "· 配置备份清单（只记名字，不打包内容）\n\n" +
+            "只会读取这些文件，不会修改或删除任何数据。\n" +
+            "注意：包里含有你的个人文件路径，发给别人前请先确认。\n\n确定要导出吗？",
+            "导出诊断包");
+        if (!confirmed)
+        {
+            return;
+        }
+
+        string desktop = Environment.GetFolderPath(Environment.SpecialFolder.DesktopDirectory);
+        if (string.IsNullOrEmpty(desktop) || !Directory.Exists(desktop))
+        {
+            desktop = Environment.GetFolderPath(Environment.SpecialFolder.UserProfile);
+        }
+
+        string zipPath = Path.Combine(desktop, $"DeskSpace-诊断包-{DateTime.Now:yyyyMMdd-HHmmss}.zip");
+
+        OperationResult result = new DiagnosticExporter(_configDir).Export(zipPath);
+        if (!result.Success)
+        {
+            DiagnosticsStatus = "导出失败：" + result.ErrorMessage;
+            _dialogService.ShowError(result.ErrorMessage ?? "导出诊断包失败。", "导出诊断包");
+            return;
+        }
+
+        DiagnosticsStatus = "已导出到桌面：" + Path.GetFileName(zipPath);
+        _dialogService.ShowInfo(
+            "诊断包已导出：\n" + zipPath + "\n\n把它发给帮你排查问题的人即可。",
+            "导出诊断包");
     }
 }

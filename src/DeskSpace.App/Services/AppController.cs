@@ -599,7 +599,9 @@ public sealed class AppController : IDisposable
             return;
         }
 
-        _settingsViewModel = new SettingsViewModel(_mainViewModel.Workspace, _hotkeyService, _dialogService, _startupService, _desktopIconService);
+        _settingsViewModel = new SettingsViewModel(
+            _mainViewModel.Workspace, _hotkeyService, _dialogService,
+            _startupService, _desktopIconService, _configDir);
         _settingsWindow = new SettingsWindow(_settingsViewModel)
         {
             Owner = _mainWindow,
