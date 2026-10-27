@@ -17,7 +17,8 @@
     按脚本提示重启虚拟机后，再跑：
       powershell -NoProfile -ExecutionPolicy Bypass -File stage8-step3-check.ps1 -Phase 2
 
-  产出：脚本同目录 stage8-step3-report.txt（直接把这个文件发回来即可）
+  产出：脚本同目录 stage8-step3-report-phase1.txt / stage8-step3-report-phase2.txt
+        （两个文件都发回来即可；Phase 1 的报告务必在重启前拷出来，避免丢失）
 
   前提：DeskSpace 已经用 install.ps1 装好（自包含版即可，不需要 .NET）。
 
@@ -33,7 +34,10 @@ param(
 
 $ErrorActionPreference = 'Stop'
 $scriptDir = Split-Path -Parent $MyInvocation.MyCommand.Path
-$reportPath = Join-Path $scriptDir 'stage8-step3-report.txt'
+# 两个阶段各写各的报告，避免 Phase 2 覆盖掉 Phase 1 的文字记录
+# （2026-10-27 虚拟机实测发现：同一份 stage8-step3-report.txt 被 Phase 2 覆盖，
+#  Phase 1 的 A-E 场景 PASS/FAIL 文字记录丢失，只剩截图）
+$reportPath = Join-Path $scriptDir ('stage8-step3-report-phase' + $Phase + '.txt')
 $installDirDefault = Join-Path $env:LOCALAPPDATA 'Programs\DeskSpace'
 $runKey = 'HKCU:\Software\Microsoft\Windows\CurrentVersion\Run'
 $hideIconsKey = 'HKCU:\Software\Microsoft\Windows\CurrentVersion\Explorer\Advanced'
