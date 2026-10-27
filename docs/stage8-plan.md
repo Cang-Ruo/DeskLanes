@@ -36,7 +36,18 @@
 | 文档订正 | `docs/install-and-uninstall.md` §已知限制第 1 条（干净环境报错已验证）、第 5 条（coreclr.dll 判据错误 → 改用 wpfgfx_cor3.dll） |
 | 安装包内脚本 | `install.ps1` / `uninstall.ps1` / `stage8-step3-check.ps1` / `vm-check.ps1` 与 `tools/` 当前版本一致，无需刷新 |
 
-**推论：从现在起，8.1 的虚拟机实测可以基于新 exe 进行，结论有效。**
+### 8.3 后再次重发布（2026-10-27 11:48，含「导出诊断包」）
+
+| 项 | 值 |
+|---|---|
+| 便携版 `publish/win-x64/DeskSpace.exe` | 527,965 B，MD5 `ef884a571a14e84ff080c6d385fb2138` |
+| 自包含版 `publish/win-x64-selfcontained/DeskSpace.exe` | 65,067,641 B，MD5 `7a26f62872789d2dd11bf20e0ec9758c` |
+| 新验收包 `publish/vm-package-20261027/` | 自包含 exe + install/uninstall/stage8-step3-check/vm-check + 说明，8.4 测试请用这个 |
+
+**注意**：`publish/vm-package/` 里的旧 exe 当时正被一个运行中的 DeskSpace 实例占用（PID 266052），
+没有强杀用户进程，改为新建一个带日期的包。等该实例关闭后再把 `vm-package` 刷新一次即可。
+
+**推论：从现在起，8.4 的显示测试可以基于最新构建进行，结论有效。**
 
 ## 2. 8.0 为什么是最高优先级（必须最先做）
 
