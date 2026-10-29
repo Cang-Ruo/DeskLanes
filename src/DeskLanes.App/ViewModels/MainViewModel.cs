@@ -26,6 +26,13 @@ public sealed class MainViewModel : ObservableObject
     private bool _isLoading;
     private string _statusText = "就绪";
     private string? _warningText;
+
+    /// <summary>
+    /// 配置加载警告（损坏 / 迁移 / 版本过新）。它和扫描警告分开存：
+    /// 刷新（<see cref="RefreshAsync"/>）每次都会重设扫描警告，若共用同一个字段，
+    /// 启动时的配置提示会被紧随其后的首次扫描直接清掉，用户永远看不到。
+    /// </summary>
+    private string? _configWarningText;
     private string _syncStatusText = "自动同步：未启用";
     private bool _hasSyncWarning;
     private DesktopItem? _selectedItem;
@@ -54,7 +61,7 @@ public sealed class MainViewModel : ObservableObject
 
         RefreshCommand = new RelayCommand(_ => _ = RefreshAsync(), _ => !IsLoading);
         OpenItemCommand = new RelayCommand(OpenItem, parameter => parameter is DesktopItem);
-        DismissWarningCommand = new RelayCommand(_ => WarningText = null);
+        DismissWarningCommand = new RelayCommand(_ => DismissWarnings());
         ToggleLayoutCommand = new RelayCommand(_ => ToggleLayout());
         SwitchToFloatingCommand = new RelayCommand(_ => ModeSwitchRequested?.Invoke(this, WindowMode.Floating));
         SwitchToSidebarCommand = new RelayCommand(_ => ModeSwitchRequested?.Invoke(this, WindowMode.Sidebar));
@@ -169,16 +176,28 @@ public sealed class MainViewModel : ObservableObject
         private set => SetProperty(ref _statusText, value);
     }
 
-    /// <summary>加载配置或扫描过程中的警告。</summary>
+    /// <summary>配置或扫描过程中的警告（扫描警告优先，其次才是启动时的配置提示）。</summary>
     public string? WarningText
     {
-        get => _warningText;
+        get => _warningText ?? _configWarningText;
         private set
         {
             if (SetProperty(ref _warningText, value))
             {
                 OnPropertyChanged(nameof(HasWarning));
             }
+        }
+    }
+
+    /// <summary>用户手动忽略提示：两类警告一起消掉，否则点了"忽略"还会再冒出来。</summary>
+    public void DismissWarnings()
+    {
+        WarningText = null;
+        if (_configWarningText is not null)
+        {
+            _configWarningText = null;
+            OnPropertyChanged(nameof(WarningText));
+            OnPropertyChanged(nameof(HasWarning));
         }
     }
 
@@ -240,10 +259,13 @@ public sealed class MainViewModel : ObservableObject
     /// <summary>窗口显示后自动执行首次扫描，并启动桌面自动同步。</summary>
     public async Task InitializeAsync()
     {
-        // 配置加载警告（损坏/迁移/版本过新）在启动时提示一次
+        // 配置加载警告（损坏/迁移/版本过新）在启动时提示一次。
+        // 注意不能写进 WarningText：紧随其后的首次刷新会把它清掉。
         if (_workspace.LoadWarnings.Count > 0)
         {
-            WarningText = "配置提示：\n" + string.Join("\n", _workspace.LoadWarnings);
+            _configWarningText = "配置提示：\n" + string.Join("\n", _workspace.LoadWarnings);
+            OnPropertyChanged(nameof(WarningText));
+            OnPropertyChanged(nameof(HasWarning));
         }
 
         await RefreshAsync();
