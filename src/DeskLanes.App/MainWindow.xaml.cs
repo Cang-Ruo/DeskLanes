@@ -11,6 +11,8 @@ public partial class MainWindow : Window
 {
     private readonly AppController _controller;
     private bool _preferencesApplied;
+    private bool _lastWasMaximized;
+    private bool _userRestored;
 
     public MainWindow(MainViewModel viewModel, AppController controller)
     {
@@ -20,6 +22,46 @@ public partial class MainWindow : Window
 
         // 轻玻璃背景：Win11 原生 DWM 材料（Acrylic → Mica），失败自动回退不透明底色
         WindowBackdropService.Attach(this);
+        StateChanged += OnStateChanged;
+    }
+
+    /// <summary>
+    /// 进入全屏工作空间模式：直接以最大化呈现。
+    /// 「全屏模式」是一种模式而不是一个尺寸，切过去却不占满屏幕会让人以为切错了。
+    /// </summary>
+    /// <param name="fromOtherMode">
+    /// true 表示用户刚从别的模式切过来 —— 无脑铺满屏幕；
+    /// false 表示重复进入（例如保存设置后重新应用模式）—— 用户若已自己还原过就别再弹回全屏。
+    /// </param>
+    public void BeginFullMode(bool fromOtherMode)
+    {
+        if (fromOtherMode)
+        {
+            // 切走再切回来，就该重新看到全屏：清掉上一轮的还原记录
+            _userRestored = false;
+        }
+        else if (_userRestored)
+        {
+            // 这一轮用户已经主动还原过，尊重他的选择
+            return;
+        }
+
+        if (WindowState != WindowState.Maximized)
+        {
+            WindowState = WindowState.Maximized;
+        }
+    }
+
+    private void OnStateChanged(object? sender, EventArgs e)
+    {
+        // 只认「用户从最大化主动还原」这一种意图：拖标题栏、双击标题栏、还原按钮都算。
+        // 程序自己置 Maximized 进不来这个分支（那时 _lastWasMaximized 还是 false）。
+        if (_lastWasMaximized && WindowState == WindowState.Normal)
+        {
+            _userRestored = true;
+        }
+
+        _lastWasMaximized = WindowState == WindowState.Maximized;
     }
 
     /// <summary>窗口渲染完成后自动开始首次扫描与桌面监听（窗口先出现，避免白屏等待）。</summary>

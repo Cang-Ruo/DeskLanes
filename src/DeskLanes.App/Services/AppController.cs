@@ -259,6 +259,10 @@ public sealed class AppController : IDisposable
     public void SaveWindowPreferences(double width, double height, double? left, double? top, bool maximized)
         => _mainViewModel?.SaveWindowPreferences(width, height, left, top, maximized);
 
+    /// <summary>保存悬浮窗的尺寸与位置（拖动/缩放结束时由悬浮窗调用）。</summary>
+    public void SaveFloatingWindowPreferences(double width, double height, double? left, double? top)
+        => _floatingViewModel?.Workspace.SaveFloatingWindowPreferences(width, height, left, top);
+
     public void Dispose()
     {
         if (_disposed)
@@ -520,6 +524,9 @@ public sealed class AppController : IDisposable
                 _sidebarWindow?.Hide();
                 if (_mainWindow is not null)
                 {
+                    // 切过来之前窗口是隐藏的吗？用来区分「刚切进全屏模式」与「重复进入」
+                    bool fromOtherMode = !_mainWindow.IsVisible;
+
                     _mainWindow.Show();
                     if (activate)
                     {
@@ -530,6 +537,10 @@ public sealed class AppController : IDisposable
 
                         WindowActivator.Activate(_mainWindow, forceForeground);
                     }
+
+                    // 全屏工作空间就以全屏呈现：以前切过来只是个 1180×760 的普通窗口，
+                    // 还得用户自己再点一次最大化。
+                    _mainWindow.BeginFullMode(fromOtherMode);
                 }
 
                 break;
@@ -636,6 +647,17 @@ public sealed class AppController : IDisposable
     }
 
     // ---------- 多显示器 / DPI ----------
+
+    /// <summary>把悬浮窗拉回当前虚拟桌面范围内（拖动/缩放结束后调用）。</summary>
+    public void ClampFloatingWindow()
+    {
+        ClampWindow(
+            _floatingWindow,
+            SystemParameters.VirtualScreenLeft,
+            SystemParameters.VirtualScreenTop,
+            SystemParameters.VirtualScreenWidth,
+            SystemParameters.VirtualScreenHeight);
+    }
 
     /// <summary>把可见窗口拉回当前虚拟桌面范围内（显示器配置变化后调用）。</summary>
     private void ClampWindowsToScreen()
