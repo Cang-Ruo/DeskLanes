@@ -3,7 +3,7 @@
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
         xmlns:vm="clr-namespace:DeskLanes.App.ViewModels"
         xmlns:views="clr-namespace:DeskLanes.App.Views"
-        Title="DeskLanes" Height="760" Width="1180" MinHeight="520" MinWidth="900"
+        Title="DeskLanes" Height="760" Width="1180" MinHeight="420" MinWidth="620"
         Background="Transparent" WindowStartupLocation="CenterScreen"
         TextOptions.TextFormattingMode="Ideal" UseLayoutRounding="True"
         Closing="OnClosing">
@@ -34,8 +34,12 @@
             <StackPanel VerticalAlignment="Center">
                 <TextBlock Text="DeskLanes" FontSize="19" FontWeight="SemiBold"
                            Foreground="{StaticResource BrushTextPrimary}" />
-                <TextBlock Text="桌面工作空间 · 分类导航 / 自由分区共用同一份数据"
-                           FontSize="11" Foreground="{StaticResource BrushTextTertiary}" Margin="0,2,0,0" />
+                <!-- 窄屏（竖屏 720 DIP）下由代码折叠：这行说明文字会把标题栏撑宽，
+                     挤掉右侧按钮 -->
+                <TextBlock x:Name="SubtitleText"
+                           Text="桌面工作空间 · 分类导航 / 自由分区共用同一份数据"
+                           FontSize="11" Foreground="{StaticResource BrushTextTertiary}" Margin="0,2,0,0"
+                           TextTrimming="CharacterEllipsis" />
             </StackPanel>
             <StackPanel Orientation="Horizontal" HorizontalAlignment="Right" VerticalAlignment="Center">
                 <Button Content="添加项目" Padding="14,7" Margin="0,0,8,0" FontSize="13"
