@@ -1,10 +1,11 @@
 // ============================================================================
 // DeskLanes 界面快照工具（UI 改版视觉验证用）
 // ----------------------------------------------------------------------------
-// 用法：DeskLanes.UiSnapshot.exe <category|panels|floating|sidebar|settings|dialog> <输出.png>
+// 用法：DeskLanes.UiSnapshot.exe <category|panels|floating|sidebar|settings|dialog> <输出.png> [--demo]
 //
 // 行为：
 //   1. 把真实配置目录（%LocalAppData%\DeskLanes）复制到临时目录，绝不写回真实配置；
+//      （加 --demo 则不复制，改用内置的演示项目，截图里不会出现真实桌面文件）
 //   2. 组装与真实应用完全相同的服务与视图模型，启动对应模式的窗口；
 //   3. 按模式预置演示数据（分类导航：2 个分类 + 归属；自由分区：2 个分区 + 归属）；
 //   4. 渲染完成后截取窗口，保存 PNG 后退出。
@@ -13,6 +14,7 @@
 // 截图方式分两种：
 //   category / panels / floating / sidebar → RenderTargetBitmap（视觉树快照）；
 //   settings / dialog → GDI BitBlt 屏幕合成截图（能看到 DWM 的 Mica 毛玻璃）。
+//   settings 默认滚到底（为了拍到末尾的分区）；加 --top 则保持顶部，用于展示上半部分。
 //
 // 限制：RenderTargetBitmap 抓不到 DWM 合成的 Mica / 亚克力毛玻璃与桌面壁纸；
 //       真机玻璃效果请用 settings / dialog 模式或屏幕截图确认。
@@ -24,6 +26,7 @@ using System;
 using System.IO;
 using System.Linq;
 using System.Runtime.InteropServices;
+using System.Threading;
 using System.Threading.Tasks;
 using System.Windows;
 using System.Windows.Controls;
@@ -46,21 +49,28 @@ public static class Program
     [STAThread]
     public static int Main(string[] args)
     {
-        if (args.Length != 2 || !Modes.Contains(args[0]))
+        if (args.Length < 2 || !Modes.Contains(args[0]))
         {
-            Console.Error.WriteLine("用法：DeskLanes.UiSnapshot.exe <category|panels|floating|sidebar|settings|dialog> <输出.png>");
+            Console.Error.WriteLine(
+                "用法：DeskLanes.UiSnapshot.exe <category|panels|floating|sidebar|settings|dialog> <输出.png> [--demo]");
             return 1;
         }
 
         string mode = args[0];
         string output = Path.GetFullPath(args[1]);
 
+        // --demo：用内置演示项目替代真实桌面内容，用于对外发布的截图（避免泄露私人文件名）
+        bool demo = args.Skip(2).Any(a => string.Equals(a, "--demo", StringComparison.OrdinalIgnoreCase));
+
+        // --top：设置窗口不滚到底，保持顶部（默认滚到底是为了拍到末尾分区）
+        bool keepTop = args.Skip(2).Any(a => string.Equals(a, "--top", StringComparison.OrdinalIgnoreCase));
+
         // 屏幕合成截图需要物理像素坐标（与 GetWindowRect / GetDC 一致）
         SetProcessDPIAware();
 
         try
         {
-            RunAsync(mode, output).GetAwaiter().GetResult();
+            RunAsync(mode, output, demo, keepTop).GetAwaiter().GetResult();
             return 0;
         }
         catch (Exception ex)
@@ -70,15 +80,15 @@ public static class Program
         }
     }
 
-    private static async Task RunAsync(string mode, string output)
+    private static async Task RunAsync(string mode, string output, bool demo, bool keepTop)
     {
-        // 1. 复制真实配置到临时目录（只读使用，不污染真实配置）
+        // 1. 复制真实配置到临时目录（只读使用，不污染真实配置）；--demo 时不复制
         string realDir = Path.Combine(
             Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "DeskLanes");
         string tempDir = Path.Combine(Path.GetTempPath(), "DeskLanesSnap_" + Guid.NewGuid().ToString("N")[..8]);
         Directory.CreateDirectory(tempDir);
 
-        if (Directory.Exists(realDir))
+        if (!demo && Directory.Exists(realDir))
         {
             foreach (string file in Directory.EnumerateFiles(realDir, "*.json"))
             {
@@ -90,7 +100,10 @@ public static class Program
         {
             // 2. 组装依赖（与 App.xaml.cs 一致）
             IShortcutResolver resolver = new ShortcutResolver();
-            IDesktopScanner scanner = new DesktopScanner(resolver);
+
+            // --demo 时用空扫描器顶掉真实桌面扫描：既不读取真实桌面，
+            // 也因为 ScopeDirectories 为空而不会把演示项目误判为失效。
+            IDesktopScanner scanner = demo ? new EmptyScanner() : new DesktopScanner(resolver);
             IIconService iconService = new IconService();
             ILaunchService launchService = new LaunchService();
             var dialogService = new WpfDialogService();
@@ -105,7 +118,12 @@ public static class Program
             // 初始化由本工具自行触发，与阶段 2 行为保持一致。
             var controller = new AppController(scanner, iconService, launchService, dialogService, tempDir);
 
-            // 3. 演示数据
+            // 3. 演示数据（--demo 时项目也是演示的；否则分类/分区套在真实项目上）
+            if (demo)
+            {
+                SeedDemoItems(workspace, tempDir);
+            }
+
             if (mode == "panels")
             {
                 workspace.SetLayoutMode(LayoutMode.FreePanels);
@@ -209,6 +227,13 @@ public static class Program
                 {
                     await mainViewModel.InitializeAsync();
 
+                    // --demo：默认停在一个真实分类上，否则主区域只有"未分组"里的 1 个项目
+                    if (demo && mainViewModel.CategoryNav.Categories.Count > 1)
+                    {
+                        mainViewModel.CategoryNav.SelectedCategory =
+                            mainViewModel.CategoryNav.Categories[1];
+                    }
+
                     // 侧边栏快照：确保有选中分类，否则项目区为空
                     if (window.DataContext is SidebarViewModel sidebarVm &&
                         sidebarVm.SelectedCategory == null &&
@@ -228,7 +253,7 @@ public static class Program
                     await Task.Delay(800); // 布局与图标稳定
 
                     // 设置窗口内容需要滚动：取证时滚到底，才能拍到末尾的分区
-                    if (mode == "settings")
+                    if (mode == "settings" && !keepTop)
                     {
                         // 注意：窗口里还有 TextBox 模板自带的 ScrollViewer（PART_ContentHost），
                         // 只取"第一个"会滚错对象，这里按实际高度取内容区那个
@@ -439,6 +464,57 @@ public static class Program
 
     private static T? FindVisualChild<T>(DependencyObject parent) where T : DependencyObject
         => FindVisualChildren<T>(parent).FirstOrDefault();
+
+    /// <summary>
+    /// --demo 用的空扫描器：不碰真实桌面。
+    /// 返回的 <see cref="ScanResult.ScopeDirectories"/> 为空，合并时失效判定不生效，
+    /// 因此演示项目不会被误标成"失效"。
+    /// </summary>
+    private sealed class EmptyScanner : IDesktopScanner
+    {
+        public Task<ScanResult> ScanAsync(
+            ScanOptions? options = null,
+            IProgress<string>? progress = null,
+            CancellationToken cancellationToken = default)
+            => Task.FromResult(new ScanResult
+            {
+                Items = Array.Empty<DesktopItem>(),
+                Warnings = Array.Empty<string>(),
+                ScopeDirectories = Array.Empty<string>(),
+                ScannedAt = DateTime.Now,
+            });
+    }
+
+    /// <summary>
+    /// --demo 用的演示项目：在临时目录里造一批中性名称的文件与文件夹，
+    /// 让对外发布的截图既能体现真实界面密度，又不会泄露真实桌面文件名。
+    /// </summary>
+    private static void SeedDemoItems(IWorkspaceService workspace, string tempDir)
+    {
+        string root = Path.Combine(tempDir, "demo-items");
+        Directory.CreateDirectory(root);
+
+        string[] files =
+        {
+            "项目计划书.docx", "季度报表.xlsx", "需求评审.pptx", "会议纪要.docx",
+            "客户名单.xlsx", "设计稿.png", "参考资料.pdf", "合同模板.docx",
+            "预算表.xlsx", "截图.png", "说明.txt", "待办清单.txt",
+        };
+
+        foreach (string name in files)
+        {
+            string path = Path.Combine(root, name);
+            File.WriteAllText(path, "demo");
+            workspace.AddCustomItem(path);
+        }
+
+        foreach (string name in new[] { "归档 2026", "素材库", "临时下载" })
+        {
+            string dir = Path.Combine(root, name);
+            Directory.CreateDirectory(dir);
+            workspace.AddCustomItem(dir);
+        }
+    }
 
     private static void SeedCategories(IWorkspaceService workspace)
     {
