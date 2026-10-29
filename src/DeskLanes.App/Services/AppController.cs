@@ -495,6 +495,10 @@ public sealed class AppController : IDisposable
                     }
                 }
 
+                // 每次呼出都钳一次：原先只在收到 WM_DISPLAYCHANGE 时才钳，
+                // 日常从托盘/快捷键呼出不触发，显示器拔插或换分辨率后
+                // 窗口可能仍停在已经不存在的坐标上。
+                ClampWindowsToScreen();
                 break;
 
             case WindowMode.Sidebar:
@@ -507,6 +511,8 @@ public sealed class AppController : IDisposable
                     _sidebarWindow.ShowDocked();
                 }
 
+                // 同上：每次停靠都钳一次，而不是只在显示器配置变化时。
+                ClampWindowsToScreen();
                 break;
 
             default:
