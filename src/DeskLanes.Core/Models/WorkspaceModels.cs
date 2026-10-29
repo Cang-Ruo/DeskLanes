@@ -324,13 +324,19 @@ public sealed class AppSettings : IVersionedData
     public int HotkeyKey { get; set; } = HotkeyDefinition.Default.Key;
 
     // ---------- 悬浮窗 ----------
+    // 尺寸默认值与 FloatingWindow.xaml 保持一致。
+    // 读取侧有一条硬约定：只有位置记录（Left/Top）有效时，才会拿这两个尺寸去覆盖
+    // 窗口的 XAML 默认值。早期版本这四个字段没人用，配置里可能躺着当时的默认尺寸，
+    // 直接照搬会把 XAML 的默认值顶掉（升级后窗口反而变小）。
 
     public double FloatingWindowWidth { get; set; } = 780;
 
     public double FloatingWindowHeight { get; set; } = 540;
 
+    /// <summary>悬浮窗左上角 X；null 表示用户还没拖动过（此时窗口居中显示）。</summary>
     public double? FloatingWindowLeft { get; set; }
 
+    /// <summary>悬浮窗左上角 Y；null 表示用户还没拖动过（此时窗口居中显示）。</summary>
     public double? FloatingWindowTop { get; set; }
 
     /// <summary>悬浮窗失去焦点时是否自动隐藏（可关闭，避免误操作丢失窗口）。</summary>
