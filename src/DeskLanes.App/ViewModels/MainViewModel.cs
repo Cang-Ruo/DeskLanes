@@ -407,6 +407,17 @@ public sealed class MainViewModel : ObservableObject
                     // 图标失败不影响名称展示
                 }
             }
+
+            // 每轮加载完就按当前工作区裁剪一次缓存：已经删除/改名/被移出桌面的文件，
+            // 图标不会继续占着内存（这是缓存的主要清理手段，容量上限只是兜底）。
+            try
+            {
+                _iconService.PruneExcept(_workspace.Items.Select(i => i.FullPath));
+            }
+            catch
+            {
+                // 裁剪失败只影响内存占用，不影响界面
+            }
         });
     }
 
