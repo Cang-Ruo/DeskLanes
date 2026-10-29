@@ -1928,6 +1928,75 @@ Console.WriteLine("-- 16 诊断包导出 --");
     }
 }
 
+// ---------------------------------------------------------------- 18. 三模式来回切换的数据一致性（核心卖点）
+Console.WriteLine();
+Console.WriteLine("== 18. 三模式切换的数据一致性（悬浮窗 / 全屏 / 侧边栏） ==");
+{
+    string modeRoot = Path.Combine(Path.GetTempPath(), "DeskLanesMode_" + Guid.NewGuid().ToString("N")[..8]);
+    Directory.CreateDirectory(modeRoot);
+    try
+    {
+        var modeWs = new WorkspaceService(new LibraryStore(modeRoot), new ConfigStore(modeRoot), resolver);
+        await modeWs.MergeScanAsync(scan);
+        ShortcutGroup modeGroup = modeWs.CreateGroup("一致性校验分类");
+        modeWs.AssignItemToGroup(modeWs.Items.First(), modeGroup);
+
+        int expectItems = modeWs.Items.Count;
+        int expectGroups = modeWs.Groups.Count;
+        List<string> expectPaths = modeWs.Items
+            .Select(i => i.PathKey).OrderBy(x => x, StringComparer.Ordinal).ToList();
+        List<string> expectMember = modeGroup.ItemIds.OrderBy(x => x, StringComparer.Ordinal).ToList();
+        Check(expectItems > 0 && expectMember.Count > 0, "已造出用于一致性校验的数据",
+            $"{expectItems} 个项目，分类含 {expectMember.Count} 个成员");
+
+        // 全屏 → 悬浮窗 → 侧边栏 → 全屏，每一站都重新从磁盘加载后比对
+        foreach (WindowMode m in new[] { WindowMode.Floating, WindowMode.Sidebar, WindowMode.Full })
+        {
+            modeWs.Settings.WindowMode = m;
+            modeWs.Save();
+
+            var reload = new WorkspaceService(new LibraryStore(modeRoot), new ConfigStore(modeRoot), resolver);
+            string tag = m switch
+            {
+                WindowMode.Floating => "悬浮窗",
+                WindowMode.Sidebar => "侧边栏",
+                _ => "全屏",
+            };
+
+            Check(reload.Settings.WindowMode == m, $"切到{tag}后模式值持久化",
+                reload.Settings.WindowMode.ToString());
+            Check(reload.LoadWarnings.Count == 0, $"切到{tag}后重新加载无警告",
+                string.Join(" | ", reload.LoadWarnings));
+            Check(reload.Items.Count == expectItems, $"切到{tag}后项目数不变",
+                $"{expectItems} -> {reload.Items.Count}");
+            Check(
+                reload.Items.Select(i => i.PathKey).OrderBy(x => x, StringComparer.Ordinal)
+                    .SequenceEqual(expectPaths),
+                $"切到{tag}后项目集合完全一致（无新增无丢失）");
+            Check(reload.Groups.Count == expectGroups, $"切到{tag}后分类数不变",
+                $"{expectGroups} -> {reload.Groups.Count}");
+            ShortcutGroup? g2 = reload.Groups.FirstOrDefault(g => g.Id == modeGroup.Id);
+            Check(
+                g2 is not null &&
+                g2.ItemIds.OrderBy(x => x, StringComparer.Ordinal).SequenceEqual(expectMember),
+                $"切到{tag}后分类成员关联不变");
+        }
+
+        Check(modeWs.Settings.WindowMode == WindowMode.Full, "三模式绕一圈后回到全屏");
+    }
+    finally
+    {
+        try
+        {
+            Directory.Delete(modeRoot, true);
+        }
+        catch
+        {
+            // 临时目录清理失败不影响结果
+        }
+    }
+}
+
 // ---------------------------------------------------------------- 汇总
 Console.WriteLine();
 Console.WriteLine($"===== 冒烟测试结果：通过 {passed} 项，失败 {failed} 项 =====");
