@@ -2177,6 +2177,123 @@ Console.WriteLine("== 20. 图标缓存有界（长驻不泄漏） ==");
     }
 }
 
+// ---------------------------------------------------------------- 21. 200+ 项目性能（B6）与配置损坏提示（C10）
+Console.WriteLine();
+Console.WriteLine("== 21. 大量项目的扫描性能 + 损坏配置的可见提示 ==");
+{
+    string bulkRoot = Path.Combine(Path.GetTempPath(), "DeskLanesBulk_" + Guid.NewGuid().ToString("N")[..8]);
+    Directory.CreateDirectory(bulkRoot);
+    string bulkCfg = Path.Combine(Path.GetTempPath(), "DeskLanesBulkCfg_" + Guid.NewGuid().ToString("N")[..8]);
+    Directory.CreateDirectory(bulkCfg);
+    try
+    {
+        // ---- 21.1 220 个项目的扫描与合并（B6 脚本部分；不用往真实桌面堆文件） ----
+        const int bulkCount = 220;
+        for (int i = 0; i < bulkCount; i++)
+        {
+            File.WriteAllText(Path.Combine(bulkRoot, $"bulk-item-{i:D3}.txt"), "bulk");
+        }
+
+        var bulkScanner = new DesktopScanner(resolver);
+        var sw = System.Diagnostics.Stopwatch.StartNew();
+        ScanResult bulkScan = await bulkScanner.ScanAsync(new ScanOptions
+        {
+            Targets = new[] { new ScanTarget { Path = bulkRoot, Origin = ItemOrigin.UserDesktop } },
+        });
+        long scanMs = sw.ElapsedMilliseconds;
+
+        IWorkspaceService bulkWs = new WorkspaceService(
+            new LibraryStore(bulkCfg), new ConfigStore(bulkCfg), resolver);
+        sw.Restart();
+        ScanMergeOutcome outcome = await bulkWs.MergeScanAsync(bulkScan);
+        long mergeMs = sw.ElapsedMilliseconds;
+
+        Info($"220 个项目：扫描 {scanMs} ms，合并 {mergeMs} ms，新增 {outcome.Added} 项");
+        Check(bulkScan.Items.Count == bulkCount, "220 个项目全部扫到",
+            $"实际 {bulkScan.Items.Count}");
+        Check(scanMs < 5000, "220 个项目扫描 < 5 秒（B6 判据）", $"{scanMs} ms");
+        Check(mergeMs < 5000, "220 个项目合并进库 < 5 秒", $"{mergeMs} ms");
+        Check(outcome.Added == bulkCount, "220 个项目全部入库", $"新增 {outcome.Added}");
+        Check(bulkScan.Warnings.Count == 0, "批量扫描无警告",
+            string.Join(" | ", bulkScan.Warnings));
+
+        // ---- 21.2 批量取图标（图标是 P/Invoke，最可能成为大桌面下的瓶颈） ----
+        var bulkIcons = new IconService();
+        sw.Restart();
+        int bulkIconOk = 0;
+        foreach (DesktopItem item in bulkWs.Items)
+        {
+            if (bulkIcons.GetIcon(item.FullPath) is not null)
+            {
+                bulkIconOk++;
+            }
+        }
+        long iconMs = sw.ElapsedMilliseconds;
+        Info($"220 个项目取图标 {iconMs} ms，成功 {bulkIconOk} 个");
+        Check(iconMs < 20000, "220 个项目取图标 < 20 秒", $"{iconMs} ms");
+        Check(bulkIcons.CachedIconCount <= IconService.DefaultMaxCachedIcons,
+            "批量取图标后缓存仍在上限内",
+            $"{bulkIcons.CachedIconCount} <= {IconService.DefaultMaxCachedIcons}");
+
+        // ---- 21.3 配置损坏时用户在主窗口能看到中文提示（C10 脚本部分） ----
+        string brokeCfg = Path.Combine(Path.GetTempPath(), "DeskLanesBroke_" + Guid.NewGuid().ToString("N")[..8]);
+        Directory.CreateDirectory(brokeCfg);
+        try
+        {
+            File.WriteAllText(Path.Combine(brokeCfg, "library.json"), "{ 这不是合法 JSON，模拟损坏 ");
+            IWorkspaceService brokeWs = new WorkspaceService(
+                new LibraryStore(brokeCfg), new ConfigStore(brokeCfg), resolver);
+
+            // 用空扫描器顶掉真实桌面扫描，这一段只关心"提示有没有上屏"
+            int errorsBefore = dialogService.Errors.Count;   // 共享实例，前面几节可能已有记录
+            var brokeVm = new MainViewModel(
+                brokeWs, new EmptyScanner(), new IconService(), launchService, dialogService,
+                new ShellState());
+            await brokeVm.InitializeAsync();
+
+            Check(brokeVm.HasWarning, "配置损坏时主窗口显示提示条");
+            Check(brokeVm.WarningText is not null && brokeVm.WarningText.Contains("配置提示"),
+                "提示是中文的（不是英文异常堆栈）", brokeVm.WarningText);
+            Check(brokeVm.WarningText is not null && brokeVm.WarningText.Contains("损坏"),
+                "提示里说明了是配置损坏", brokeVm.WarningText);
+            Check(brokeVm.WarningText is not null && !brokeVm.WarningText.Contains("Exception"),
+                "提示里没有异常类名", brokeVm.WarningText);
+            Check(Directory.Exists(Path.Combine(brokeCfg, "backups")),
+                "损坏原件已备份到 backups 目录");
+            Check(dialogService.Errors.Count == errorsBefore, "配置损坏不弹错误对话框（只在窗口内提示）",
+                string.Join(" | ", dialogService.Errors.Skip(errorsBefore)));
+            Check(brokeVm.WarningText is not null, "提示在首次刷新后仍然存在（不被刷新清空）");
+            brokeVm.DismissWarnings();
+            Check(!brokeVm.HasWarning && brokeVm.WarningText is null, "点忽略后提示消失");
+        }
+        finally
+        {
+            try
+            {
+                Directory.Delete(brokeCfg, true);
+            }
+            catch
+            {
+                // 临时目录清理失败不影响结果
+            }
+        }
+    }
+    finally
+    {
+        foreach (string dir in new[] { bulkRoot, bulkCfg })
+        {
+            try
+            {
+                Directory.Delete(dir, true);
+            }
+            catch
+            {
+                // 临时目录清理失败不影响结果
+            }
+        }
+    }
+}
+
 // ---------------------------------------------------------------- 汇总
 Console.WriteLine();
 Console.WriteLine($"===== 冒烟测试结果：通过 {passed} 项，失败 {failed} 项 =====");
@@ -2211,6 +2328,25 @@ sealed class DelayedScanner : IDesktopScanner
         await Task.Delay(DelayMs, cancellationToken);
         return result;
     }
+}
+
+/// <summary>
+/// 不碰真实桌面的空扫描器（用于只关心"提示有没有上屏"的场景）。
+/// ScopeDirectories 为空，合并时失效判定不生效，因此不会把已有项目误标为失效。
+/// </summary>
+sealed class EmptyScanner : IDesktopScanner
+{
+    public Task<ScanResult> ScanAsync(
+        ScanOptions? options = null,
+        IProgress<string>? progress = null,
+        CancellationToken cancellationToken = default)
+        => Task.FromResult(new ScanResult
+        {
+            Items = Array.Empty<DesktopItem>(),
+            Warnings = Array.Empty<string>(),
+            ScopeDirectories = Array.Empty<string>(),
+            ScannedAt = DateTime.Now,
+        });
 }
 
 sealed class ConsoleDialogService : IDialogService
