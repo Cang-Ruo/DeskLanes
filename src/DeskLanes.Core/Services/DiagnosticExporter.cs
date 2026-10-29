@@ -76,7 +76,9 @@ public sealed class DiagnosticExporter
 
                 if (Directory.Exists(LogsDirectory))
                 {
-                    foreach (string full in Directory.EnumerateFiles(LogsDirectory, "*.log"))
+                    // "*.log*" 同时命中当前份与轮转归档（sync.log.1 / errors.log.2）。
+                    // 归档里往往是出事之前的那一段，排障时很有用，必须一起打包。
+                    foreach (string full in Directory.EnumerateFiles(LogsDirectory, "*.log*"))
                     {
                         // zip 条目名必须用正斜杠：Path.Combine 在 Windows 上给的是反斜杠，
                         // 那样打包出来的条目名不会被标准解压工具识别为目录（冒烟测试第 16 节抓到过）

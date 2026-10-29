@@ -395,6 +395,64 @@ try:
 finally:
     close_app(proc)
 
+# ======== Round F: restore (not maximize) the main window on the portrait monitor ========
+# The last remaining portrait gap: after the user clicks "restore", the window goes back
+# to its normal size (1180 DIP), which does NOT fit a 720 DIP wide portrait screen.
+
+print()
+print("== Round F: main window restored (normal) on the portrait monitor ==")
+
+WM_SYSCOMMAND = 0x0112
+SC_RESTORE = 0xF120
+SW_SHOWNORMAL = 1
+
+
+def place_main_maximized_on_secondary():
+    path = os.path.join(CFGDIR, "settings.json")
+    with open(path, "r", encoding="utf-8") as f:
+        s = json.load(f)
+    s["WindowMode"] = MODE_FULL
+    s["WindowMaximized"] = True
+    s["WindowLeft"] = -800.0
+    s["WindowTop"] = 100.0
+    with open(path, "w", encoding="utf-8") as f:
+        json.dump(s, f, ensure_ascii=False, indent=2)
+
+
+place_main_maximized_on_secondary()
+mouse_home()
+proc = subprocess.Popen([EXE])
+try:
+    hwnd = find_window(MAIN_TITLE)
+    if hwnd is None:
+        say("main window appears for the restore test", False, "not found in 30s")
+    else:
+        time.sleep(2.5)
+        x0, y0, w0, h0 = get_rect(hwnd)
+        say("starts maximized on the portrait monitor", get_showcmd(hwnd) == SW_MAXIMIZE and x0 < 0,
+            "showCmd=%d at (%d,%d)" % (get_showcmd(hwnd), x0, y0))
+
+        # Same message the restore button sends. Going through the real message matters:
+        # it is what flips the "user restored" flag and triggers the fit.
+        u.PostMessageW(hwnd, WM_SYSCOMMAND, SC_RESTORE, 0)
+        time.sleep(2.5)
+
+        x1, y1, w1, h1 = get_rect(hwnd)
+        cmd1 = get_showcmd(hwnd)
+        say("restore button puts the window back to normal", cmd1 == SW_SHOWNORMAL,
+            "showCmd=%d" % cmd1)
+        say("restored window stays on the portrait monitor", x1 < 0, "x=%d" % x1)
+        # Portrait work area is 1080 px physical (720 DIP at 150%). Without the fix the
+        # window would come back at 1180 DIP = 1770 px and stick out by ~690 px.
+        say("restored window auto-shrinks to fit the portrait monitor",
+            600 <= w1 <= 1120, "width %d px physical (monitor 1080; unfixed would be ~1770)" % w1)
+finally:
+    close_app(proc)
+
+sF = read_settings()
+say("shrunk size is NOT persisted (intended 1180 kept for the big screen)",
+    sF.get("WindowWidth") == 1180, str(sF.get("WindowWidth")))
+
 # ================= Round C: did it persist? =================
 
 print()
