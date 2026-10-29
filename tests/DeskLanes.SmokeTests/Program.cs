@@ -2068,6 +2068,115 @@ Console.WriteLine("== 19. 悬浮窗几何持久化（拖动与缩放后要记得
     }
 }
 
+// ---------------------------------------------------------------- 20. 图标缓存有界（长期驻留不泄漏）
+Console.WriteLine();
+Console.WriteLine("== 20. 图标缓存有界（长驻不泄漏） ==");
+{
+    string iconRoot = Path.Combine(Path.GetTempPath(), "DeskLanesIcon_" + Guid.NewGuid().ToString("N")[..8]);
+    Directory.CreateDirectory(iconRoot);
+    try
+    {
+        // ---- 20.1 默认上限与初始状态 ----
+        var svc = new IconService();
+        Check(svc.MaxCachedIcons == IconService.DefaultMaxCachedIcons && svc.MaxCachedIcons == 512,
+            "默认缓存上限 512", svc.MaxCachedIcons.ToString());
+        Check(svc.CachedIconCount == 0, "新建实例缓存为空");
+
+        // ---- 20.2 真实文件仍能取到图标且已冻结（回归：重写缓存没弄坏取图标路径） ----
+        string realFile = Path.Combine(iconRoot, "real-icon-target.txt");
+        File.WriteAllText(realFile, "icon");
+        var realIcon = svc.GetIcon(realFile);
+        Check(realIcon is not null, "真实文件能取到系统图标");
+        Check(realIcon is null || realIcon.IsFrozen, "图标已冻结（可跨线程赋值）");
+        Check(svc.CachedIconCount == 1, "取一次图标缓存一条", svc.CachedIconCount.ToString());
+
+        // ---- 20.3 命中不产生新条目 ----
+        for (int i = 0; i < 5; i++)
+        {
+            svc.GetIcon(realFile);
+        }
+        Check(svc.CachedIconCount == 1, "重复取同一路径命中缓存，条目数不变");
+
+        // ---- 20.4 空/null 路径不入缓存 ----
+        Check(svc.GetIcon("") is null, "空路径返回 null");
+        Check(svc.GetIcon(null!) is null, "null 路径返回 null");
+        Check(svc.CachedIconCount == 1, "空/null 路径不进缓存");
+
+        // ---- 20.5 容量上限：小上限实例连续塞 120 条，不能突破上限 ----
+        var small = new IconService(32);
+        for (int i = 0; i < 120; i++)
+        {
+            small.GetIcon(Path.Combine(iconRoot, "no-such-" + i + ".bin"));
+        }
+        Check(small.CachedIconCount <= 32, "超过上限后被淘汰，缓存不超过上限",
+            $"{small.CachedIconCount} <= 32");
+        Check(small.CachedIconCount >= 24, "淘汰是成批的（一次腾出 1/8 空间），不是逐条",
+            small.CachedIconCount.ToString());
+
+        // ---- 20.6 LRU：持续访问的条目要活下来，最久未访问的要被淘汰 ----
+        string keeper = Path.Combine(iconRoot, "keeper.bin");
+        small.GetIcon(keeper);
+        for (int i = 200; i < 400; i++)
+        {
+            small.GetIcon(Path.Combine(iconRoot, "no-such-" + i + ".bin"));
+            small.GetIcon(keeper);   // 每次都刷新它的 LRU 序号
+        }
+        Check(small.IsCached(keeper), "最近持续访问的条目在淘汰中存活（LRU 生效）");
+        Check(!small.IsCached(Path.Combine(iconRoot, "no-such-0.bin")),
+            "最久未访问的条目被淘汰");
+
+        // ---- 20.7 默认上限实例同样不越界 ----
+        var big = new IconService();
+        for (int i = 0; i < 700; i++)
+        {
+            big.GetIcon(Path.Combine(iconRoot, "bulk-" + i + ".bin"));
+        }
+        Check(big.CachedIconCount <= 512, "默认实例塞 700 条后仍不超过 512",
+            big.CachedIconCount.ToString());
+
+        // ---- 20.8 PruneExcept：每轮扫描后按当前工作区裁剪（主要清理手段） ----
+        var prune = new IconService(256);
+        string[] keep = { Path.Combine(iconRoot, "a.txt"), Path.Combine(iconRoot, "b.txt") };
+        string[] all = keep
+            .Concat(Enumerable.Range(0, 50).Select(i => Path.Combine(iconRoot, "gone-" + i + ".bin")))
+            .ToArray();
+        foreach (string p in all)
+        {
+            prune.GetIcon(p);
+        }
+        int before = prune.CachedIconCount;
+        int removed = prune.PruneExcept(keep);
+        Check(removed == before - 2, "PruneExcept 摘掉了所有不在保留列表里的条目",
+            $"摘掉 {removed}，剩余 {prune.CachedIconCount}");
+        Check(prune.CachedIconCount == 2, "保留列表里的条目全部留下");
+        Check(prune.IsCached(keep[0]) && prune.IsCached(keep[1]), "保留的两个路径仍在缓存");
+        Check(prune.PruneExcept(keep) == 0, "重复裁剪不会再摘（幂等）");
+        Check(prune.PruneExcept(Array.Empty<string>()) == 2, "保留列表为空时清空缓存");
+
+        // ---- 20.9 ClearCache 归零 ----
+        big.ClearCache();
+        Check(big.CachedIconCount == 0, "ClearCache 清空缓存");
+
+        // ---- 20.10 接口层面也能拿到计数与裁剪能力（MainViewModel 走的是接口） ----
+        IIconService viaInterface = new IconService(64);
+        viaInterface.GetIcon(realFile);
+        Check(viaInterface.CachedIconCount == 1, "接口暴露缓存计数");
+        Check(viaInterface.PruneExcept(new[] { realFile }) == 0, "接口可裁剪（项目还在时保留）");
+        Check(viaInterface.PruneExcept(Array.Empty<string>()) == 1, "接口可裁剪（项目已删时摘掉）");
+    }
+    finally
+    {
+        try
+        {
+            Directory.Delete(iconRoot, true);
+        }
+        catch
+        {
+            // 临时目录清理失败不影响结果
+        }
+    }
+}
+
 // ---------------------------------------------------------------- 汇总
 Console.WriteLine();
 Console.WriteLine($"===== 冒烟测试结果：通过 {passed} 项，失败 {failed} 项 =====");

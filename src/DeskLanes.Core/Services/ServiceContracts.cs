@@ -19,12 +19,18 @@ public interface IShortcutResolver
     ShortcutInfo? Resolve(string linkPath);
 }
 
-/// <summary>获取项目的系统图标。</summary>
+/// <summary>获取项目的系统图标。缓存有界，可由调用方按当前工作区裁剪。</summary>
 public interface IIconService
 {
     ImageSource? GetIcon(string fullPath);
 
     void ClearCache();
+
+    /// <summary>当前缓存条目数（诊断与测试用）。</summary>
+    int CachedIconCount { get; }
+
+    /// <summary>只保留 <paramref name="keepPaths"/> 里的路径，返回被摘掉的条目数。</summary>
+    int PruneExcept(IEnumerable<string> keepPaths);
 }
 
 /// <summary>用 Windows Shell 机制启动项目。</summary>
