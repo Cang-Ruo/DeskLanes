@@ -1,7 +1,9 @@
 // ============================================================================
 // DeskLanes 界面快照工具（UI 改版视觉验证用）
 // ----------------------------------------------------------------------------
-// 用法：DeskLanes.UiSnapshot.exe <category|panels|floating|sidebar|settings|dialog> <输出.png> [--demo]
+// 用法：DeskLanes.UiSnapshot.exe <category|panels|floating|sidebar|settings|dialog|perf> <输出.png> [--demo] [--top]
+//   perf 模式不出图：实测「分类导航 ↔ 自由分区」来回切换的耗时（B6 最后一项）。
+//   配 --demo 会用 220 个演示项目跑压力版，不加则用真实桌面。
 //
 // 行为：
 //   1. 把真实配置目录（%LocalAppData%\DeskLanes）复制到临时目录，绝不写回真实配置；
@@ -14,6 +16,8 @@
 // 截图方式分两种：
 //   category / panels / floating / sidebar → RenderTargetBitmap（视觉树快照）；
 //   settings / dialog → GDI BitBlt 屏幕合成截图（能看到 DWM 的 Mica 毛玻璃）。
+//   perf     → 不开截图，改为实测「分类导航 ↔ 自由分区」来回切换的耗时（B6 最后一项）。
+//              配 --demo 会用 220 个演示项目做压力版，不加则用真实桌面。
 //   settings 默认滚到底（为了拍到末尾的分区）；加 --top 则保持顶部，用于展示上半部分。
 //
 // 限制：RenderTargetBitmap 抓不到 DWM 合成的 Mica / 亚克力毛玻璃与桌面壁纸；
@@ -44,7 +48,8 @@ namespace DeskLanes.UiSnapshot;
 
 public static class Program
 {
-    private static readonly string[] Modes = { "category", "panels", "floating", "sidebar", "settings", "dialog" };
+    private static readonly string[] Modes =
+        { "category", "panels", "floating", "sidebar", "settings", "dialog", "perf" };
 
     [STAThread]
     public static int Main(string[] args)
@@ -52,7 +57,7 @@ public static class Program
         if (args.Length < 2 || !Modes.Contains(args[0]))
         {
             Console.Error.WriteLine(
-                "用法：DeskLanes.UiSnapshot.exe <category|panels|floating|sidebar|settings|dialog> <输出.png> [--demo]");
+                "用法：DeskLanes.UiSnapshot.exe <category|panels|floating|sidebar|settings|dialog|perf> <输出.png> [--demo] [--top]");
             return 1;
         }
 
@@ -121,7 +126,8 @@ public static class Program
             // 3. 演示数据（--demo 时项目也是演示的；否则分类/分区套在真实项目上）
             if (demo)
             {
-                SeedDemoItems(workspace, tempDir);
+                // perf 模式按 B6 的"200+ 项目"来压：12 个文件 + 3 个文件夹 + 205 个批量项 = 220
+                SeedDemoItems(workspace, tempDir, mode == "perf" ? 205 : 0);
             }
 
             if (mode == "panels")
@@ -251,6 +257,13 @@ public static class Program
                     }
 
                     await Task.Delay(800); // 布局与图标稳定
+
+                    // perf 模式：不截图，改测「分类导航 ↔ 自由分区」切换耗时（B6 最后一项）
+                    if (mode == "perf")
+                    {
+                        await MeasureLayoutToggleAsync(window, mainViewModel, demo);
+                        return;
+                    }
 
                     // 设置窗口内容需要滚动：取证时滚到底，才能拍到末尾的分区
                     if (mode == "settings" && !keepTop)
@@ -465,6 +478,83 @@ public static class Program
     private static T? FindVisualChild<T>(DependencyObject parent) where T : DependencyObject
         => FindVisualChildren<T>(parent).FirstOrDefault();
 
+    // ============ 布局切换性能（B6：分类导航 ↔ 自由分区切换 < 1 秒） ============
+
+    /// <summary>切换一次布局并等待渲染完成，返回耗时（毫秒）。</summary>
+    private static async Task<double> ToggleLayoutOnceAsync(Window window, MainViewModel viewModel)
+    {
+        var sw = System.Diagnostics.Stopwatch.StartNew();
+
+        viewModel.ToggleLayoutCommand.Execute(null);
+
+        // ContextIdle 的优先级低于 Render / Loaded：等它被执行到，说明这一轮的
+        // 布局与渲染请求都已经被处理完（比 Thread.Sleep 可靠，也不依赖固定延时）。
+        await window.Dispatcher.InvokeAsync(
+            () => { }, System.Windows.Threading.DispatcherPriority.ContextIdle);
+
+        window.UpdateLayout();
+        sw.Stop();
+        return sw.Elapsed.TotalMilliseconds;
+    }
+
+    private static async Task MeasureLayoutToggleAsync(Window window, MainViewModel viewModel, bool demo)
+    {
+        // 第一次切换要构造另一套视图（DataTemplate 首次实例化），代价不该算进用户体感
+        double warmup = await ToggleLayoutOnceAsync(window, viewModel);
+
+        var times = new List<double>();
+        var directions = new List<(string, double)>();
+        for (int i = 0; i < 10; i++)
+        {
+            // 记录"切到哪一侧"：两套视图的渲染代价不同，混在一起取中位数会盖掉慢的一侧
+            string direction = viewModel.IsFreePanels ? "-> category nav" : "-> free panels";
+            double ms = await ToggleLayoutOnceAsync(window, viewModel);
+            times.Add(ms);
+            directions.Add((direction, ms));
+        }
+
+        times.Sort();
+        double median = times[times.Count / 2];
+        double max = times[^1];
+
+        // Numbers only (ASCII): this output gets pasted into docs, and the Windows
+        // console mangles UTF-8 Chinese when piped.
+        Console.WriteLine(string.Format("layout toggle -- {0} items ({1})",
+            viewModel.Items.Count, demo ? "demo" : "real desktop"));
+        Console.WriteLine("  each: " + string.Join(", ", times.Select(t => t.ToString("F1"))) + " ms");
+        Console.WriteLine(string.Format("  warmup {0:F1} ms, median {1:F1} ms, max {2:F1} ms",
+            warmup, median, max));
+
+        // 两套视图的渲染代价不一样，按方向分开报，避免中位数把慢的那一侧盖掉
+        var perDirection = new Dictionary<string, List<double>>();
+        foreach ((string dir, double ms) in directions)
+        {
+            if (!perDirection.TryGetValue(dir, out List<double>? bucket))
+            {
+                bucket = new List<double>();
+                perDirection[dir] = bucket;
+            }
+
+            bucket.Add(ms);
+        }
+
+        foreach (KeyValuePair<string, List<double>> pair in perDirection)
+        {
+            pair.Value.Sort();
+            Console.WriteLine(string.Format("  {0}: median {1:F1} ms, max {2:F1} ms (n={3})",
+                pair.Key, pair.Value[pair.Value.Count / 2], pair.Value[^1], pair.Value.Count));
+        }
+
+        bool ok = max < 1000.0;
+        Console.WriteLine((ok ? "PASS" : "FAIL")
+            + "  layout toggle max < 1 s (B6) -- "
+            + max.ToString("F1") + " ms");
+        if (!ok)
+        {
+            Environment.ExitCode = 1;
+        }
+    }
+
     /// <summary>
     /// --demo 用的空扫描器：不碰真实桌面。
     /// 返回的 <see cref="ScanResult.ScopeDirectories"/> 为空，合并时失效判定不生效，
@@ -489,7 +579,7 @@ public static class Program
     /// --demo 用的演示项目：在临时目录里造一批中性名称的文件与文件夹，
     /// 让对外发布的截图既能体现真实界面密度，又不会泄露真实桌面文件名。
     /// </summary>
-    private static void SeedDemoItems(IWorkspaceService workspace, string tempDir)
+    private static void SeedDemoItems(IWorkspaceService workspace, string tempDir, int extraCount = 0)
     {
         string root = Path.Combine(tempDir, "demo-items");
         Directory.CreateDirectory(root);
@@ -513,6 +603,14 @@ public static class Program
             string dir = Path.Combine(root, name);
             Directory.CreateDirectory(dir);
             workspace.AddCustomItem(dir);
+        }
+
+        // 压力测试用的批量项目（perf 模式）
+        for (int i = 0; i < extraCount; i++)
+        {
+            string path = Path.Combine(root, $"批量项目-{i:D3}.txt");
+            File.WriteAllText(path, "bulk");
+            workspace.AddCustomItem(path);
         }
     }
 

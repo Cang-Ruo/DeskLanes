@@ -14,6 +14,14 @@ public partial class MainWindow : Window
     private bool _lastWasMaximized;
     private bool _userRestored;
 
+    // 自动收缩相关：把"用户想要的大小"和"收缩后实际显示的大小"分开记，
+    // 否则在竖屏上开一次就会把 1180 永久改成 712，回到大屏还是小窗口。
+    private double _intendedWidth = double.NaN;
+    private double _intendedHeight = double.NaN;
+    private double _fittedWidth = double.NaN;
+    private double _fittedHeight = double.NaN;
+    private bool _autoFitted;
+
     public MainWindow(MainViewModel viewModel, AppController controller)
     {
         _controller = controller ?? throw new ArgumentNullException(nameof(controller));
@@ -29,6 +37,11 @@ public partial class MainWindow : Window
         // 原来放在 ContentRendered 里，会晚于 BeginFullMode 的最大化 —— 用户上次
         // 把窗口留在副屏时，这次就会先在主屏最大化，副屏偏好直接丢失。
         SourceInitialized += (_, _) => ApplyWindowPreferences();
+
+        // 窗口真正落到某块屏上之后（此时句柄已定位）才按那块屏收缩。
+        // 放在 SourceInitialized 里做会踩空：那一刻还没定位，取到的是错的显示器。
+        Loaded += (_, _) => FitToScreenAfterShow();
+        Activated += (_, _) => FitToScreenAfterShow();
     }
 
     /// <summary>
@@ -64,6 +77,10 @@ public partial class MainWindow : Window
     /// 把窗口收缩到所在显示器的工作区内（**只缩不放**，不会把用户调小的窗口撑大）。
     /// 最大化时由系统处理，直接跳过。
     /// </summary>
+    /// <remarks>
+    /// 与 <see cref="FitToScreenAfterShow"/> 的区别：这个是纯粹的"按当前尺寸收缩"，
+    /// 不记录意图尺寸；对外（DPI/显示器变化）调用走它。
+    /// </remarks>
     private void EnsureFitsOnScreen()
     {
         if (WindowState == WindowState.Maximized)
@@ -72,6 +89,34 @@ public partial class MainWindow : Window
         }
 
         MonitorService.FitIntoWorkArea(this, MinWidth, MinHeight);
+    }
+
+    /// <summary>
+    /// 窗口显示后按所在屏收缩一次，并记住"收缩前用户想要的大小"。
+    /// 竖屏（逻辑宽 720）放不下默认的 1180 时会在还原态溢出，这是最后一个竖屏残留。
+    /// </summary>
+    private void FitToScreenAfterShow()
+    {
+        if (WindowState == WindowState.Maximized || !IsLoaded)
+        {
+            return;
+        }
+
+        if (double.IsNaN(_intendedWidth) && double.IsFinite(Width))
+        {
+            _intendedWidth = Width;
+            _intendedHeight = Height;
+        }
+
+        if (!MonitorService.FitIntoWorkArea(this, MinWidth, MinHeight))
+        {
+            return;
+        }
+
+        // 记下收缩后的实际尺寸：关闭时用它判断"用户有没有自己改过大小"
+        _autoFitted = true;
+        _fittedWidth = Width;
+        _fittedHeight = Height;
     }
 
     /// <summary>
@@ -102,6 +147,10 @@ public partial class MainWindow : Window
         if (_lastWasMaximized && WindowState == WindowState.Normal)
         {
             _userRestored = true;
+
+            // 从最大化还原：尺寸回到"上次普通状态"的值，在当前屏上可能放不下
+            // （竖屏逻辑宽只有 720，默认却是 1180），按当前屏再收一次。
+            FitToScreenAfterShow();
         }
 
         _lastWasMaximized = WindowState == WindowState.Maximized;
@@ -129,15 +178,8 @@ public partial class MainWindow : Window
         _preferencesApplied = true;
 
         AppSettings settings = viewModel.Workspace.Settings;
-        if (settings.WindowMaximized)
-        {
-            WindowState = WindowState.Maximized;
-            return;
-        }
 
-        // 进入全屏模式时窗口可能已经最大化了（BeginFullMode）。此时再设 Left/Top
-        // 会把窗口挪到那个坐标上（实测：在副屏最大化后又被拖回主屏），
-        // 尺寸与位置只对普通窗口状态有意义。
+        // 已经最大化（BeginFullMode 先跑过）：此时再动 Left/Top 会把窗口挪到别的屏，直接放弃。
         if (WindowState == WindowState.Maximized)
         {
             return;
@@ -153,11 +195,20 @@ public partial class MainWindow : Window
             Height = settings.WindowHeight;
         }
 
+        // 位置必须在最大化**之前**落下去：WPF 是按"当前所在那块屏"来最大化的，
+        // 最大化之后再设 Left/Top 只会把窗口挪走（9.5 踩过）。
+        // 之前这里在 WindowMaximized 分支里直接 return，等于丢掉了位置偏好 ——
+        // 用户上次在副屏最大化，下次启动会在主屏最大化（鼠标在哪块屏就开在哪）。
         if (settings.WindowLeft is double left && settings.WindowTop is double top && IsPositionVisible(left, top))
         {
             WindowStartupLocation = WindowStartupLocation.Manual;
             Left = left;
             Top = top;
+        }
+
+        if (settings.WindowMaximized)
+        {
+            WindowState = WindowState.Maximized;
         }
     }
 
@@ -181,9 +232,23 @@ public partial class MainWindow : Window
             double rawLeft = WindowState == WindowState.Normal ? Left : double.NaN;
             double rawTop = WindowState == WindowState.Normal ? Top : double.NaN;
 
+            double saveWidth = double.IsFinite(Width) ? Width : double.NaN;
+            double saveHeight = double.IsFinite(Height) ? Height : double.NaN;
+
+            // 窗口被自动收缩过、且用户没有再手动改过大小：存"本来想要的大小"。
+            // 否则在竖屏上开一次就会把 1180 永久记成 712，回到大屏还是个小窗口。
+            if (_autoFitted
+                && double.IsFinite(_intendedWidth) && double.IsFinite(_intendedHeight)
+                && Math.Abs(Width - _fittedWidth) < 1
+                && Math.Abs(Height - _fittedHeight) < 1)
+            {
+                saveWidth = _intendedWidth;
+                saveHeight = _intendedHeight;
+            }
+
             _controller.SaveWindowPreferences(
-                double.IsFinite(Width) ? Width : double.NaN,
-                double.IsFinite(Height) ? Height : double.NaN,
+                saveWidth,
+                saveHeight,
                 double.IsFinite(rawLeft) ? rawLeft : (double?)null,
                 double.IsFinite(rawTop) ? rawTop : (double?)null,
                 WindowState == WindowState.Maximized);

@@ -2294,6 +2294,265 @@ Console.WriteLine("== 21. 大量项目的扫描性能 + 损坏配置的可见提
     }
 }
 
+// ---------------------------------------------------------------- 22. 日志轮转
+Console.WriteLine();
+Console.WriteLine("== 22. 日志轮转（有上界，且留得住出事之前那一段） ==");
+{
+    string log22Root = Path.Combine(Path.GetTempPath(), "DeskLanesLog_" + Guid.NewGuid().ToString("N")[..8]);
+    Directory.CreateDirectory(log22Root);
+    try
+    {
+        // ---- 22.1 基本写入 ----
+        string p1 = Path.Combine(log22Root, "a.log");
+        var w1 = new LogFileWriter(p1);
+        w1.Append("line1");
+        w1.Append("line2");
+        w1.Append("line3");
+        Check(File.ReadAllLines(p1).Length == 3, "追加写三行都落盘",
+            File.ReadAllLines(p1).Length.ToString());
+        Check(w1.MaxFileBytes == LogFileWriter.DefaultMaxFileBytes, "默认单份上限 512 KB");
+        Check(w1.MaxArchives == LogFileWriter.DefaultMaxArchives, "默认保留 3 份归档");
+
+        // ---- 22.2 超限轮转 + 归档份数上界 ----
+        string p2 = Path.Combine(log22Root, "b.log");
+        var w2 = new LogFileWriter(p2, 8 * 1024, 2);
+        Check(w2.MaxFileBytes == 16 * 1024, "上限低于 16 KB 时按 16 KB 兜底",
+            w2.MaxFileBytes.ToString());
+        for (int i = 0; i < 600; i++)
+        {
+            w2.Append($"L{i:D4} " + new string('x', 100));
+        }
+        Check(File.Exists(w2.ArchivePath(1)), "超限后当前文件归档为 .1");
+        Check(File.Exists(w2.ArchivePath(2)), "第二份归档 .2 存在");
+        Check(!File.Exists(w2.ArchivePath(3)), "超过保留份数的最老一份被删（没有 .3）");
+        Check(new FileInfo(p2).Length <= w2.MaxFileBytes + 200, "轮转后当前份回到上限以内",
+            new FileInfo(p2).Length.ToString());
+
+        string[] a1 = File.ReadAllLines(w2.ArchivePath(1));
+        string[] a2 = File.ReadAllLines(w2.ArchivePath(2));
+        Check(a1.Length > 0 && a2.Length > 0, "两份归档都有内容（不是空壳）");
+        if (a1.Length > 0 && a2.Length > 0)
+        {
+            int LastNo(string line) => int.Parse(line.Split(' ')[0][1..]);
+            Check(LastNo(a1[^1]) > LastNo(a2[^1]), ".1 比 .2 新（归档顺序正确）",
+                $".1 末尾 L{LastNo(a1[^1])} vs .2 末尾 L{LastNo(a2[^1])}");
+        }
+
+        // ---- 22.3 保留 0 份：不留档，但当前份仍有上界 ----
+        string p3 = Path.Combine(log22Root, "c.log");
+        var w3 = new LogFileWriter(p3, 8 * 1024, 0);
+        for (int i = 0; i < 300; i++)
+        {
+            w3.Append($"L{i:D4} " + new string('x', 100));
+        }
+        Check(!File.Exists(w3.ArchivePath(1)), "保留 0 份时不留归档");
+        Check(new FileInfo(p3).Length <= w3.MaxFileBytes + 200, "保留 0 份时当前份仍有上界",
+            new FileInfo(p3).Length.ToString());
+
+        // ---- 22.4 并发写入不丢行 ----
+        string p4 = Path.Combine(log22Root, "d.log");
+        var w4 = new LogFileWriter(p4);
+        Parallel.For(0, 8, k =>
+        {
+            for (int i = 0; i < 50; i++)
+            {
+                w4.Append($"T{k}-{i}");
+            }
+        });
+        Check(File.ReadAllLines(p4).Length == 400, "8 线程并发写 400 行一条不丢",
+            File.ReadAllLines(p4).Length.ToString());
+
+        // ---- 22.5 同步日志走同一套轮转 ----
+        string log22Dir = Path.Combine(log22Root, "logs");
+        var logger22 = new FileDiagnosticLogger(log22Dir, "sync.log", 8 * 1024, 2);
+        for (int i = 0; i < 600; i++)
+        {
+            logger22.Log(SyncLogLevel.Info, "同步 " + i + " " + new string('y', 100));
+        }
+        Check(logger22.FilePath == Path.Combine(log22Dir, "sync.log"), "日志落到指定文件");
+        Check(File.Exists(logger22.Writer.ArchivePath(1)), "同步日志同样会轮转");
+        Check(new FileInfo(logger22.FilePath).Length <= logger22.Writer.MaxFileBytes + 200,
+            "同步日志有体积上界", new FileInfo(logger22.FilePath).Length.ToString());
+        string[] syncLines = File.ReadAllLines(logger22.FilePath);
+        Check(syncLines.Length > 0 && syncLines[0].Contains("[信息]"), "日志行带中文级别",
+            syncLines.Length > 0 ? syncLines[0] : "(空)");
+
+        // ---- 22.6 写不进去也不能拖垮应用 ----
+        string blocker = Path.Combine(log22Root, "blocker.txt");
+        File.WriteAllText(blocker, "x");
+        var wBad = new LogFileWriter(Path.Combine(blocker, "sub.log"));   // 父路径是文件，目录建不出来
+        bool threw = false;
+        try
+        {
+            wBad.Append("hello");
+        }
+        catch
+        {
+            threw = true;
+        }
+        Check(!threw, "目录建不出来时写入不抛异常（日志不能拖垮应用）");
+
+        // ---- 22.7 诊断包把归档一起打包 ----
+        string exp22 = Path.Combine(log22Root, "exp");
+        Directory.CreateDirectory(Path.Combine(exp22, "logs"));
+        File.WriteAllText(Path.Combine(exp22, "logs", "sync.log"), "current\n");
+        File.WriteAllText(Path.Combine(exp22, "logs", "sync.log.1"), "rotated\n");
+        var exporter22 = new DiagnosticExporter(exp22);
+        string zip22 = Path.Combine(log22Root, "diag.zip");
+        OperationResult r22 = exporter22.Export(zip22);
+        Check(r22.Success, "诊断包导出成功", r22.ErrorMessage);
+        if (r22.Success)
+        {
+            using var z22 = System.IO.Compression.ZipFile.OpenRead(zip22);
+            Check(z22.GetEntry("logs/sync.log") is not null, "诊断包包含当前日志");
+            Check(z22.GetEntry("logs/sync.log.1") is not null,
+                "诊断包包含轮转归档（出事之前那一段）");
+        }
+    }
+    finally
+    {
+        try
+        {
+            Directory.Delete(log22Root, true);
+        }
+        catch
+        {
+            // 临时目录清理失败不影响结果
+        }
+    }
+}
+
+// ---------------------------------------------------------------- 23. 图标缓存轮次回归（反复增删不泄漏）
+Console.WriteLine();
+Console.WriteLine("== 23. 图标缓存轮次回归（文件反复增删时不会只增不减） ==");
+{
+    // 这一节是 9.6 那个"缓存无上限"缺陷的回归锁：
+    // 旧实现里缓存条目 == 累计出现过的路径数，文件反复增删时只增不减。
+    string churnRoot = Path.Combine(Path.GetTempPath(), "DeskLanesChurn_" + Guid.NewGuid().ToString("N")[..8]);
+    string churnCfg = Path.Combine(Path.GetTempPath(), "DeskLanesChurnCfg_" + Guid.NewGuid().ToString("N")[..8]);
+    Directory.CreateDirectory(churnRoot);
+    Directory.CreateDirectory(churnCfg);
+    try
+    {
+        const int rounds = 20;
+        const int perRound = 30;
+
+        IWorkspaceService churnWs = new WorkspaceService(
+            new LibraryStore(churnCfg), new ConfigStore(churnCfg), resolver);
+        var churnScanner = new DesktopScanner(resolver);
+        var churnIcons = new IconService();
+        var counts = new List<int>();
+        int created = 0;
+
+        for (int round = 0; round < rounds; round++)
+        {
+            // 上一轮的文件全部删掉（真实场景：用户清理桌面）
+            foreach (string stale in Directory.EnumerateFiles(churnRoot))
+            {
+                File.Delete(stale);
+            }
+
+            // 本轮造一批路径全新的文件
+            for (int i = 0; i < perRound; i++)
+            {
+                File.WriteAllText(Path.Combine(churnRoot, $"r{round:D2}-{i:D2}.txt"), "x");
+                created++;
+            }
+
+            ScanResult churnScan = await churnScanner.ScanAsync(new ScanOptions
+            {
+                Targets = new[] { new ScanTarget { Path = churnRoot, Origin = ItemOrigin.UserDesktop } },
+            });
+            await churnWs.MergeScanAsync(churnScan);
+
+            foreach (DesktopItem item in churnWs.Items)
+            {
+                churnIcons.GetIcon(item.FullPath);
+            }
+
+            // 与 MainViewModel 每轮做的同一件事：按当前工作区裁剪
+            churnIcons.PruneExcept(churnWs.Items.Select(i => i.FullPath));
+            counts.Add(churnIcons.CachedIconCount);
+        }
+
+        Info($"累计创建 {created} 个不同路径，各轮缓存条目：" + string.Join(", ", counts));
+
+        Check(created == rounds * perRound, "确实累计创建了几百个不同路径", created.ToString());
+        Check(counts[^1] <= IconService.DefaultMaxCachedIcons,
+            "反复增删后缓存仍在上限内（旧实现会等于累计路径数）",
+            $"{counts[^1]} <= {IconService.DefaultMaxCachedIcons}，累计 {created}");
+        Check(counts.All(c => c <= IconService.DefaultMaxCachedIcons),
+            "每一轮都没突破上限（不只是最后一轮）");
+
+        // ---- 关键一步：用户把失效项清理掉之后，缓存要真的往回落 ----
+        //      旧实现没有裁剪入口，这里会一直停在累计值。
+        List<DesktopItem> staleItems = churnWs.Items.Where(i => !i.IsAvailable).ToList();
+        Check(staleItems.Count > 0, "删除文件后项目被标记为失效（仍留在库中）",
+            $"失效 {staleItems.Count} 个");
+
+        foreach (DesktopItem item in staleItems)
+        {
+            churnWs.RemoveItem(item);
+        }
+
+        int removed = churnIcons.PruneExcept(churnWs.Items.Select(i => i.FullPath));
+        Check(removed > 0, "清理失效项后裁剪确实摘掉了条目", $"摘掉 {removed} 个");
+        Check(churnIcons.CachedIconCount <= perRound, "缓存回落到当前项目量级（不是只增不减）",
+            $"{churnIcons.CachedIconCount} <= {perRound}");
+
+        // ---- 再跑几轮，确认回落后不会又无界爬升 ----
+        int afterCleanup = churnIcons.CachedIconCount;
+        for (int round = 0; round < 5; round++)
+        {
+            foreach (string stale in Directory.EnumerateFiles(churnRoot))
+            {
+                File.Delete(stale);
+            }
+
+            for (int i = 0; i < perRound; i++)
+            {
+                File.WriteAllText(Path.Combine(churnRoot, $"s{round:D2}-{i:D2}.txt"), "x");
+            }
+
+            ScanResult churnScan2 = await churnScanner.ScanAsync(new ScanOptions
+            {
+                Targets = new[] { new ScanTarget { Path = churnRoot, Origin = ItemOrigin.UserDesktop } },
+            });
+            await churnWs.MergeScanAsync(churnScan2);
+
+            foreach (DesktopItem item in churnWs.Items)
+            {
+                churnIcons.GetIcon(item.FullPath);
+            }
+
+            foreach (DesktopItem item in churnWs.Items.Where(i => !i.IsAvailable).ToList())
+            {
+                churnWs.RemoveItem(item);
+            }
+
+            churnIcons.PruneExcept(churnWs.Items.Select(i => i.FullPath));
+        }
+
+        Check(churnIcons.CachedIconCount <= perRound, "继续多轮后仍稳定在当前项目量级",
+            $"{churnIcons.CachedIconCount}（清理后基线 {afterCleanup}）");
+        Check(churnIcons.CachedIconCount <= IconService.DefaultMaxCachedIcons, "始终不超过上限");
+    }
+    finally
+    {
+        foreach (string dir in new[] { churnRoot, churnCfg })
+        {
+            try
+            {
+                Directory.Delete(dir, true);
+            }
+            catch
+            {
+                // 临时目录清理失败不影响结果
+            }
+        }
+    }
+}
+
 // ---------------------------------------------------------------- 汇总
 Console.WriteLine();
 Console.WriteLine($"===== 冒烟测试结果：通过 {passed} 项，失败 {failed} 项 =====");
