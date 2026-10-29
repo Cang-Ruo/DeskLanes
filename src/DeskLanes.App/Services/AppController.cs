@@ -499,9 +499,10 @@ public sealed class AppController : IDisposable
                     }
                 }
 
-                // 每次呼出都钳一次：原先只在收到 WM_DISPLAYCHANGE 时才钳，
-                // 日常从托盘/快捷键呼出不触发，显示器拔插或换分辨率后
-                // 窗口可能仍停在已经不存在的坐标上。
+                // 每次呼出都按所在显示器收缩一次（竖屏 720 DIP 放不下 780 DIP 的窗口），
+                // 再钳一次位置：原先只在收到 WM_DISPLAYCHANGE 时才钳，日常从托盘/快捷键
+                // 呼出不触发，显示器拔插或换分辨率后窗口可能仍停在已经不存在的坐标上。
+                _floatingWindow?.ApplyScreenConstraints();
                 ClampWindowsToScreen();
                 break;
 

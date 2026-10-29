@@ -23,6 +23,12 @@ public partial class MainWindow : Window
         // 轻玻璃背景：Win11 原生 DWM 材料（Acrylic → Mica），失败自动回退不透明底色
         WindowBackdropService.Attach(this);
         StateChanged += OnStateChanged;
+        SizeChanged += (_, _) => UpdateNarrowLayout();
+
+        // 窗口偏好必须在窗口定位之前应用：句柄一建立就恢复上次的尺寸与位置。
+        // 原来放在 ContentRendered 里，会晚于 BeginFullMode 的最大化 —— 用户上次
+        // 把窗口留在副屏时，这次就会先在主屏最大化，副屏偏好直接丢失。
+        SourceInitialized += (_, _) => ApplyWindowPreferences();
     }
 
     /// <summary>
@@ -50,6 +56,43 @@ public partial class MainWindow : Window
         {
             WindowState = WindowState.Maximized;
         }
+
+        EnsureFitsOnScreen();
+    }
+
+    /// <summary>
+    /// 把窗口收缩到所在显示器的工作区内（**只缩不放**，不会把用户调小的窗口撑大）。
+    /// 最大化时由系统处理，直接跳过。
+    /// </summary>
+    private void EnsureFitsOnScreen()
+    {
+        if (WindowState == WindowState.Maximized)
+        {
+            return;
+        }
+
+        MonitorService.FitIntoWorkArea(this, MinWidth, MinHeight);
+    }
+
+    /// <summary>
+    /// 窄屏（竖屏副屏逻辑宽只有 720 DIP）下标题栏放不下：折叠副标题，把宽度让给右侧按钮。
+    /// 阈值 900 —— 宽屏 2048 与窄屏 720 之间有足够余量，不会因为几个像素抖动来回切。
+    /// </summary>
+    private void UpdateNarrowLayout()
+    {
+        if (SubtitleText is null)
+        {
+            return;
+        }
+
+        double width = ActualWidth;
+        if (double.IsNaN(width) || width <= 0)
+        {
+            // 还没完成布局，等 SizeChanged 再来
+            return;
+        }
+
+        SubtitleText.Visibility = width < 900 ? Visibility.Collapsed : Visibility.Visible;
     }
 
     private void OnStateChanged(object? sender, EventArgs e)
@@ -68,8 +111,6 @@ public partial class MainWindow : Window
     protected override async void OnContentRendered(EventArgs e)
     {
         base.OnContentRendered(e);
-
-        ApplyWindowPreferences();
 
         // 三种模式共用的初始化（幂等）：哪个模式先显示就由它触发
         await _controller.EnsureInitializedAsync();
@@ -91,6 +132,14 @@ public partial class MainWindow : Window
         if (settings.WindowMaximized)
         {
             WindowState = WindowState.Maximized;
+            return;
+        }
+
+        // 进入全屏模式时窗口可能已经最大化了（BeginFullMode）。此时再设 Left/Top
+        // 会把窗口挪到那个坐标上（实测：在副屏最大化后又被拖回主屏），
+        // 尺寸与位置只对普通窗口状态有意义。
+        if (WindowState == WindowState.Maximized)
+        {
             return;
         }
 

@@ -33,6 +33,9 @@ public partial class FloatingWindow : Window
         // 恢复上次拖到的位置与缩到的尺寸（必须晚于 InitializeComponent）
         ApplyWindowPreferences();
 
+        // 拿到窗口句柄后先按所在显示器收缩一次，避免"先按 780 显示再缩回去"闪一下
+        SourceInitialized += (_, _) => FitToCurrentMonitor();
+
         // 失焦自动隐藏：呼出式窗口的常规行为，可在设置里关闭
         Deactivated += OnDeactivated;
         _viewModel.HideRequested += (_, _) => _controller.HideFloating();
@@ -94,20 +97,55 @@ public partial class FloatingWindow : Window
         e.Handled = true;
     }
 
-    private void OnResizeGripDragDelta(object sender, DragDeltaEventArgs e)
+    /// <summary>
+    /// 八方向缩放：热区的 <see cref="FrameworkElement.Tag"/> 标了方向
+    /// （T/B/L/R/TL/TR/BL/BR），这里按标记决定改宽高还是同时挪左上角。
+    /// </summary>
+    private void OnResizeDragDelta(object sender, DragDeltaEventArgs e)
     {
-        // 拖拽增量本身就是逻辑像素，与 Width/Height 同一坐标系，直接用。
-        // 下限守在 MinWidth/MinHeight，避免缩成一条线。
-        Width = Math.Max(MinWidth, Width + e.HorizontalChange);
-        Height = Math.Max(MinHeight, Height + e.VerticalChange);
+        if (sender is not Thumb thumb || thumb.Tag is not string direction)
+        {
+            return;
+        }
+
+        double dx = e.HorizontalChange;
+        double dy = e.VerticalChange;
+
+        // 左/上边缩放时窗口左上角要跟着走；同时守住最小尺寸，
+        // 到底之后左上角就不再继续移动（否则会出现"边框不动但窗口在长大"的怪现象）。
+        if (direction.Contains('L'))
+        {
+            double newWidth = Math.Max(MinWidth, Width - dx);
+            Left += Width - newWidth;
+            Width = newWidth;
+        }
+        else if (direction.Contains('R'))
+        {
+            Width = Math.Max(MinWidth, Width + dx);
+        }
+
+        if (direction.Contains('T'))
+        {
+            double newHeight = Math.Max(MinHeight, Height - dy);
+            Top += Height - newHeight;
+            Height = newHeight;
+        }
+        else if (direction.Contains('B'))
+        {
+            Height = Math.Max(MinHeight, Height + dy);
+        }
     }
 
-    private void OnResizeGripDragCompleted(object sender, DragCompletedEventArgs e)
+    private void OnResizeDragCompleted(object sender, DragCompletedEventArgs e)
         => PersistGeometry();
 
-    /// <summary>拖动或缩放结束后：先拉回虚拟桌面范围内，再写进配置。</summary>
+    /// <summary>
+    /// 拖动或缩放结束后：先按所在显示器工作区收缩（拖到竖屏会自动收窄），
+    /// 再拉回虚拟桌面范围内，最后写进配置。
+    /// </summary>
     private void PersistGeometry()
     {
+        FitToCurrentMonitor();
         _controller.ClampFloatingWindow();
 
         _controller.SaveFloatingWindowPreferences(
@@ -116,6 +154,20 @@ public partial class FloatingWindow : Window
             double.IsFinite(Left) ? Left : (double?)null,
             double.IsFinite(Top) ? Top : (double?)null);
     }
+
+    /// <summary>
+    /// 显示后调用：按所在显示器收缩尺寸，再拉回屏幕范围内。
+    /// 竖屏副屏逻辑宽只有 720 DIP，而这个窗口默认 780 DIP —— 不收缩必然出界。
+    /// </summary>
+    public void ApplyScreenConstraints()
+    {
+        FitToCurrentMonitor();
+        _controller.ClampFloatingWindow();
+    }
+
+    /// <summary>把窗口收缩到当前显示器工作区内（只缩不放）。</summary>
+    private void FitToCurrentMonitor()
+        => MonitorService.FitIntoWorkArea(this, MinWidth, MinHeight);
 
     // ---------- 偏好恢复 ----------
 
