@@ -11,7 +11,7 @@
   安全：只写 HideIcons 一个值，finally 还原；不重启 Explorer；不动桌面文件。
 #>
 param(
-    [string]$OutDir = 'C:\Users\TTjustTT\Documents\Github\DeskSpace\docs\stage7-evidence'
+    [string]$OutDir = 'C:\Users\TTjustTT\Documents\Github\DeskLanes\docs\stage7-evidence'
 )
 
 $ErrorActionPreference = 'Stop'

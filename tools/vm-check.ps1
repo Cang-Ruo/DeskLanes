@@ -1,14 +1,14 @@
 ﻿#Requires -Version 5.1
 <#
-  vm-check.ps1 —— 另一台电脑 / 虚拟机上的 DeskSpace 体检脚本（独立运行，不依赖仓库）
+  vm-check.ps1 —— 另一台电脑 / 虚拟机上的 DeskLanes 体检脚本（独立运行，不依赖仓库）
 
   用途：回答两个问题
-    1. 这台机器能不能跑 DeskSpace（有没有 .NET 10 桌面运行时、是 x64 还是 ARM）
+    1. 这台机器能不能跑 DeskLanes（有没有 .NET 10 桌面运行时、是 x64 还是 ARM）
     2. 实际启动后窗口有没有出来、有没有跑出屏幕（不同 DPI / 单显示器下的定位）
 
-  用法（把 vm-check.ps1 和 DeskSpace.exe 放在同一目录）：
+  用法（把 vm-check.ps1 和 DeskLanes.exe 放在同一目录）：
     powershell -NoProfile -ExecutionPolicy Bypass -File vm-check.ps1
-    powershell -NoProfile -ExecutionPolicy Bypass -File vm-check.ps1 -Exe D:\tmp\DeskSpace.exe
+    powershell -NoProfile -ExecutionPolicy Bypass -File vm-check.ps1 -Exe D:\tmp\DeskLanes.exe
     powershell -NoProfile -ExecutionPolicy Bypass -File vm-check.ps1 -KeepRunning   # 跑完不关程序
 
   产出：
@@ -88,7 +88,7 @@ function Test-DesktopRuntime {
     return $found
 }
 
-Say '==================== DeskSpace 虚拟机 / 第二台机器 体检 ===================='
+Say '==================== DeskLanes 虚拟机 / 第二台机器 体检 ===================='
 Say ('体检时间: ' + (Get-Date -Format 'yyyy-MM-dd HH:mm:ss'))
 Say ''
 
@@ -134,14 +134,14 @@ if ($rt) {
 
 # ---------- 3. 定位 exe ----------
 Say ''
-Say '--- 3. DeskSpace.exe ---'
+Say '--- 3. DeskLanes.exe ---'
 if ([string]::IsNullOrWhiteSpace($Exe)) {
-    $cand = Join-Path $scriptDir 'DeskSpace.exe'
+    $cand = Join-Path $scriptDir 'DeskLanes.exe'
     if (Test-Path -LiteralPath $cand) { $Exe = $cand }
 }
 if ([string]::IsNullOrWhiteSpace($Exe) -or -not (Test-Path -LiteralPath $Exe)) {
-    Say '没有找到 DeskSpace.exe。'
-    Say '把 DeskSpace.exe 放到 vm-check.ps1 同目录，或用 -Exe 指定路径后重跑。'
+    Say '没有找到 DeskLanes.exe。'
+    Say '把 DeskLanes.exe 放到 vm-check.ps1 同目录，或用 -Exe 指定路径后重跑。'
     Set-Content -LiteralPath $reportPath -Value $lines -Encoding UTF8
     Say ('报告已写入: ' + $reportPath)
     exit 0
@@ -155,7 +155,7 @@ Say ('大小      : ' + $size + ' 字节 → ' + $edition)
 # ---------- 4. 启动验证 ----------
 Say ''
 Say '--- 4. 启动验证 ---'
-$extractRoot = Join-Path $env:TEMP '.net\DeskSpace'
+$extractRoot = Join-Path $env:TEMP '.net\DeskLanes'
 if (Test-Path -LiteralPath $extractRoot) { Remove-Item -LiteralPath $extractRoot -Recurse -Force -ErrorAction SilentlyContinue }
 
 $proc = Start-Process -FilePath $Exe -PassThru
@@ -215,8 +215,8 @@ if (@($script:titles).Count -eq 0) {
     exit 2
 }
 
-# 错误对话框识别：唯一可见窗口的标题 == exe 文件名（如「DeskSpace.exe」）。
-# 应用自己的窗口标题是「DeskSpace」或「DeskSpace 快速启动」，绝不会带 .exe 后缀；
+# 错误对话框识别：唯一可见窗口的标题 == exe 文件名（如「DeskLanes.exe」）。
+# 应用自己的窗口标题是「DeskLanes」或「DeskLanes 快速启动」，绝不会带 .exe 后缀；
 # 标题等于文件名的是系统弹的报错对话框（典型就是缺 .NET 运行时）。
 $exeFileName = [System.IO.Path]::GetFileName($Exe)
 $isErrorDialog = $false
@@ -264,7 +264,7 @@ if ($wpf) {
 
 if (-not $KeepRunning) {
     Get-Process -Id $proc.Id -ErrorAction SilentlyContinue | Stop-Process -Force
-    Say '已结束 DeskSpace（-KeepRunning 可留着不关）'
+    Say '已结束 DeskLanes（-KeepRunning 可留着不关）'
 }
 
 Say ''

@@ -12,7 +12,7 @@
        finally 保证还原；不杀/不重启 Explorer；不动桌面文件；不移动鼠标。
 #>
 param(
-    [string]$OutDir = 'C:\Users\TTjustTT\Documents\Github\DeskSpace\docs\stage7-evidence'
+    [string]$OutDir = 'C:\Users\TTjustTT\Documents\Github\DeskLanes\docs\stage7-evidence'
 )
 
 $ErrorActionPreference = 'Stop'

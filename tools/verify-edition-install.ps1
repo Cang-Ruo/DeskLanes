@@ -15,17 +15,17 @@ param(
 )
 
 $ErrorActionPreference = 'Stop'
-$repo      = 'C:\Users\TTjustTT\Documents\Github\DeskSpace'
+$repo      = 'C:\Users\TTjustTT\Documents\Github\DeskLanes'
 $tools     = Join-Path $repo 'tools'
 $install   = Join-Path $tools 'install.ps1'
 $uninstall = Join-Path $tools 'uninstall.ps1'
-$installDir = Join-Path $env:LOCALAPPDATA 'Programs\DeskSpace'
-$uninstallKey = 'HKCU:\Software\Microsoft\Windows\CurrentVersion\Uninstall\DeskSpace'
-$startMenu  = Join-Path $env:APPDATA 'Microsoft\Windows\Start Menu\Programs\DeskSpace'
-$targetExe  = Join-Path $installDir 'DeskSpace.exe'
+$installDir = Join-Path $env:LOCALAPPDATA 'Programs\DeskLanes'
+$uninstallKey = 'HKCU:\Software\Microsoft\Windows\CurrentVersion\Uninstall\DeskLanes'
+$startMenu  = Join-Path $env:APPDATA 'Microsoft\Windows\Start Menu\Programs\DeskLanes'
+$targetExe  = Join-Path $installDir 'DeskLanes.exe'
 
-$portableSrc = Join-Path $repo 'publish\win-x64\DeskSpace.exe'
-$selfSrc     = Join-Path $repo 'publish\win-x64-selfcontained\DeskSpace.exe'
+$portableSrc = Join-Path $repo 'publish\win-x64\DeskLanes.exe'
+$selfSrc     = Join-Path $repo 'publish\win-x64-selfcontained\DeskLanes.exe'
 
 # 便携版基线 MD5（阶段 7 修复后的产物，本阶段不应被改动）
 $portableBaselineMd5 = '59fe5240526a23de914facfdf76e92eb'
@@ -65,29 +65,29 @@ function Run-PsInput([string]$file, [string[]]$argList, [string]$answer) {
     return ($answer | & powershell.exe @allArgs)
 }
 
-function Stop-DeskSpace {
-    $p = Get-Process -Name DeskSpace -ErrorAction SilentlyContinue
+function Stop-DeskLanes {
+    $p = Get-Process -Name DeskLanes -ErrorAction SilentlyContinue
     if ($p) { $p | Stop-Process -Force; Start-Sleep -Seconds 1 }
 }
 
 function Ensure-Clean {
-    Stop-DeskSpace
+    Stop-DeskLanes
     if (Test-Path -LiteralPath $uninstallKey) { Remove-Item -LiteralPath $uninstallKey -Recurse -Force }
     if (Test-Path -LiteralPath $installDir)   { Remove-Item -LiteralPath $installDir -Recurse -Force }
 }
 
 function Assert-Launches([string]$label, [bool]$expectOwnRuntime) {
     # 先清掉上一次的解压目录，避免拿旧证据当新证据
-    $extractRoot = Join-Path $env:TEMP '.net\DeskSpace'
+    $extractRoot = Join-Path $env:TEMP '.net\DeskLanes'
     if (Test-Path -LiteralPath $extractRoot) { Remove-Item -LiteralPath $extractRoot -Recurse -Force -ErrorAction SilentlyContinue }
 
     $null = Start-Process -FilePath $targetExe -PassThru
     Start-Sleep -Seconds 15
-    $procs = Get-Process -Name DeskSpace -ErrorAction SilentlyContinue
+    $procs = Get-Process -Name DeskLanes -ErrorAction SilentlyContinue
     Check ($label + ' 启动 15 秒后进程仍在（没启动即崩）') ([bool]$procs) ('进程数=' + (@($procs).Count))
 
     # 窗口判据必须用 EnumWindows：WPF 程序的 Process.MainWindowHandle 常返回 0（实测就是 0），
-    # 但窗口其实是有的（标题「DeskSpace 快速启动」）
+    # 但窗口其实是有的（标题「DeskLanes 快速启动」）
     $script:titles = @()
     foreach ($proc in $procs) {
         $script:targetPid = [uint32]$proc.Id
@@ -108,7 +108,7 @@ function Assert-Launches([string]$label, [bool]$expectOwnRuntime) {
     Check ($label + ' 有可见窗口') (@($script:titles).Count -gt 0) ('窗口标题: ' + ($script:titles -join ' / '))
 
     # 自带运行时的硬证据：自包含版会把 WPF 原生组件（wpfgfx_cor3.dll 等）解压到
-    # %TEMP%\.net\DeskSpace\<随机目录>；便携版用系统已装的 WPF，这里一个文件都不会解压。
+    # %TEMP%\.net\DeskLanes\<随机目录>；便携版用系统已装的 WPF，这里一个文件都不会解压。
     # 注意 coreclr.dll 并不落盘（由宿主从 bundle 内加载），所以拿 wpfgfx_cor3.dll 当判据。
     $wpf = Get-ChildItem -Path $extractRoot -Filter 'wpfgfx_cor3.dll' -Recurse -ErrorAction SilentlyContinue
     $hasWpf = [bool]$wpf
@@ -119,7 +119,7 @@ function Assert-Launches([string]$label, [bool]$expectOwnRuntime) {
     } else {
         Check '便携版不解压任何原生组件（用系统运行时）' (-not $hasWpf) ('扫描 ' + $extractRoot)
     }
-    Stop-DeskSpace
+    Stop-DeskLanes
 }
 
 Say '==================== 阶段 8 第一步验收 ===================='
@@ -129,7 +129,7 @@ Say ''
 Say '--- A. 两条发布路径互不干扰 ---'
 $env:DOTNET_ROOT = 'C:\Users\TTjustTT\.dotnet'
 $dotnet = Join-Path $env:DOTNET_ROOT 'dotnet.exe'
-$proj = Join-Path $repo 'src\DeskSpace.App\DeskSpace.App.csproj'
+$proj = Join-Path $repo 'src\DeskLanes.App\DeskLanes.App.csproj'
 
 # A1 便携版现状（阶段 7 的 MD5 只作参考：只要重新编译过，exe 就会变，不能当判据）
 $portableMd5Before = Md5 $portableSrc
@@ -138,11 +138,11 @@ Say ('  参考：阶段 7 基线 MD5 ' + $portableBaselineMd5 + '，当前 ' + $
 
 # A2 发布自包含版
 $pub = & $dotnet publish $proj -c Release -p:PublishProfile=win-x64-selfcontained 2>&1 | Out-String
-Check '自包含版发布成功' ($pub -match 'DeskSpace.App ->') 'dotnet publish 输出含产物行'
+Check '自包含版发布成功' ($pub -match 'DeskLanes.App ->') 'dotnet publish 输出含产物行'
 
 # A3 回头发便携版：产物不应被自包含发布改动（这才是"两条路径不混淆"的判据）
 $pub2 = & $dotnet publish $proj -c Release -p:PublishProfile=win-x64-singlefile 2>&1 | Out-String
-Check '便携版发布成功' ($pub2 -match 'DeskSpace.App ->') 'dotnet publish 输出含产物行'
+Check '便携版发布成功' ($pub2 -match 'DeskLanes.App ->') 'dotnet publish 输出含产物行'
 $portableMd5After = Md5 $portableSrc
 Check '自包含发布不影响便携版产物（MD5 不变）' ($portableMd5Before -eq $portableMd5After) ($portableMd5Before + ' -> ' + $portableMd5After)
 $portableSize2 = (Get-Item -LiteralPath $portableSrc).Length
@@ -181,14 +181,14 @@ if (Test-Path -LiteralPath $uninstallKey) {
     $ed = (Get-ItemProperty -LiteralPath $uninstallKey -Name 'Edition' -ErrorAction SilentlyContinue).Edition
 }
 Check '卸载项记录了版本 Edition=selfcontained' ($ed -eq 'selfcontained') ('Edition=' + $ed)
-Check '开始菜单快捷方式已创建' (Test-Path -LiteralPath (Join-Path $startMenu 'DeskSpace.lnk')) $startMenu
+Check '开始菜单快捷方式已创建' (Test-Path -LiteralPath (Join-Path $startMenu 'DeskLanes.lnk')) $startMenu
 Assert-Launches '自包含版' $true
 
 Run-Ps $uninstall @('-Silent') | ForEach-Object { Write-Host ('    | ' + $_) }
 Check '自包含版卸载后安装目录已删除' (-not (Test-Path -LiteralPath $installDir)) $installDir
 Check '自包含版卸载后卸载项已删除' (-not (Test-Path -LiteralPath $uninstallKey)) $uninstallKey
 Check '自包含版卸载后开始菜单目录已删除' (-not (Test-Path -LiteralPath $startMenu)) $startMenu
-Check '配置目录默认保留' (Test-Path -LiteralPath (Join-Path $env:LOCALAPPDATA 'DeskSpace')) (Join-Path $env:LOCALAPPDATA 'DeskSpace')
+Check '配置目录默认保留' (Test-Path -LiteralPath (Join-Path $env:LOCALAPPDATA 'DeskLanes')) (Join-Path $env:LOCALAPPDATA 'DeskLanes')
 
 # ---------- C. 便携版 安装 / 启动 / 卸载 ----------
 Say ''

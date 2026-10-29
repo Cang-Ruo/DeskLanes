@@ -3,20 +3,20 @@
   verify-tray-icon.ps1 —— 托盘图标存在性 + 外观取证（Win11 隐藏溢出区）
 
   步骤：
-    1. 启动 publish/win-x64/DeskSpace.exe
-    2. Shell_NotifyIconGetRect((DeskSpaceMessageHost, 0x5201)) —— 注册存在性证据
+    1. 启动 publish/win-x64/DeskLanes.exe
+    2. Shell_NotifyIconGetRect((DeskLanesMessageHost, 0x5201)) —— 注册存在性证据
     3. UIA Invoke「显示隐藏的图标」打开溢出浮层（不动鼠标）
-    4. 在浮层里找名为 DeskSpace 的按钮，取 BoundingRectangle 截图
+    4. 在浮层里找名为 DeskLanes 的按钮，取 BoundingRectangle 截图
     5. Esc 收起浮层，结束进程
 
-  注意：实测 FindWindow(null, 'DeskSpaceMessageHost') 找不到这个 WPF 窗口
+  注意：实测 FindWindow(null, 'DeskLanesMessageHost') 找不到这个 WPF 窗口
   （EnumWindows 却能枚举到），所以用 EnumWindows 按标题 + 进程号定位。
 
-  安全：只启动/结束 DeskSpace 自己；不移动鼠标、不改任何系统设置。
+  安全：只启动/结束 DeskLanes 自己；不移动鼠标、不改任何系统设置。
 #>
 param(
-    [string]$ExePath = 'C:\Users\TTjustTT\Documents\Github\DeskSpace\publish\win-x64\DeskSpace.exe',
-    [string]$OutDir  = 'C:\Users\TTjustTT\Documents\Github\DeskSpace\docs\stage7-evidence'
+    [string]$ExePath = 'C:\Users\TTjustTT\Documents\Github\DeskLanes\publish\win-x64\DeskLanes.exe',
+    [string]$OutDir  = 'C:\Users\TTjustTT\Documents\Github\DeskLanes\docs\stage7-evidence'
 )
 
 $ErrorActionPreference = 'Stop'
@@ -103,7 +103,7 @@ function Save-RectPng([System.Windows.Rect]$r, [string]$path, [int]$margin) {
 
 Write-Output '===== 托盘图标取证（Win11 隐藏溢出区） ====='
 
-Get-Process -Name DeskSpace -ErrorAction SilentlyContinue | Stop-Process -Force
+Get-Process -Name DeskLanes -ErrorAction SilentlyContinue | Stop-Process -Force
 Start-Sleep -Milliseconds 800
 
 $p = Start-Process -FilePath $ExePath -PassThru
@@ -112,8 +112,8 @@ $p.Refresh()
 Write-Output ("应用已启动 pid={0} HasExited={1}" -f $p.Id, $p.HasExited)
 
 # ---- 1. 注册存在性 ----
-$hostHwnd = [TIEnum]::FindByTitle($p.Id, 'DeskSpaceMessageHost')
-Write-Output ("DeskSpaceMessageHost = 0x{0:X}" -f $hostHwnd.ToInt64())
+$hostHwnd = [TIEnum]::FindByTitle($p.Id, 'DeskLanesMessageHost')
+Write-Output ("DeskLanesMessageHost = 0x{0:X}" -f $hostHwnd.ToInt64())
 if ($hostHwnd.ToInt64() -eq 0) { Write-Output '未找到消息窗口'; if (-not $p.HasExited) { Stop-Process -Id $p.Id -Force }; exit 1 }
 
 $id = New-Object NOTIFYICONIDENTIFIER
@@ -187,9 +187,9 @@ public static class TIWin
 Write-Output '可见顶层窗口（找浮层窗口）：'
 foreach ($line in [TIWin]::List()) { Write-Output ("    {0}" -f $line) }
 
-# ---- 3. 在浮层里找名为 DeskSpace 的按钮 ----
+# ---- 3. 在浮层里找名为 DeskLanes 的按钮 ----
 $nameCond = New-Object System.Windows.Automation.PropertyCondition(
-    [System.Windows.Automation.AutomationElement]::NameProperty, 'DeskSpace')
+    [System.Windows.Automation.AutomationElement]::NameProperty, 'DeskLanes')
 
 $target = $null
 $topWindows = $root.FindAll([System.Windows.Automation.TreeScope]::Children,
@@ -206,21 +206,21 @@ foreach ($w in $topWindows) {
 
 if ($null -ne $target) {
     $r = $target.Current.BoundingRectangle
-    Write-Output ("DeskSpace 托盘按钮矩形 = ({0:N0},{1:N0}) {2:N0}x{3:N0}" -f $r.X, $r.Y, $r.Width, $r.Height)
+    Write-Output ("DeskLanes 托盘按钮矩形 = ({0:N0},{1:N0}) {2:N0}x{3:N0}" -f $r.X, $r.Y, $r.Width, $r.Height)
     try {
         $info = Save-RectPng $r (Join-Path $OutDir 'tray-icon-flyout.png') 6
         Write-Output ("已保存 tray-icon-flyout.png  rect=({0},{1}) {2}x{3}" -f $info.X, $info.Y, $info.W, $info.H)
-        Write-Output '=> 托盘图标取证成功（浮层中找到 DeskSpace 按钮）'
+        Write-Output '=> 托盘图标取证成功（浮层中找到 DeskLanes 按钮）'
     } catch {
         Write-Output ("截图失败: {0}" -f $_.Exception.Message)
     }
 } else {
-    Write-Output '=> 浮层中未找到 Name=DeskSpace 的按钮（取证失败）'
+    Write-Output '=> 浮层中未找到 Name=DeskLanes 的按钮（取证失败）'
 }
 
 # ---- 4. 收起浮层、结束进程 ----
 [System.Windows.Forms.SendKeys]::SendWait('{ESC}')
 Start-Sleep -Milliseconds 500
 if (-not $p.HasExited) { Stop-Process -Id $p.Id -Force; Start-Sleep -Milliseconds 600 }
-Write-Output ("已结束 DeskSpace (pid {0}); 残留进程数 = {1}" -f $p.Id, @(Get-Process -Name DeskSpace -ErrorAction SilentlyContinue).Count)
+Write-Output ("已结束 DeskLanes (pid {0}); 残留进程数 = {1}" -f $p.Id, @(Get-Process -Name DeskLanes -ErrorAction SilentlyContinue).Count)
 Write-Output '===== 结束 ====='

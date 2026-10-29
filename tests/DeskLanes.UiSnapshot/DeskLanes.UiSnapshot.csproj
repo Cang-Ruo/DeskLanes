@@ -1,0 +1,15 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <OutputType>WinExe</OutputType>
+    <TargetFramework>net10.0-windows</TargetFramework>
+    <UseWPF>true</UseWPF>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+    <AssemblyName>DeskLanes.UiSnapshot</AssemblyName>
+    <RootNamespace>DeskLanes.UiSnapshot</RootNamespace>
+  </PropertyGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\..\src\DeskLanes.Core\DeskLanes.Core.csproj" />
+    <ProjectReference Include="..\..\src\DeskLanes.App\DeskLanes.App.csproj" />
+  </ItemGroup>
+</Project>

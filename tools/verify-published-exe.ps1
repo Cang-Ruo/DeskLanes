@@ -8,12 +8,12 @@
     B. 实机启动：进程存活 / 主窗口句柄 / 窗口标题 / 窗口可见性
     C. 截图证据：主屏全屏 + 任务栏托盘区裁剪
 
-  安全：只启动与结束 DeskSpace 自己，不动桌面文件、不重启 Explorer、不改系统设置。
+  安全：只启动与结束 DeskLanes 自己，不动桌面文件、不重启 Explorer、不改系统设置。
 #>
 param(
-    [string]$ExePath = 'C:\Users\TTjustTT\Documents\Github\DeskSpace\publish\win-x64\DeskSpace.exe',
-    [string]$IcoPath = 'C:\Users\TTjustTT\Documents\Github\DeskSpace\src\DeskSpace.App\Assets\app.ico',
-    [string]$OutDir  = 'C:\Users\TTjustTT\Documents\Github\DeskSpace\docs\stage7-evidence'
+    [string]$ExePath = 'C:\Users\TTjustTT\Documents\Github\DeskLanes\publish\win-x64\DeskLanes.exe',
+    [string]$IcoPath = 'C:\Users\TTjustTT\Documents\Github\DeskLanes\src\DeskLanes.App\Assets\app.ico',
+    [string]$OutDir  = 'C:\Users\TTjustTT\Documents\Github\DeskLanes\docs\stage7-evidence'
 )
 
 $ErrorActionPreference = 'Stop'
@@ -147,7 +147,7 @@ if ($small.ToInt64() -ne 0) { [void][V]::DestroyIcon($small) }
 
 Write-Step 'B. 实机启动'
 
-Get-Process -Name DeskSpace -ErrorAction SilentlyContinue | Stop-Process -Force
+Get-Process -Name DeskLanes -ErrorAction SilentlyContinue | Stop-Process -Force
 Start-Sleep -Milliseconds 800
 
 $p = Start-Process -FilePath $ExePath -PassThru
@@ -239,5 +239,5 @@ if ([V]::GetWindowRect($tray, [ref]$rect)) {
 
 Write-Step 'D. 结束进程'
 if (-not $p.HasExited) { Stop-Process -Id $p.Id -Force; Start-Sleep -Milliseconds 600 }
-Write-Output ("已结束 DeskSpace (pid {0}); 残留进程数 = {1}" -f $p.Id, @(Get-Process -Name DeskSpace -ErrorAction SilentlyContinue).Count)
+Write-Output ("已结束 DeskLanes (pid {0}); 残留进程数 = {1}" -f $p.Id, @(Get-Process -Name DeskLanes -ErrorAction SilentlyContinue).Count)
 Write-Output '===== 测试1 结束 ====='

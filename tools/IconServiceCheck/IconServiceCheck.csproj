@@ -8,6 +8,6 @@
     <AssemblyName>IconServiceCheck</AssemblyName>
   </PropertyGroup>
   <ItemGroup>
-    <ProjectReference Include="..\..\src\DeskSpace.App\DeskSpace.App.csproj" />
+    <ProjectReference Include="..\..\src\DeskLanes.App\DeskLanes.App.csproj" />
   </ItemGroup>
 </Project>

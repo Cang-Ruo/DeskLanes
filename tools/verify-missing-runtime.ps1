@@ -8,11 +8,11 @@
     B. 正常启动（对照组）
   若出现"缺少运行时"错误对话框，捕获其标题/文本作为证据。
 
-  安全：只启动/结束 DeskSpace 自己；不改系统设置、不动注册表。
+  安全：只启动/结束 DeskLanes 自己；不改系统设置、不动注册表。
 #>
 param(
-    [string]$ExePath = 'C:\Users\TTjustTT\Documents\Github\DeskSpace\publish\win-x64\DeskSpace.exe',
-    [string]$OutDir  = 'C:\Users\TTjustTT\Documents\Github\DeskSpace\docs\stage7-evidence'
+    [string]$ExePath = 'C:\Users\TTjustTT\Documents\Github\DeskLanes\publish\win-x64\DeskLanes.exe',
+    [string]$OutDir  = 'C:\Users\TTjustTT\Documents\Github\DeskLanes\docs\stage7-evidence'
 )
 
 $ErrorActionPreference = 'Stop'
@@ -61,14 +61,14 @@ public static class MR
 }
 '@
 
-function Kill-DeskSpace {
-    Get-Process -Name DeskSpace -ErrorAction SilentlyContinue | Stop-Process -Force
+function Kill-DeskLanes {
+    Get-Process -Name DeskLanes -ErrorAction SilentlyContinue | Stop-Process -Force
     Start-Sleep -Milliseconds 800
 }
 
 function Test-Launch([string]$label, [hashtable]$envVars) {
     Write-Host "---- $label ----"
-    Kill-DeskSpace
+    Kill-DeskLanes
 
     # 通过当前进程环境变量传给子进程（ProcessStartInfo.EnvironmentVariables 在部分环境下为 null）
     $saved = @{}
@@ -108,5 +108,5 @@ if (-not $pA.HasExited) { Stop-Process -Id $pA.Id -Force; Start-Sleep -Milliseco
 $pB = Test-Launch 'B. 正常启动（对照组）' @{}
 if (-not $pB.HasExited) { Stop-Process -Id $pB.Id -Force; Start-Sleep -Milliseconds 500 }
 
-Kill-DeskSpace
+Kill-DeskLanes
 Write-Output '===== 测试4 结束 ====='

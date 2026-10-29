@@ -1,21 +1,21 @@
 ﻿#Requires -Version 5.1
 <#
-  install.ps1 —— DeskSpace 每用户安装脚本（不需要管理员权限）
+  install.ps1 —— DeskLanes 每用户安装脚本（不需要管理员权限）
 
   做什么：
     1. 选定要安装的版本（便携版 / 自包含版），找不到时会列出候选让你选
     2. 便携版才检查目标机器是否装了 .NET 10 桌面运行时，缺了会明确提示下载页
-    3. 结束正在运行的 DeskSpace（否则 exe 被占用、复制不了）
-    4. 复制 DeskSpace.exe 到 %LocalAppData%\Programs\DeskSpace
-    5. 写「设置 → 应用 → 已安装的应用」里的卸载项（HKCU\...\Uninstall\DeskSpace），
+    3. 结束正在运行的 DeskLanes（否则 exe 被占用、复制不了）
+    4. 复制 DeskLanes.exe 到 %LocalAppData%\Programs\DeskLanes
+    5. 写「设置 → 应用 → 已安装的应用」里的卸载项（HKCU\...\Uninstall\DeskLanes），
        并把 uninstall.ps1 一起放过去，这样系统里点「卸载」就是这个脚本
     6. 开始菜单快捷方式（可选 -DesktopShortcut 加桌面快捷方式）
 
   两个版本（二选一，互不混淆，各自独立目录）：
     portable       约 0.5 MB，目标机必须已装 .NET 10 桌面运行时
-                   来源：publish\win-x64\DeskSpace.exe
+                   来源：publish\win-x64\DeskLanes.exe
     selfcontained  约 80~100 MB，自带运行时，目标机什么都不用装
-                   来源：publish\win-x64-selfcontained\DeskSpace.exe
+                   来源：publish\win-x64-selfcontained\DeskLanes.exe
 
   不做什么（与项目安全约定一致）：
     - 不碰开机自启、不隐藏桌面图标 —— 这两项都是 opt-in，由用户在软件设置里自己开
@@ -25,13 +25,13 @@
     powershell -NoProfile -ExecutionPolicy Bypass -File install.ps1
     powershell -NoProfile -ExecutionPolicy Bypass -File install.ps1 -Edition selfcontained
     powershell -NoProfile -ExecutionPolicy Bypass -File install.ps1 -Edition portable -DesktopShortcut
-    powershell -NoProfile -ExecutionPolicy Bypass -File install.ps1 -InstallDir D:\Tools\DeskSpace -Launch
+    powershell -NoProfile -ExecutionPolicy Bypass -File install.ps1 -InstallDir D:\Tools\DeskLanes -Launch
 #>
 param(
     [ValidateSet('auto', 'portable', 'selfcontained')]
     [string]$Edition        = 'auto',
     [string]$SourceExe      = '',
-    [string]$InstallDir     = (Join-Path $env:LOCALAPPDATA 'Programs\DeskSpace'),
+    [string]$InstallDir     = (Join-Path $env:LOCALAPPDATA 'Programs\DeskLanes'),
     [switch]$DesktopShortcut,
     [switch]$NoStartMenu,
     [switch]$Launch,
@@ -40,15 +40,15 @@ param(
 
 $ErrorActionPreference = 'Stop'
 $scriptDir = Split-Path -Parent $MyInvocation.MyCommand.Path
-$productName = 'DeskSpace'
+$productName = 'DeskLanes'
 $productVersion = '0.1.0'
-$uninstallKeyPath = 'HKCU:\Software\Microsoft\Windows\CurrentVersion\Uninstall\DeskSpace'
+$uninstallKeyPath = 'HKCU:\Software\Microsoft\Windows\CurrentVersion\Uninstall\DeskLanes'
 
 function Say($msg) { Write-Host $msg }
 
-Say '===== DeskSpace 安装 ====='
+Say '===== DeskLanes 安装 ====='
 
-# ---- 1. 选定版本并定位 DeskSpace.exe ----
+# ---- 1. 选定版本并定位 DeskLanes.exe ----
 $repoRoot = Split-Path -Parent $scriptDir
 
 # 通过体积判断手里这个 exe 是哪一版：自包含版 60 MB 以上，便携版不到 1 MB
@@ -60,9 +60,9 @@ function Get-ExeEdition([string]$path) {
 
 function Resolve-EditionPath([string]$edition) {
     if ($edition -eq 'selfcontained') {
-        return (Join-Path $repoRoot 'publish\win-x64-selfcontained\DeskSpace.exe')
+        return (Join-Path $repoRoot 'publish\win-x64-selfcontained\DeskLanes.exe')
     }
-    return (Join-Path $repoRoot 'publish\win-x64\DeskSpace.exe')
+    return (Join-Path $repoRoot 'publish\win-x64\DeskLanes.exe')
 }
 
 $portablePath = Resolve-EditionPath 'portable'
@@ -70,7 +70,7 @@ $selfPath     = Resolve-EditionPath 'selfcontained'
 
 if ([string]::IsNullOrWhiteSpace($SourceExe)) {
     # 情况 A：install.ps1 与 exe 放在同一个目录里分发（最常见给用户的方式）
-    $candidate = Join-Path $scriptDir 'DeskSpace.exe'
+    $candidate = Join-Path $scriptDir 'DeskLanes.exe'
     if (Test-Path -LiteralPath $candidate) {
         $SourceExe = $candidate
         if ($Edition -eq 'auto') { $Edition = Get-ExeEdition $SourceExe }
@@ -104,9 +104,9 @@ if ([string]::IsNullOrWhiteSpace($SourceExe)) {
 }
 
 if ([string]::IsNullOrWhiteSpace($SourceExe) -or -not (Test-Path -LiteralPath $SourceExe)) {
-    Say '找不到 DeskSpace.exe。'
-    Say '  请把 install.ps1 放在 DeskSpace.exe 同目录，或用 -SourceExe 指定路径，'
-    Say ('  或先发布再装：publish\win-x64\DeskSpace.exe / {0}' -f $selfPath)
+    Say '找不到 DeskLanes.exe。'
+    Say '  请把 install.ps1 放在 DeskLanes.exe 同目录，或用 -SourceExe 指定路径，'
+    Say ('  或先发布再装：publish\win-x64\DeskLanes.exe / {0}' -f $selfPath)
     exit 1
 }
 $SourceExe = (Resolve-Path -LiteralPath $SourceExe).Path
@@ -151,7 +151,7 @@ if ($Edition -eq 'selfcontained') {
         Say ("运行时检查: 已安装 Microsoft.WindowsDesktop.App {0}  ✓" -f ($runtime -join ', '))
     } else {
         Say '运行时检查: 未发现 .NET 10 桌面运行时（Microsoft.WindowsDesktop.App 10.x）。'
-        Say '            DeskSpace 用 WPF，便携版必须装它才能运行（只装 .NET Runtime 不够）。'
+        Say '            DeskLanes 用 WPF，便携版必须装它才能运行（只装 .NET Runtime 不够）。'
         Say '            不想装运行时？改用自包含版：-Edition selfcontained'
         Say '            下载: https://dotnet.microsoft.com/download/dotnet/10.0  → 选择「桌面运行时」'
         if (-not $Force) {
@@ -162,10 +162,10 @@ if ($Edition -eq 'selfcontained') {
     }
 }
 
-# ---- 3. 结束正在运行的 DeskSpace ----
+# ---- 3. 结束正在运行的 DeskLanes ----
 $running = Get-Process -Name $productName -ErrorAction SilentlyContinue
 if ($running) {
-    Say ('检测到 DeskSpace 正在运行（{0} 个进程），需要先结束才能覆盖 exe。' -f @($running).Count)
+    Say ('检测到 DeskLanes 正在运行（{0} 个进程），需要先结束才能覆盖 exe。' -f @($running).Count)
     if (-not $Force) {
         $ans = Read-Host '结束它们并继续安装？(y/N)'
         if ($ans -ne 'y' -and $ans -ne 'Y') { Say '已取消。'; exit 0 }
@@ -178,7 +178,7 @@ if ($running) {
 if (-not (Test-Path -LiteralPath $InstallDir)) {
     New-Item -ItemType Directory -Path $InstallDir -Force | Out-Null
 }
-$targetExe = Join-Path $InstallDir 'DeskSpace.exe'
+$targetExe = Join-Path $InstallDir 'DeskLanes.exe'
 Copy-Item -LiteralPath $SourceExe -Destination $targetExe -Force
 
 $uninstallScript = Join-Path $scriptDir 'uninstall.ps1'
@@ -194,10 +194,10 @@ if (-not (Test-Path -LiteralPath 'HKCU:\Software\Microsoft\Windows\CurrentVersio
     New-Item -Path 'HKCU:\Software\Microsoft\Windows\CurrentVersion\Uninstall' -Force | Out-Null
 }
 New-Item -Path $uninstallKeyPath -Force | Out-Null
-Set-ItemProperty -Path $uninstallKeyPath -Name 'DisplayName'     -Value 'DeskSpace' -Type String
+Set-ItemProperty -Path $uninstallKeyPath -Name 'DisplayName'     -Value 'DeskLanes' -Type String
 Set-ItemProperty -Path $uninstallKeyPath -Name 'DisplayVersion'  -Value $productVersion -Type String
 Set-ItemProperty -Path $uninstallKeyPath -Name 'Edition'         -Value $Edition -Type String
-Set-ItemProperty -Path $uninstallKeyPath -Name 'Publisher'       -Value 'DeskSpace' -Type String
+Set-ItemProperty -Path $uninstallKeyPath -Name 'Publisher'       -Value 'DeskLanes' -Type String
 Set-ItemProperty -Path $uninstallKeyPath -Name 'DisplayIcon'     -Value $targetExe -Type String
 Set-ItemProperty -Path $uninstallKeyPath -Name 'InstallLocation' -Value $InstallDir -Type String
 Set-ItemProperty -Path $uninstallKeyPath -Name 'UninstallString' -Value $uninstallCmd -Type String
@@ -222,17 +222,17 @@ function New-Shortcut([string]$path, [string]$target, [string]$desc) {
 
 if (-not $NoStartMenu) {
     $sm = Join-Path $env:APPDATA ('Microsoft\Windows\Start Menu\Programs\' + $productName)
-    New-Shortcut (Join-Path $sm 'DeskSpace.lnk') $targetExe 'DeskSpace 桌面工作空间'
-    New-Shortcut (Join-Path $sm '卸载 DeskSpace.lnk') 'powershell.exe' '卸载 DeskSpace'
-    $sc = $ws.CreateShortcut((Join-Path $sm '卸载 DeskSpace.lnk'))
+    New-Shortcut (Join-Path $sm 'DeskLanes.lnk') $targetExe 'DeskLanes 桌面工作空间'
+    New-Shortcut (Join-Path $sm '卸载 DeskLanes.lnk') 'powershell.exe' '卸载 DeskLanes'
+    $sc = $ws.CreateShortcut((Join-Path $sm '卸载 DeskLanes.lnk'))
     $sc.TargetPath = 'powershell.exe'
     $sc.Arguments = '-NoProfile -ExecutionPolicy Bypass -File "' + (Join-Path $InstallDir 'uninstall.ps1') + '"'
-    $sc.Description = '卸载 DeskSpace'
+    $sc.Description = '卸载 DeskLanes'
     $sc.Save()
     Say ("开始菜单快捷方式: {0}" -f $sm)
 }
 if ($DesktopShortcut) {
-    New-Shortcut (Join-Path ([Environment]::GetFolderPath('Desktop')) 'DeskSpace.lnk') $targetExe 'DeskSpace 桌面工作空间'
+    New-Shortcut (Join-Path ([Environment]::GetFolderPath('Desktop')) 'DeskLanes.lnk') $targetExe 'DeskLanes 桌面工作空间'
     Say '已创建桌面快捷方式'
 }
 
@@ -243,8 +243,8 @@ Say ('已安装版本：{0}（{1:N0} 字节）' -f $Edition, (Get-Item -LiteralP
 Say '开机自启与桌面图标隐藏都没有被改动 —— 需要的话请在软件「设置」里自己开启。'
 if ($Launch) {
     Start-Process -FilePath $targetExe
-    Say '已启动 DeskSpace。'
+    Say '已启动 DeskLanes。'
 } else {
-    Say '运行方式：开始菜单 → DeskSpace，或直接执行上面的 exe。'
+    Say '运行方式：开始菜单 → DeskLanes，或直接执行上面的 exe。'
 }
 Say '===== 安装结束 ====='

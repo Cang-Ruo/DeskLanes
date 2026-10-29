@@ -6,10 +6,10 @@ using System;
 using System.Drawing;
 using System.Drawing.Imaging;
 using System.Security.Cryptography;
-using DeskSpace.App.Services;
+using DeskLanes.App.Services;
 
 const int cropW = 900, cropH = 1300;   // 桌面图标区域（物理像素）
-const string outDir = @"C:\Users\TTjustTT\Documents\Github\DeskSpace\docs\stage7-evidence";
+const string outDir = @"C:\Users\TTjustTT\Documents\Github\DeskLanes\docs\stage7-evidence";
 
 static Bitmap Capture()
 {

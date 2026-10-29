@@ -1,7 +1,7 @@
 #Requires -Version 5.1
 # 从浮层全屏截图里裁出右下角浮层区域并 2x 最近邻放大
 Add-Type -AssemblyName System.Drawing
-$dir = "C:\Users\TTjustTT\Documents\Github\DeskSpace\docs\stage7-evidence"
+$dir = "C:\Users\TTjustTT\Documents\Github\DeskLanes\docs\stage7-evidence"
 $src = [System.Drawing.Image]::FromFile("$dir\tray-flyout-open-full.png")
 Write-Output ("full: {0}x{1}" -f $src.Width, $src.Height)
 
