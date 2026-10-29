@@ -1997,6 +1997,77 @@ Console.WriteLine("== 18. 三模式切换的数据一致性（悬浮窗 / 全屏
     }
 }
 
+// ---------------------------------------------------------------- 19. 悬浮窗几何持久化（可拖动 / 可缩放）
+Console.WriteLine();
+Console.WriteLine("== 19. 悬浮窗几何持久化（拖动与缩放后要记得住） ==");
+{
+    string geoRoot = Path.Combine(Path.GetTempPath(), "DeskLanesGeo_" + Guid.NewGuid().ToString("N")[..8]);
+    Directory.CreateDirectory(geoRoot);
+    try
+    {
+        var geoWs = new WorkspaceService(new LibraryStore(geoRoot), new ConfigStore(geoRoot), resolver);
+
+        // ---- 19.1 出厂默认：尺寸与窗口 XAML 一致，位置没有记录 ----
+        Check(geoWs.Settings.FloatingWindowWidth == 780, "悬浮窗默认宽 780",
+            geoWs.Settings.FloatingWindowWidth.ToString());
+        Check(geoWs.Settings.FloatingWindowHeight == 540, "悬浮窗默认高 540",
+            geoWs.Settings.FloatingWindowHeight.ToString());
+        Check(geoWs.Settings.FloatingWindowLeft is null && geoWs.Settings.FloatingWindowTop is null,
+            "首次使用没有位置记录（此时应居中，而不是停在 Manual 默认左上角）");
+
+        // ---- 19.2 缩小 + 拖到副屏，重新加载必须原样回来 ----
+        geoWs.SaveFloatingWindowPreferences(520, 400, 1360, 300);
+
+        var reload = new WorkspaceService(new LibraryStore(geoRoot), new ConfigStore(geoRoot), resolver);
+        Check(reload.Settings.FloatingWindowWidth == 520, "缩放后的宽度被保存",
+            reload.Settings.FloatingWindowWidth.ToString());
+        Check(reload.Settings.FloatingWindowHeight == 400, "缩放后的高度被保存",
+            reload.Settings.FloatingWindowHeight.ToString());
+        Check(reload.Settings.FloatingWindowLeft == 1360, "拖动后的横坐标被保存（可跨屏）",
+            reload.Settings.FloatingWindowLeft.ToString());
+        Check(reload.Settings.FloatingWindowTop == 300, "拖动后的纵坐标被保存",
+            reload.Settings.FloatingWindowTop.ToString());
+
+        // ---- 19.3 窗口从没显示过（Left/Top 是 NaN）：位置清空、尺寸保留，不能写坏配置 ----
+        //      NaN 写进 JSON 会让 System.Text.Json 直接抛异常（虚拟机实测踩到过）。
+        reload.SaveFloatingWindowPreferences(double.NaN, double.NaN, double.NaN, double.NaN);
+        Check(reload.Settings.FloatingWindowWidth == 520 && reload.Settings.FloatingWindowHeight == 400,
+            "尺寸非有限值时保留原尺寸（不写坏配置）");
+        Check(reload.Settings.FloatingWindowLeft is null && reload.Settings.FloatingWindowTop is null,
+            "位置非有限值时清空位置");
+        Check(reload.LoadWarnings.Count == 0, "写入非有限值后重新加载无警告",
+            string.Join(" | ", reload.LoadWarnings));
+
+        // ---- 19.4 负坐标（副屏排在主屏左边时 VirtualScreenLeft 为负）要能存 ----
+        reload.SaveFloatingWindowPreferences(600, 480, -1280, -40);
+        var neg = new WorkspaceService(new LibraryStore(geoRoot), new ConfigStore(geoRoot), resolver);
+        Check(neg.Settings.FloatingWindowLeft == -1280 && neg.Settings.FloatingWindowTop == -40,
+            "负坐标（左侧副屏）能正确保存与读回",
+            $"{neg.Settings.FloatingWindowLeft},{neg.Settings.FloatingWindowTop}");
+
+        // ---- 19.5 两套窗口偏好互不干扰 ----
+        neg.SaveWindowPreferences(1180, 760, 10, 20, true);
+        neg.SaveFloatingWindowPreferences(500, 380, 40, 60);
+        var both = new WorkspaceService(new LibraryStore(geoRoot), new ConfigStore(geoRoot), resolver);
+        Check(both.Settings.WindowWidth == 1180 && both.Settings.WindowHeight == 760
+                && both.Settings.WindowMaximized,
+            "主窗口偏好不受悬浮窗保存影响");
+        Check(both.Settings.FloatingWindowWidth == 500 && both.Settings.FloatingWindowLeft == 40,
+            "悬浮窗偏好不受主窗口保存影响");
+    }
+    finally
+    {
+        try
+        {
+            Directory.Delete(geoRoot, true);
+        }
+        catch
+        {
+            // 临时目录清理失败不影响结果
+        }
+    }
+}
+
 // ---------------------------------------------------------------- 汇总
 Console.WriteLine();
 Console.WriteLine($"===== 冒烟测试结果：通过 {passed} 项，失败 {failed} 项 =====");

@@ -182,6 +182,9 @@ public interface IWorkspaceService
     /// <summary>保存窗口偏好（关闭/尺寸变化时调用）。</summary>
     void SaveWindowPreferences(double width, double height, double? left, double? top, bool maximized);
 
+    /// <summary>保存悬浮窗的尺寸与位置（拖动/缩放结束后调用）。</summary>
+    void SaveFloatingWindowPreferences(double width, double height, double? left, double? top);
+
     /// <summary>立即持久化。</summary>
     void Save();
 }

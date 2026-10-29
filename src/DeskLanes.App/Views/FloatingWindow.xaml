@@ -137,6 +137,35 @@
             <!-- 底部状态栏 -->
             <TextBlock Grid.Row="3" Text="{Binding StatusText}" FontSize="11" Foreground="{StaticResource BrushTextTertiary}"
                        Margin="0,8,0,0" TextTrimming="CharacterEllipsis" />
+
+            <!-- ============ 拖动 / 缩放热区 ============ -->
+            <!-- 悬浮窗是分层窗口（WindowStyle=None + AllowsTransparency=True），系统不给标题栏
+                 也不给缩放边框，拖动和缩放只能自己做热区。两个热区都用负 Margin 落进 Border 的
+                 14px Padding 里：不压住任何控件，本身透明，不引入新的视觉元素。 -->
+
+            <!-- 顶部拖动条：按住即可拖动；DragMove 由系统驱动，可跨显示器移动 -->
+            <Rectangle x:Name="DragBar" Height="16" VerticalAlignment="Top" HorizontalAlignment="Stretch"
+                       Margin="-14,-14,-14,0" Fill="Transparent" Cursor="SizeAll"
+                       MouseLeftButtonDown="OnDragBarMouseLeftButtonDown" />
+
+            <!-- 右下角缩放手柄：与自由分区面板同款的两道斜线 -->
+            <Thumb x:Name="ResizeGrip" Grid.RowSpan="4"
+                   HorizontalAlignment="Right" VerticalAlignment="Bottom"
+                   Width="17" Height="17" Margin="0,0,-14,-14"
+                   Cursor="SizeNWSE"
+                   DragDelta="OnResizeGripDragDelta"
+                   DragCompleted="OnResizeGripDragCompleted">
+                <Thumb.Template>
+                    <ControlTemplate TargetType="Thumb">
+                        <Border Background="Transparent">
+                            <Path Data="M 14 2 L 2 14 M 14 8 L 8 14 M 14 14 L 14 14"
+                                  Stroke="#59FFFFFF" StrokeThickness="1.5"
+                                  HorizontalAlignment="Right" VerticalAlignment="Bottom"
+                                  Margin="0,0,5,5" />
+                        </Border>
+                    </ControlTemplate>
+                </Thumb.Template>
+            </Thumb>
         </Grid>
     </Border>
 </Window>

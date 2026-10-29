@@ -626,6 +626,25 @@ public sealed class WorkspaceService : IWorkspaceService
         Save();
     }
 
+    public void SaveFloatingWindowPreferences(double width, double height, double? left, double? top)
+    {
+        // 与主窗口同一套守卫：悬浮窗从未显示时 Left/Top 是 NaN，NaN 写不进 JSON。
+        // 逐项校验，非有限值一律不落盘，避免把整个 settings.json 写坏。
+        if (double.IsFinite(width) && width > 0)
+        {
+            SettingsData.FloatingWindowWidth = width;
+        }
+
+        if (double.IsFinite(height) && height > 0)
+        {
+            SettingsData.FloatingWindowHeight = height;
+        }
+
+        SettingsData.FloatingWindowLeft = left is double l && double.IsFinite(l) ? l : null;
+        SettingsData.FloatingWindowTop = top is double t && double.IsFinite(t) ? t : null;
+        Save();
+    }
+
     public void Save() => SaveCore();
 
     // ---------- 内部实现 ----------

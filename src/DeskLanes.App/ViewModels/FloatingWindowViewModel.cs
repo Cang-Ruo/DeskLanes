@@ -51,6 +51,9 @@ public sealed class FloatingWindowViewModel : ObservableObject
         Rebuild();
     }
 
+    /// <summary>三种模式共用的工作区（悬浮窗不持有任何项目副本）。</summary>
+    public IWorkspaceService Workspace => _workspace;
+
     /// <summary>请求切换到其他窗口模式（悬浮窗/全屏/侧边栏互斥显示）。</summary>
     public event EventHandler<WindowMode>? ModeSwitchRequested;
 
