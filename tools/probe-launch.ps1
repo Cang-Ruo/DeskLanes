@@ -32,7 +32,7 @@ public class Wz {
 
 function Say($m) { Write-Host $m }
 
-$extractRoot = Join-Path $env:TEMP '.net\DeskSpace'
+$extractRoot = Join-Path $env:TEMP '.net\DeskLanes'
 if (Test-Path -LiteralPath $extractRoot) { Remove-Item -LiteralPath $extractRoot -Recurse -Force -ErrorAction SilentlyContinue }
 
 $name = [System.IO.Path]::GetFileNameWithoutExtension($Exe)
