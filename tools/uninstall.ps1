@@ -1,15 +1,15 @@
 ﻿#Requires -Version 5.1
 <#
-  uninstall.ps1 —— DeskSpace 卸载脚本（每用户，不需要管理员权限）
+  uninstall.ps1 —— DeskLanes 卸载脚本（每用户，不需要管理员权限）
 
   做什么：
-    1. 结束正在运行的 DeskSpace（含系统托盘图标）
-    2. 删除开机自启项（HKCU\...\Run\DeskSpace）—— 否则删了 exe 会留下一个指向空路径的启动项
+    1. 结束正在运行的 DeskLanes（含系统托盘图标）
+    2. 删除开机自启项（HKCU\...\Run\DeskLanes）—— 否则删了 exe 会留下一个指向空路径的启动项
     3. 恢复桌面图标显示（仅当当前是隐藏状态时；用系统右键菜单同款的 WM_COMMAND 0x7402）
     4. 删除开始菜单 / 桌面快捷方式
     5. 删除「已安装的应用」里的卸载项
     6. 删除安装目录（程序文件）
-    7. 配置目录 %LocalAppData%\DeskSpace：默认保留（用户的分类与布局），-RemoveConfig 才删
+    7. 配置目录 %LocalAppData%\DeskLanes：默认保留（用户的分类与布局），-RemoveConfig 才删
 
   不做什么：
     - 不动桌面上的任何文件；不写 HKLM；不重启资源管理器
@@ -28,8 +28,8 @@ param(
 )
 
 $ErrorActionPreference = 'Stop'
-$productName = 'DeskSpace'
-$uninstallKeyPath = 'HKCU:\Software\Microsoft\Windows\CurrentVersion\Uninstall\DeskSpace'
+$productName = 'DeskLanes'
+$uninstallKeyPath = 'HKCU:\Software\Microsoft\Windows\CurrentVersion\Uninstall\DeskLanes'
 
 function Say($msg) { Write-Host $msg }
 
@@ -95,7 +95,7 @@ function Get-HideIcons {
     return [int]$v.HideIcons
 }
 
-Say '===== DeskSpace 卸载 ====='
+Say '===== DeskLanes 卸载 ====='
 
 # ---- 0. 定位安装目录 ----
 if ([string]::IsNullOrWhiteSpace($InstallDir)) {
@@ -110,7 +110,7 @@ if ([string]::IsNullOrWhiteSpace($InstallDir)) {
 }
 if ([string]::IsNullOrWhiteSpace($InstallDir)) {
     Say '找不到安装目录（注册表里没有安装记录，默认位置也不存在）。'
-    Say '如果 DeskSpace 是绿色版/自建目录，请用 -InstallDir 指定后重试。'
+    Say '如果 DeskLanes 是绿色版/自建目录，请用 -InstallDir 指定后重试。'
     exit 1
 }
 Say ("安装目录: {0}" -f $InstallDir)
@@ -121,7 +121,7 @@ if ($ed) {
 }
 
 if (-not $Silent) {
-    $ans = Read-Host ('确认卸载 DeskSpace？会删除该目录里的程序文件 (y/N)')
+    $ans = Read-Host ('确认卸载 DeskLanes？会删除该目录里的程序文件 (y/N)')
     if ($ans -ne 'y' -and $ans -ne 'Y') { Say '已取消。'; exit 0 }
 }
 
@@ -130,16 +130,16 @@ $running = Get-Process -Name $productName -ErrorAction SilentlyContinue
 if ($running) {
     $running | Stop-Process -Force
     Start-Sleep -Milliseconds 800
-    Say ('已结束 DeskSpace 进程（{0} 个）' -f @($running).Count)
+    Say ('已结束 DeskLanes 进程（{0} 个）' -f @($running).Count)
 } else {
-    Say 'DeskSpace 未在运行'
+    Say 'DeskLanes 未在运行'
 }
 
 # ---- 2. 删除开机自启项 ----
 $runVal = Get-ItemProperty -Path $runKey -Name $productName -ErrorAction SilentlyContinue
 if ($null -ne $runVal) {
     Remove-ItemProperty -Path $runKey -Name $productName -ErrorAction SilentlyContinue
-    Say '已删除开机自启项（HKCU Run\DeskSpace）'
+    Say '已删除开机自启项（HKCU Run\DeskLanes）'
 } else {
     Say '开机自启项：本来就没有'
 }
@@ -227,4 +227,4 @@ if ($RemoveConfig) {
 
 Say ''
 Say '===== 卸载完成 ====='
-Say 'DeskSpace 已从这台机器移除。桌面上的文件从未被改动过。'
+Say 'DeskLanes 已从这台机器移除。桌面上的文件从未被改动过。'

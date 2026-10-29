@@ -20,7 +20,7 @@ param(
 )
 
 $ErrorActionPreference = 'Stop'
-$cfgDir = Join-Path $env:LOCALAPPDATA 'DeskSpace'
+$cfgDir = Join-Path $env:LOCALAPPDATA 'DeskLanes'
 $cfgFile = Join-Path $cfgDir 'settings.json'
 $bakFile = Join-Path $cfgDir 'settings.json.probe-sidebar.bak'
 $errLog = Join-Path $cfgDir 'logs\errors.log'
@@ -61,7 +61,7 @@ Set-Content -LiteralPath $cfgFile -Value $json -Encoding UTF8
 Say '配置已改为 WindowMode=Sidebar、SidebarExpanded=false（收起态）'
 
 # 2. 启动
-Get-Process -Name DeskSpace -ErrorAction SilentlyContinue | Stop-Process -Force
+Get-Process -Name DeskLanes -ErrorAction SilentlyContinue | Stop-Process -Force
 Start-Sleep -Seconds 1
 $errBefore = Count-ErrorLines
 $proc = Start-Process -FilePath $Exe -PassThru

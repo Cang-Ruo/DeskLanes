@@ -8,8 +8,8 @@ param(
     [Parameter(Mandatory = $true)][string]$ExePath
 )
 
-$settingsPath = Join-Path $env:LOCALAPPDATA 'DeskSpace\settings.json'
-$backupPath = Join-Path $env:TEMP 'DeskSpace-settings-backup-live-mode.json'
+$settingsPath = Join-Path $env:LOCALAPPDATA 'DeskLanes\settings.json'
+$backupPath = Join-Path $env:TEMP 'DeskLanes-settings-backup-live-mode.json'
 Copy-Item -LiteralPath $settingsPath -Destination $backupPath -Force
 
 try {

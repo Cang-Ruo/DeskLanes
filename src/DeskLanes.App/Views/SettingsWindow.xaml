@@ -1,0 +1,140 @@
+<Window x:Class="DeskLanes.App.Views.SettingsWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:vm="clr-namespace:DeskLanes.App.ViewModels"
+        Title="DeskLanes 设置" Height="520" Width="460"
+        WindowStartupLocation="CenterOwner" ResizeMode="NoResize"
+        Background="Transparent"
+        TextOptions.TextFormattingMode="Ideal"
+        UseLayoutRounding="True">
+    <!-- 背景由 WindowBackdropService 在 SourceInitialized 后统一处理（Mica / 回退底色） -->
+    <Window.Resources>
+        <BooleanToVisibilityConverter x:Key="BoolToVis" />
+    </Window.Resources>
+
+    <Grid Margin="16" TextElement.Foreground="{StaticResource BrushTextPrimary}">
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="*" />
+            <RowDefinition Height="Auto" />
+        </Grid.RowDefinitions>
+
+        <TextBlock Grid.Row="0" Text="设置" FontSize="18" FontWeight="SemiBold"
+                   Margin="0,0,0,12" />
+
+        <ScrollViewer Grid.Row="1" VerticalScrollBarVisibility="Auto">
+            <StackPanel>
+                <!-- 窗口模式 -->
+                <TextBlock Text="窗口模式" Style="{StaticResource SectionTitle}" Margin="0,0,0,6" />
+                <TextBlock Text="三种模式共用同一份项目、分类与分区数据，切换不会丢失任何内容。"
+                           Style="{StaticResource HintText}" Margin="0,0,0,6" />
+                <StackPanel Orientation="Horizontal" Margin="0,0,0,14">
+                    <RadioButton Content="悬浮窗" IsChecked="{Binding IsModeFloating, Mode=TwoWay}"
+                                 Margin="0,0,16,0" VerticalAlignment="Center" />
+                    <RadioButton Content="全屏工作空间" IsChecked="{Binding IsModeFull, Mode=TwoWay}"
+                                 Margin="0,0,16,0" VerticalAlignment="Center" />
+                    <RadioButton Content="侧边栏" IsChecked="{Binding IsModeSidebar, Mode=TwoWay}"
+                                 VerticalAlignment="Center" />
+                </StackPanel>
+
+                <!-- 全局快捷键 -->
+                <TextBlock Text="全局快捷键" Style="{StaticResource SectionTitle}" Margin="0,0,0,6" />
+                <TextBlock Text="呼出 / 隐藏悬浮窗。只支持组合键，不注册单独的 Win 键，也不使用键盘钩子。"
+                           Style="{StaticResource HintText}" Margin="0,0,0,6" />
+                <Grid Margin="0,0,0,6">
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="*" />
+                        <ColumnDefinition Width="Auto" />
+                    </Grid.ColumnDefinitions>
+                    <TextBox Grid.Column="0" Text="{Binding HotkeyText, UpdateSourceTrigger=PropertyChanged}"
+                             Padding="8,6" FontSize="13" />
+                    <Button Grid.Column="1" Content="测试" Padding="12,6" Margin="8,0,0,0"
+                            Command="{Binding TestHotkeyCommand}" />
+                </Grid>
+                <TextBlock Text="{Binding HotkeyStatus}" FontSize="11" TextWrapping="Wrap"
+                           Foreground="{StaticResource BrushTextSecondary}" Margin="0,0,0,4"
+                           Visibility="{Binding HasHotkeyStatus, Converter={StaticResource BoolToVis}}" />
+                <TextBlock Text="被占用时换个组合键即可，例如 Ctrl+Alt+D 或 Ctrl+Shift+Space。"
+                           Style="{StaticResource HintText}" Margin="0,0,0,14" />
+
+                <!-- 悬浮窗行为 -->
+                <TextBlock Text="悬浮窗" Style="{StaticResource SectionTitle}" Margin="0,0,0,6" />
+                <CheckBox Content="失去焦点时自动隐藏（Esc 也可隐藏）"
+                          IsChecked="{Binding FloatingHideOnDeactivate, Mode=TwoWay}"
+                          FontSize="12" Margin="0,0,0,14" />
+
+                <!-- 侧边栏 -->
+                <TextBlock Text="侧边栏" Style="{StaticResource SectionTitle}" Margin="0,0,0,6" />
+                <StackPanel Orientation="Horizontal" Margin="0,0,0,6">
+                    <RadioButton Content="停靠左侧" GroupName="Dock"
+                                 IsChecked="{Binding IsDockLeft, Mode=TwoWay}"
+                                 Margin="0,0,16,0" VerticalAlignment="Center" />
+                    <RadioButton Content="停靠右侧" GroupName="Dock"
+                                 IsChecked="{Binding IsDockRight, Mode=TwoWay}"
+                                 VerticalAlignment="Center" />
+                </StackPanel>
+                <StackPanel Orientation="Horizontal" Margin="0,0,0,6" VerticalAlignment="Center">
+                    <TextBlock Text="展开宽度" FontSize="12" Width="70" VerticalAlignment="Center" />
+                    <Slider Minimum="180" Maximum="520" Width="200"
+                            Value="{Binding SidebarWidth, Mode=TwoWay}" />
+                    <TextBlock Text="{Binding SidebarWidth}" FontSize="12"
+                               Foreground="{StaticResource BrushTextSecondary}"
+                               Margin="8,0,0,0" VerticalAlignment="Center" />
+                </StackPanel>
+                <CheckBox Content="失去焦点时自动收起（关闭可避免操作中意外消失）"
+                          IsChecked="{Binding SidebarAutoCollapse, Mode=TwoWay}"
+                          FontSize="12" Margin="0,0,0,14" />
+
+                <!-- 托盘 -->
+                <TextBlock Text="托盘" Style="{StaticResource SectionTitle}" Margin="0,0,0,6" />
+                <CheckBox Content="关闭窗口时最小化到托盘（否则直接退出应用）"
+                          IsChecked="{Binding MinimizeToTray, Mode=TwoWay}"
+                          FontSize="12" Margin="0,0,0,14" />
+
+                <!-- 开机自启 -->
+                <TextBlock Text="开机自启" Style="{StaticResource SectionTitle}" Margin="0,0,0,6" />
+                <CheckBox Content="登录 Windows 后自动启动 DeskLanes（写入当前用户的启动项，无需管理员权限）"
+                          IsChecked="{Binding AutoStartEnabled, Mode=TwoWay}"
+                          IsEnabled="{Binding CanEditAutoStart}"
+                          FontSize="12" Margin="0,0,0,6" />
+                <!-- 状态为空时文本为空，不占视觉空间 -->
+                <TextBlock Text="{Binding AutoStartStatus}"
+                           Foreground="{StaticResource BrushWarningText}" FontSize="11"
+                           TextWrapping="Wrap" Margin="0,0,0,14" />
+
+                <!-- 桌面图标 -->
+                <TextBlock Text="桌面图标" Style="{StaticResource SectionTitle}" Margin="0,0,0,6" />
+                <CheckBox Content="隐藏桌面图标（保存时会再确认一次；不移动/删除任何桌面文件）"
+                          IsChecked="{Binding HideDesktopIcons, Mode=TwoWay}"
+                          IsEnabled="{Binding CanEditDesktopIcons}"
+                          FontSize="12" Margin="0,0,0,6" />
+                <TextBlock Text="{Binding DesktopIconStatus}"
+                           Foreground="{StaticResource BrushWarningText}" FontSize="11"
+                           TextWrapping="Wrap" />
+
+                <!-- 卸载前清理 -->
+                <TextBlock Text="卸载前清理" Style="{StaticResource SectionTitle}" Margin="0,18,0,6" />
+                <TextBlock Text="删除开机自启启动项，并恢复桌面图标显示。用于移除 DeskLanes 前清理系统痕迹，不会动任何桌面文件。"
+                           Style="{StaticResource HintText}" Margin="0,0,0,6" />
+                <Button Content="执行清理…"
+                        Command="{Binding CleanupForUninstallCommand}"
+                        Padding="14,5" HorizontalAlignment="Left" Margin="0,0,0,18" />
+
+                <!-- 诊断与排障 -->
+                <TextBlock Text="诊断与排障" Style="{StaticResource SectionTitle}" Margin="0,0,0,6" />
+                <TextBlock Text="把设置、项目库与日志打成一个 zip 放到桌面，便于在另一台电脑上排查问题。只读取文件，不修改任何数据。"
+                           Style="{StaticResource HintText}" Margin="0,0,0,6" />
+                <Button Content="导出诊断包…"
+                        Command="{Binding ExportDiagnosticsCommand}"
+                        Padding="14,5" HorizontalAlignment="Left" />
+                <TextBlock Text="{Binding DiagnosticsStatus}" FontSize="11" TextWrapping="Wrap"
+                           Foreground="{StaticResource BrushTextSecondary}" Margin="0,6,0,0" />
+            </StackPanel>
+        </ScrollViewer>
+
+        <StackPanel Grid.Row="2" Orientation="Horizontal" HorizontalAlignment="Right" Margin="0,12,0,0">
+            <Button Content="保存" Padding="16,7" Margin="0,0,8,0" Command="{Binding SaveCommand}" />
+            <Button Content="取消" Padding="16,7" Command="{Binding CancelCommand}" />
+        </StackPanel>
+    </Grid>
+</Window>
