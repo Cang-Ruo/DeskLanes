@@ -86,10 +86,12 @@ public partial class App : Application
             string directory = Path.Combine(
                 Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),
                 "DeskLanes", "logs");
-            Directory.CreateDirectory(directory);
-            File.AppendAllText(
-                Path.Combine(directory, "errors.log"),
-                $"[{DateTime.Now:yyyy-MM-dd HH:mm:ss}] {ex}\n\n");
+
+            // errors.log 之前只追加不整理：崩溃循环里会一直长。
+            // 走与 sync.log 同一套轮转（单份 256 KB，留 2 份归档），
+            // 这样排障时还能拿到"出事之前"的那一段。
+            var writer = new LogFileWriter(Path.Combine(directory, "errors.log"), 256 * 1024, 2);
+            writer.Append($"[{DateTime.Now:yyyy-MM-dd HH:mm:ss}] {ex}");
         }
         catch
         {
