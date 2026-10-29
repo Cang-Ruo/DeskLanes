@@ -13,6 +13,19 @@
          按规格回退为高不透明度玻璃底色：文字与图标保持全不透明（见 GlassTheme.xaml） -->
     <Window.Resources>
         <BooleanToVisibilityConverter x:Key="BoolToVis" />
+
+        <!-- 缩放用的隐形热区：透明、不抢焦点，只靠 Cursor 提示可拖方向 -->
+        <Style x:Key="ResizeThumbStyle" TargetType="Thumb">
+            <Setter Property="Background" Value="Transparent" />
+            <Setter Property="Focusable" Value="False" />
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="Thumb">
+                        <Border Background="Transparent" />
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
     </Window.Resources>
 
     <Border Background="{StaticResource BrushFloatingGlass}" CornerRadius="12" Padding="14"
@@ -140,21 +153,65 @@
 
             <!-- ============ 拖动 / 缩放热区 ============ -->
             <!-- 悬浮窗是分层窗口（WindowStyle=None + AllowsTransparency=True），系统不给标题栏
-                 也不给缩放边框，拖动和缩放只能自己做热区。两个热区都用负 Margin 落进 Border 的
-                 14px Padding 里：不压住任何控件，本身透明，不引入新的视觉元素。 -->
+                 也不给缩放边框，拖动和八方向缩放只能自己做热区。
+                 所有热区都用负 Margin 落进 Border 的 14px Padding 里边，本身透明，
+                 不引入新的视觉元素（唯一可见的是右下角那两道斜线）。
+                 坐标口径：内容区左上角 = 窗口 (14,14)，所以「窗口 y=6」写成 Margin.Top = -8。 -->
 
-            <!-- 顶部拖动条：按住即可拖动；DragMove 由系统驱动，可跨显示器移动 -->
-            <Rectangle x:Name="DragBar" Height="16" VerticalAlignment="Top" HorizontalAlignment="Stretch"
-                       Margin="-14,-14,-14,0" Fill="Transparent" Cursor="SizeAll"
+            <!-- 上边：只能拉高（0~5 DIP）。
+                 顶部这一条被上边热区和拖动条分掉：最上 5 DIP 拉高，往下 17 DIP 拖动。
+                 两个热区的分界线离得越远越好，否则一次点击可能因为像素舍入落在另一边。 -->
+            <Thumb Grid.RowSpan="4" Style="{StaticResource ResizeThumbStyle}" Tag="T"
+                   HorizontalAlignment="Stretch" VerticalAlignment="Top"
+                   Height="5" Margin="2,-14,2,0" Cursor="SizeNS"
+                   DragDelta="OnResizeDragDelta" DragCompleted="OnResizeDragCompleted" />
+
+            <!-- 顶部拖动条：按住即可移动；DragMove 由系统驱动，可跨显示器移动 -->
+            <Rectangle x:Name="DragBar" Height="17" VerticalAlignment="Top" HorizontalAlignment="Stretch"
+                       Margin="2,-9,2,0" Fill="Transparent" Cursor="SizeAll"
                        MouseLeftButtonDown="OnDragBarMouseLeftButtonDown" />
 
-            <!-- 右下角缩放手柄：与自由分区面板同款的两道斜线 -->
-            <Thumb x:Name="ResizeGrip" Grid.RowSpan="4"
+            <!-- 下边：只能拉高 -->
+            <Thumb Grid.RowSpan="4" Style="{StaticResource ResizeThumbStyle}" Tag="B"
+                   HorizontalAlignment="Stretch" VerticalAlignment="Bottom"
+                   Height="6" Margin="16,0,16,-14" Cursor="SizeNS"
+                   DragDelta="OnResizeDragDelta" DragCompleted="OnResizeDragCompleted" />
+
+            <!-- 左边：只能拉宽 -->
+            <Thumb Grid.RowSpan="4" Style="{StaticResource ResizeThumbStyle}" Tag="L"
+                   HorizontalAlignment="Left" VerticalAlignment="Stretch"
+                   Width="6" Margin="-14,16,0,16" Cursor="SizeWE"
+                   DragDelta="OnResizeDragDelta" DragCompleted="OnResizeDragCompleted" />
+
+            <!-- 右边：只能拉宽 -->
+            <Thumb Grid.RowSpan="4" Style="{StaticResource ResizeThumbStyle}" Tag="R"
+                   HorizontalAlignment="Right" VerticalAlignment="Stretch"
+                   Width="6" Margin="0,16,-14,16" Cursor="SizeWE"
+                   DragDelta="OnResizeDragDelta" DragCompleted="OnResizeDragCompleted" />
+
+            <!-- 四角：同时拉宽与拉高 -->
+            <Thumb Grid.RowSpan="4" Style="{StaticResource ResizeThumbStyle}" Tag="TL"
+                   HorizontalAlignment="Left" VerticalAlignment="Top"
+                   Width="16" Height="16" Margin="-14,-14,0,0" Cursor="SizeNWSE"
+                   DragDelta="OnResizeDragDelta" DragCompleted="OnResizeDragCompleted" />
+
+            <Thumb Grid.RowSpan="4" Style="{StaticResource ResizeThumbStyle}" Tag="TR"
+                   HorizontalAlignment="Right" VerticalAlignment="Top"
+                   Width="16" Height="16" Margin="0,-14,-14,0" Cursor="SizeNESW"
+                   DragDelta="OnResizeDragDelta" DragCompleted="OnResizeDragCompleted" />
+
+            <Thumb Grid.RowSpan="4" Style="{StaticResource ResizeThumbStyle}" Tag="BL"
+                   HorizontalAlignment="Left" VerticalAlignment="Bottom"
+                   Width="16" Height="16" Margin="-14,0,0,-14" Cursor="SizeNESW"
+                   DragDelta="OnResizeDragDelta" DragCompleted="OnResizeDragCompleted" />
+
+            <!-- 右下角：唯一有可见标记的手柄（与自由分区面板同款的两道斜线） -->
+            <Thumb Grid.RowSpan="4" Tag="BR"
                    HorizontalAlignment="Right" VerticalAlignment="Bottom"
                    Width="17" Height="17" Margin="0,0,-14,-14"
                    Cursor="SizeNWSE"
-                   DragDelta="OnResizeGripDragDelta"
-                   DragCompleted="OnResizeGripDragCompleted">
+                   DragDelta="OnResizeDragDelta"
+                   DragCompleted="OnResizeDragCompleted">
                 <Thumb.Template>
                     <ControlTemplate TargetType="Thumb">
                         <Border Background="Transparent">

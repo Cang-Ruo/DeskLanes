@@ -160,6 +160,12 @@ def patch_settings(mode):
     # would make the window open on whichever monitor that was.
     s["FloatingWindowLeft"] = None
     s["FloatingWindowTop"] = None
+    # A later round (E) parks the main window on the secondary monitor and that
+    # position gets persisted; every round must start from a clean slate or the
+    # "maximized on the primary" assertions break on the next run.
+    s["WindowLeft"] = None
+    s["WindowTop"] = None
+    s["WindowMaximized"] = False
     with open(path, "w", encoding="utf-8") as f:
         json.dump(s, f, ensure_ascii=False, indent=2)
 
@@ -230,7 +236,7 @@ try:
 
         # --- drag from the top hot zone (16 DIP tall, full width) ---
         dx, dy = 160, 110
-        drag(x0 + w0 // 2, y0 + 8, x0 + w0 // 2 + dx, y0 + 8 + dy)
+        drag(x0 + w0 // 2, y0 + 14, x0 + w0 // 2 + dx, y0 + 14 + dy)
         x1, y1, w1, h1 = get_rect(hwnd)
         moved_x, moved_y = x1 - x0, y1 - y0
         say("dragging the top strip moves the window",
@@ -256,8 +262,32 @@ try:
             w3 >= 520 and w3 <= 535 and h3 >= 445 and h3 <= 460,
             "rect=%dx%d" % (w3, h3))
 
+        # --- left edge: widen, left edge must move left with it ---
+        lx = x3 + 3
+        drag(lx, y3 + h3 // 2, lx - 60, y3 + h3 // 2)
+        x4, y4, w4, h4 = get_rect(hwnd)
+        say("left edge widens and moves left with it",
+            abs((w4 - w3) - 60) <= 6 and abs((x4 - x3) + 60) <= 6 and h4 == h3,
+            "w %d->%d, x %d->%d" % (w3, w4, x3, x4))
+
+        # --- top edge: grow, top edge must move up with it ---
+        ty2 = y4 + 3
+        drag(x4 + w4 // 2, ty2, x4 + w4 // 2, ty2 - 40)
+        x5, y5, w5, h5 = get_rect(hwnd)
+        say("top edge grows and moves up with it",
+            abs((h5 - h4) - 40) <= 6 and abs((y5 - y4) + 40) <= 6 and w5 == w4,
+            "h %d->%d, y %d->%d" % (h4, h5, y4, y5))
+
+        # --- top-left corner: both at once ---
+        drag(x5 + 8, y5 + 8, x5 + 8 - 50, y5 + 8 - 40)
+        x6, y6, w6, h6 = get_rect(hwnd)
+        say("top-left corner widens and grows together",
+            abs((w6 - w5) - 50) <= 6 and abs((h6 - h5) - 40) <= 6
+            and abs((x6 - x5) + 50) <= 6 and abs((y6 - y5) + 40) <= 6,
+            "w %+d h %+d at (%+d,%+d)" % (w6 - w5, h6 - h5, x6 - x5, y6 - y5))
+
         print()
-        print("   final rect = %dx%d at (%d,%d)" % (w3, h3, x3, y3))
+        print("   final rect = %dx%d at (%d,%d)" % (w6, h6, x6, y6))
 finally:
     close_app(proc)
 
@@ -275,6 +305,12 @@ def clear_floating_geometry():
     s["FloatingHideOnDeactivate"] = False
     s["FloatingWindowLeft"] = None
     s["FloatingWindowTop"] = None
+    # A later round (E) parks the main window on the secondary monitor and that
+    # position gets persisted; every round must start from a clean slate or the
+    # "maximized on the primary" assertions break on the next run.
+    s["WindowLeft"] = None
+    s["WindowTop"] = None
+    s["WindowMaximized"] = False
     with open(path, "w", encoding="utf-8") as f:
         json.dump(s, f, ensure_ascii=False, indent=2)
 
@@ -298,17 +334,64 @@ try:
         vx = u.GetSystemMetrics(SM_XVIRTUALSCREEN)
         tx = vx + 120
         ty = 420
-        drag(x + w // 2, y + 8, tx + w // 2, ty + 8)
+        drag(x + w // 2, y + 14, tx + w // 2, ty + 14)
 
         x2, y2, w2, h2 = get_rect(hwnd)
         say("floating window can be dragged onto the other monitor", x2 < 0,
             "moved to (%d,%d)" % (x2, y2))
-        say("size survives the monitor change (DIP re-scaled to 150%%)",
-            w2 > 1000, "width %d px physical on the 150%% monitor" % w2)
+        # Portrait monitor is 1080 px physical wide. 780 DIP at 150% would be 1170 px
+        # and stick out by 90; the window must now auto-shrink into the work area
+        # (~712 DIP = ~1068 px).
+        say("floating window auto-shrinks to fit the portrait monitor",
+            950 <= w2 <= 1085, "width %d px physical (monitor is 1080)" % w2)
 
         s2 = read_settings()
         say("cross-monitor position persisted", s2.get("FloatingWindowLeft") is not None
             and s2["FloatingWindowLeft"] < 0, str(s2.get("FloatingWindowLeft")))
+finally:
+    close_app(proc)
+
+# ================= Round E: main window maximized on the portrait monitor ==========
+
+print()
+print("== Round E: main window maximized on the portrait monitor ==")
+
+
+def place_main_on_secondary():
+    path = os.path.join(CFGDIR, "settings.json")
+    with open(path, "r", encoding="utf-8") as f:
+        s = json.load(f)
+    s["WindowMode"] = MODE_FULL
+    s["WindowMaximized"] = False
+    # Put the window's top-left corner on the portrait (left) monitor.
+    # WPF DIP coordinates are scaled by the PRIMARY monitor's DPI (1.25 here),
+    # so the portrait screen spans DIP x in [-864, 0] -- -1000 would be outside
+    # the virtual screen and correctly rejected by the visibility check.
+    s["WindowLeft"] = -800.0
+    s["WindowTop"] = 100.0
+    with open(path, "w", encoding="utf-8") as f:
+        json.dump(s, f, ensure_ascii=False, indent=2)
+
+
+place_main_on_secondary()
+mouse_home()
+proc = subprocess.Popen([EXE])
+try:
+    hwnd = find_window(MAIN_TITLE)
+    if hwnd is None:
+        say("main window appears for the portrait test", False, "not found in 30s")
+    else:
+        time.sleep(2.5)
+        x, y, w, h = get_rect(hwnd)
+        cmd = get_showcmd(hwnd)
+        say("main window is maximized on the portrait monitor", cmd == SW_MAXIMIZE and x < 0,
+            "showCmd=%d at (%d,%d)" % (cmd, x, y))
+        # Portrait monitor is 1080 px physical wide. The old MinWidth of 900 DIP would
+        # have forced 1350 px and stuck out by 270. A maximized WPF window also gets a
+        # small border overhang (measured: +22 px here, +18 px on the primary), so the
+        # pass window is "close to 1080", not "exactly 1080".
+        say("maximized window fits the portrait width (no MinWidth overflow)",
+            w <= 1120, "width %d px physical (monitor 1080; old bug was 1350)" % w)
 finally:
     close_app(proc)
 
