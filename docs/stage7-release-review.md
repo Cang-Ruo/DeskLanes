@@ -111,7 +111,7 @@
 | 托盘图标在发布模式下的行为 | **会退化为系统默认图标**：`LoadIcon` 用 `ExtractIconEx(Environment.ProcessPath, 0, …)`，exe 无图标资源 → 返回 0 → 落到 `IDI_APPLICATION` | `TrayIconService.cs:277-314` + 上面 PE 结论【代码证据，未目视实测】 |
 | 配置路径 | **正确**：用 `Environment.GetFolderPath(SpecialFolder.LocalApplicationData)\DeskSpace`，不受单文件解压目录影响 | `App.xaml.cs:30-33`【代码证据】 |
 | 日志路径 | `%LocalAppData%\DeskSpace\logs\`（sync.log / errors.log） | `AppController.cs:112`、`App.xaml.cs:96-98`；当前 **无 errors.log**（无未处理异常记录）【已实测】 |
-| 符号文件 | publish 目录带 `DeskSpace.pdb` / `DeskSpace.Core.pdb`，且 exe 内嵌了开发机绝对路径 `C:\Users\TTjustTT\...\obj\Release\...` | 【已实测】低危，属发布卫生问题 |
+| 符号文件 | publish 目录带 `DeskSpace.pdb` / `DeskSpace.Core.pdb`，且 exe 内嵌了开发机绝对路径 `C:\Users\<用户名>\...\obj\Release\...` | 【已实测】低危，属发布卫生问题 |
 | 仅在开发机验证的限制 | **明确说明**：以上结论全部基于**本机静态检查 + PE/产物解析**。单文件 exe 的**实机行为**（能否启动、托盘图标、自启写入、图标隐藏）在本机只做过"能启动并显示主窗口"的验证，**没有**在第二台机器 / 干净环境验证过 | — |
 
 ---

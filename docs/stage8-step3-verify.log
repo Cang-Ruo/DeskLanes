@@ -10,7 +10,7 @@
 时间      : 2026-10-25 07:08:34
 系统      : Microsoft Windows 11 家庭版 中文版 (Build 26300)
 架构      : AMD64
-安装目录  : C:\Users\TTjustTT\AppData\Local\Programs\DeskSpace
+安装目录  : C:\Users\<用户名>\AppData\Local\Programs\DeskSpace
 exe 存在  : True
 
 ---------- A. 开机自启：启用 ----------
@@ -19,8 +19,8 @@ exe 存在  : True
   2) 勾选「开机自启」
   3) 点「保存」
   4) 关闭设置窗口
-  [PASS] 开机自启启用后注册表 Run 项出现   Run\DeskSpace = C:\Users\TTjustTT\AppData\Local\Programs\DeskSpace\DeskSpace.exe
-  [PASS] Run 项指向已安装的 exe   期望 C:\Users\TTjustTT\AppData\Local\Programs\DeskSpace\DeskSpace.exe
+  [PASS] 开机自启启用后注册表 Run 项出现   Run\DeskSpace = C:\Users\<用户名>\AppData\Local\Programs\DeskSpace\DeskSpace.exe
+  [PASS] Run 项指向已安装的 exe   期望 C:\Users\<用户名>\AppData\Local\Programs\DeskSpace\DeskSpace.exe
   （说明：Run 项由软件的 StartupService 写入；指向的 exe 必须和安装目录一致）
 
 ---------- B. 桌面图标：隐藏 → 恢复 ----------

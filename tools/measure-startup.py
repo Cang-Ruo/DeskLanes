@@ -27,7 +27,9 @@ try:
 except Exception as exc:
     print("WARN: could not set DPI awareness: %s" % exc)
 
-EXE = r"C:\Users\TTjustTT\Documents\Github\DeskSpace\publish\win-x64-selfcontained\DeskLanes.exe"
+# 仓库根目录：本脚本在 tools\ 下，上一级就是仓库根（换个目录 / 换台机器也能直接用）
+REPO = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+EXE = os.path.join(REPO, "publish", "win-x64-selfcontained", "DeskLanes.exe")
 CFGDIR = os.path.join(os.environ.get("LOCALAPPDATA", ""), "DeskLanes")
 SETTINGS = os.path.join(CFGDIR, "settings.json")
 ERRORLOG = os.path.join(CFGDIR, "logs", "errors.log")

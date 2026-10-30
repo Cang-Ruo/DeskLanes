@@ -6,13 +6,13 @@ powershell : ?# : 无法将“?#”项识别为 cmdlet、函数、脚本文件�
     + FullyQualifiedErrorId : NativeCommandError
  
 一次。
-所在位置 C:\Users\TTjustTT\Documents\Github\DeskLanes\tests\DeskLanes.Acceptance\stage4-accept.ps1:1 字符: 1
+所在位置 C:\Users\<用户名>\Documents\Github\DeskLanes\tests\DeskLanes.Acceptance\stage4-accept.ps1:1 字符: 1
 + ?# ================================================================== ...
 + ~~
     + CategoryInfo          : ObjectNotFound: (?#:String) [], CommandNotFoundException
     + FullyQualifiedErrorId : CommandNotFoundException
  
-  [INFO] 宸茶缃?DOTNET_ROOT=C:\Users\TTjustTT\.dotnet
+  [INFO] 宸茶缃?DOTNET_ROOT=C:\Users\<用户名>\.dotnet
 
 == 0. 楠屾敹鍑嗗锛堝浠介厤缃?/ 娓呯悊娈嬬暀杩涚▼ / 璁板綍妗岄潰娓呭崟锛?==
   [INFO] 宸插浠?settings.json
@@ -79,9 +79,9 @@ powershell : ?# : 无法将“?#”项识别为 cmdlet、函数、脚本文件�
 == 17. 娓呯悊锛氬叧闂繘绋?/ 杩樺師閰嶇疆 / 鏍￠獙妗岄潰闆舵畫鐣?==
   [INFO] 宸茶繕鍘?settings.json
   [INFO] 宸茶繕鍘?library.json
-  [INFO] 澶囦唤鍓湰淇濈暀鍦?TEMP锛屽彲鎵嬪姩鍒犻櫎锛欳:\Users\TTjustTT\AppData\Local\Temp\DeskLanesBackup_S4_15c5dbeb
+  [INFO] 澶囦唤鍓湰淇濈暀鍦?TEMP锛屽彲鎵嬪姩鍒犻櫎锛欳:\Users\<用户名>\AppData\Local\Temp\DeskLanesBackup_S4_15c5dbeb
   [PASS] 楠屾敹鍚庢闈笌楠屾敹鍓嶅畬鍏ㄤ竴鑷达紙闆舵畫鐣欙級
-  [INFO] 閰嶇疆鐩綍鏃ュ織锛欳:\Users\TTjustTT\AppData\Local\DeskLanes\logs
+  [INFO] 閰嶇疆鐩綍鏃ュ織锛欳:\Users\<用户名>\AppData\Local\DeskLanes\logs
 
 == 闃舵 4 鐪熷疄楠屾敹姹囨€?==
 鎵樼洏鑿滃崟椹卞姩鏂瑰紡锛氭墭鐩樺洖璋冩秷鎭?  鑷姩鍖栭檺鍒? 浠庡閮ㄨ鍙栨墭鐩樿彍鍗曢」鏂囨湰 -> 鏈満 UIA / MN_GETHMENU / MSAA 涓夋潯璺緞閮借涓嶅埌 #32768 鑿滃崟鍐呭锛涙敼涓虹敤鍚庣画鍚勯」鐨勫疄闄呰涓洪獙璇佽彍鍗曟瘡涓€涓潯鐩?  鑷姩鍖栭檺鍒? Explorer 閲嶅惎鍚庢墭鐩樺浘鏍囪嚜鍔ㄦ仮澶嶏紙鍥炬爣鍙鎬э級 -> 鍥炬爣宸叉寜 TaskbarCreated 閲嶆敞鍐岋紙TrayIconService.HandleMessage 宸茬‘璁わ級锛屼絾 Win11 婧㈠嚭鍖哄浘鏍囨湰鏈?UIA 涓嶅彲瑙侊紝鏃犳硶鑷姩鏂█鍙鎬?===== 鐪熷疄楠屾敹锛氶€氳繃 21 椤癸紝澶辫触 8 椤?=====

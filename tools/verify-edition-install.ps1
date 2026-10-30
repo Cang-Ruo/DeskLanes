@@ -15,7 +15,7 @@ param(
 )
 
 $ErrorActionPreference = 'Stop'
-$repo      = 'C:\Users\TTjustTT\Documents\Github\DeskLanes'
+$repo      = "$env:USERPROFILE\Documents\Github\DeskLanes"
 $tools     = Join-Path $repo 'tools'
 $install   = Join-Path $tools 'install.ps1'
 $uninstall = Join-Path $tools 'uninstall.ps1'
@@ -127,7 +127,7 @@ Say '==================== 阶段 8 第一步验收 ===================='
 # ---------- A. 两条发布路径互不干扰 ----------
 Say ''
 Say '--- A. 两条发布路径互不干扰 ---'
-$env:DOTNET_ROOT = 'C:\Users\TTjustTT\.dotnet'
+$env:DOTNET_ROOT = "$env:USERPROFILE\.dotnet"
 $dotnet = Join-Path $env:DOTNET_ROOT 'dotnet.exe'
 $proj = Join-Path $repo 'src\DeskLanes.App\DeskLanes.App.csproj'
 

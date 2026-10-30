@@ -5,7 +5,7 @@
   安全：0x7402 是切换命令，测试发两次保证回到原状态；不重启 Explorer；不动桌面文件。
 #>
 param(
-    [string]$OutDir = 'C:\Users\TTjustTT\Documents\Github\DeskLanes\docs\stage7-evidence'
+    [string]$OutDir = "$env:USERPROFILE\Documents\Github\DeskLanes\docs\stage7-evidence"
 )
 
 $ErrorActionPreference = 'Stop'

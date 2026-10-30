@@ -151,7 +151,7 @@ powershell -NoProfile -ExecutionPolicy Bypass -File tools\install.ps1 -Edition s
 powershell -NoProfile -ExecutionPolicy Bypass -File tools\install.ps1 -Edition portable -DesktopShortcut
 ```
 
-Windows 需要 `DOTNET_ROOT` 指向用户级 SDK（`C:\Users\TTjustTT\.dotnet`）才能找到 SDK。
+Windows 需要 `DOTNET_ROOT` 指向用户级 SDK（`C:\Users\<用户名>\.dotnet`）才能找到 SDK。
 
 ---
 

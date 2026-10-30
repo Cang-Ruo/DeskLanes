@@ -11,9 +11,9 @@
   安全：只启动与结束 DeskLanes 自己，不动桌面文件、不重启 Explorer、不改系统设置。
 #>
 param(
-    [string]$ExePath = 'C:\Users\TTjustTT\Documents\Github\DeskLanes\publish\win-x64\DeskLanes.exe',
-    [string]$IcoPath = 'C:\Users\TTjustTT\Documents\Github\DeskLanes\src\DeskLanes.App\Assets\app.ico',
-    [string]$OutDir  = 'C:\Users\TTjustTT\Documents\Github\DeskLanes\docs\stage7-evidence'
+    [string]$ExePath = "$env:USERPROFILE\Documents\Github\DeskLanes\publish\win-x64\DeskLanes.exe",
+    [string]$IcoPath = "$env:USERPROFILE\Documents\Github\DeskLanes\src\DeskLanes.App\Assets\app.ico",
+    [string]$OutDir  = "$env:USERPROFILE\Documents\Github\DeskLanes\docs\stage7-evidence"
 )
 
 $ErrorActionPreference = 'Stop'

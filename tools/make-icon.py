@@ -178,4 +178,6 @@ def build_ico(path):
 
 
 if __name__ == '__main__':
-    build_ico(r'C:\Users\TTjustTT\Documents\Github\DeskSpace\src\DeskSpace.App\Assets\app.ico')
+    # 相对本脚本推导仓库根，不写死某一台机器的用户名
+    _repo = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+    build_ico(os.path.join(_repo, 'src', 'DeskLanes.App', 'Assets', 'app.ico'))

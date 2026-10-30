@@ -87,7 +87,7 @@
 
 ### 4.2 真实桌面验收（`DeskSpace.RealDesktopCheck`，22/22 通过）
 
-在真实用户桌面（`C:\Users\TTjustTT\Desktop`）与真实配置目录上：
+在真实用户桌面（`C:\Users\<用户名>\Desktop`）与真实配置目录上：
 
 - 通过 `WScript.Shell` COM 创建真实 `.lnk` → **自动发现**且类型/来源正确
 - 新建文件夹、`.txt` → **自动发现**

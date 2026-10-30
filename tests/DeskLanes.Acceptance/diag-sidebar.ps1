@@ -102,7 +102,7 @@ function Click-Desktop([int]$x,[int]$y){
 
 try {
     # 用默认配置启动，否则上一轮可能留下非全屏模式
-    $cfgDir = "C:\Users\TTjustTT\AppData\Local\DeskLanes"
+    $cfgDir = "$env:LOCALAPPDATA\DeskLanes"
     $cfgPath = Join-Path $cfgDir "settings.json"
     if (Test-Path -LiteralPath $cfgPath) { Copy-Item -LiteralPath $cfgPath -Destination (Join-Path $cfgDir "settings.json.diagbar.bak") -Force }
     [System.IO.File]::WriteAllText($cfgPath, "{}")

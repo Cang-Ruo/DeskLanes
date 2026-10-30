@@ -109,7 +109,7 @@ function Report([string]$label,[IntPtr]$want){
 try {
     # 上一段诊断可能把窗口模式写成 Floating 并持久化，这里先恢复默认（全屏）配置，
     # 否则下一轮启动会直接进悬浮窗模式，找不到主窗口。
-    $cfgDir = "C:\Users\TTjustTT\AppData\Local\DeskLanes"
+    $cfgDir = "$env:LOCALAPPDATA\DeskLanes"
     $cfgPath = Join-Path $cfgDir "settings.json"
     $cfgBackup = Join-Path $cfgDir "settings.json.diagfocus2.bak"
     if (Test-Path -LiteralPath $cfgPath) { Copy-Item -LiteralPath $cfgPath -Destination $cfgBackup -Force }

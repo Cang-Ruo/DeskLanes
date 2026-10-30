@@ -1,6 +1,6 @@
 #Requires -Version 5.1
 $ErrorActionPreference = 'Stop'
-$out = "C:\Users\TTjustTT\Documents\Github\DeskLanes\docs\stage5-evidence\verify-clean-desktop.png"
+$out = "$env:USERPROFILE\Documents\Github\DeskLanes\docs\stage5-evidence\verify-clean-desktop.png"
 Add-Type -AssemblyName System.Windows.Forms
 Add-Type -AssemblyName System.Drawing
 $b = [System.Windows.Forms.Screen]::PrimaryScreen.Bounds

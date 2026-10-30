@@ -9,7 +9,9 @@ using System.Security.Cryptography;
 using DeskLanes.App.Services;
 
 const int cropW = 900, cropH = 1300;   // 桌面图标区域（物理像素）
-const string outDir = @"C:\Users\TTjustTT\Documents\Github\DeskLanes\docs\stage7-evidence";
+// 输出到临时目录：不写死某一台机器的用户名，也不往仓库里落截图
+var outDir = System.IO.Path.Combine(System.IO.Path.GetTempPath(), "DeskLanesIconCheck");
+System.IO.Directory.CreateDirectory(outDir);
 
 static Bitmap Capture()
 {
@@ -19,7 +21,8 @@ static Bitmap Capture()
     return bmp;
 }
 
-static string Save(Bitmap bmp, string name)
+// 非 static：要用到顶层变量 outDir（原来是 const 所以能用 static，改成运行时路径后不行了）
+string Save(Bitmap bmp, string name)
 {
     string path = System.IO.Path.Combine(outDir, name);
     bmp.Save(path, ImageFormat.Png);

@@ -1,11 +1,11 @@
 ﻿# : 无法将“﻿#”项识别为 cmdlet、函数、脚本文件或可运行程序的名称。请检查名称的拼写，如果包括路径，请确保路径正确，然后再试一次。
-所在位置 C:\Users\TTjustTT\Documents\Github\DeskLanes\tests\DeskLanes.Acceptance\stage4-accept.ps1:1 字符: 1
+所在位置 C:\Users\<用户名>\Documents\Github\DeskLanes\tests\DeskLanes.Acceptance\stage4-accept.ps1:1 字符: 1
 + ﻿# ================================================================== ...
 + ~~
     + CategoryInfo          : ObjectNotFound: (﻿#:String) [], CommandNotFoundException
     + FullyQualifiedErrorId : CommandNotFoundException
  
-  [INFO] 已设置 DOTNET_ROOT=C:\Users\TTjustTT\.dotnet
+  [INFO] 已设置 DOTNET_ROOT=C:\Users\<用户名>\.dotnet
 
 == 0. 验收准备（备份配置 / 清理残留进程 / 记录桌面清单） ==
   [INFO] 已备份 settings.json
@@ -110,9 +110,9 @@
 == 17. 清理：关闭进程 / 还原配置 / 校验桌面零残留 ==
   [INFO] 已还原 settings.json
   [INFO] 已还原 library.json
-  [INFO] 备份副本保留在 TEMP，可手动删除：C:\Users\TTjustTT\AppData\Local\Temp\DeskLanesBackup_S4_d2495380
+  [INFO] 备份副本保留在 TEMP，可手动删除：C:\Users\<用户名>\AppData\Local\Temp\DeskLanesBackup_S4_d2495380
   [PASS] 验收后桌面与验收前完全一致（零残留）
-  [INFO] 配置目录日志：C:\Users\TTjustTT\AppData\Local\DeskLanes\logs
+  [INFO] 配置目录日志：C:\Users\<用户名>\AppData\Local\DeskLanes\logs
 
 == 阶段 4 真实验收汇总 ==
 托盘菜单驱动方式：托盘回调消息

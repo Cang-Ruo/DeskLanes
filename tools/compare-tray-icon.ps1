@@ -1,7 +1,7 @@
 ﻿#Requires -Version 5.1
 # 把浮层第一个图标与 DeskLanes 应用图标并排放大，便于比对
 Add-Type -AssemblyName System.Drawing
-$dir = "C:\Users\TTjustTT\Documents\Github\DeskLanes\docs\stage7-evidence"
+$dir = "$env:USERPROFILE\Documents\Github\DeskLanes\docs\stage7-evidence"
 $src = [System.Drawing.Image]::FromFile("$dir\tray-flyout-open-full.png")
 
 # 浮层第一个图标在截图中的位置（由 tray-flyout-crop 推算回全图坐标）

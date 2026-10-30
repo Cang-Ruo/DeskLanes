@@ -83,7 +83,7 @@ MD5 (第 2 次) = affd583d7247d40588c2b313f5c2855b   ← 字节级一致
 
 ### 5. 产物内不再出现开发机绝对路径
 
-对 `publish/win-x64/DeskSpace.exe` 全文件检索 `TTjustTT`、`.cs` 等特征串，均未命中
+对 `publish/win-x64/DeskSpace.exe` 全文件检索 `<用户名>`、`.cs` 等特征串，均未命中
 （单文件包已压缩，且 `DebugType=embedded` 未额外外挂符号文件）。
 
 ---

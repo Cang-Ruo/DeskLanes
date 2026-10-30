@@ -13,10 +13,10 @@ namespace Diag {
     }
 }
 "@
-$env:DOTNET_ROOT = "C:\Users\TTjustTT\.dotnet"
+$env:DOTNET_ROOT = "$env:USERPROFILE\.dotnet"
 Get-Process -Name DeskLanes -ErrorAction SilentlyContinue | Stop-Process -Force
 Start-Sleep -Milliseconds 500
-$p = Start-Process -FilePath "C:\Users\TTjustTT\Documents\Github\DeskLanes\src\DeskLanes.App\bin\Debug\net10.0-windows\DeskLanes.exe" -PassThru
+$p = Start-Process -FilePath "$env:USERPROFILE\Documents\Github\DeskLanes\src\DeskLanes.App\bin\Debug\net10.0-windows\DeskLanes.exe" -PassThru
 Start-Sleep -Seconds 6
 
 # 1) EnumWindows 枚举所有可见顶层窗口标题

@@ -39,8 +39,11 @@ MOUSEEVENTF_ABSOLUTE = 0x8000
 
 SW_MAXIMIZE = 3
 
-EXE = r"C:\Users\TTjustTT\Documents\Github\DeskSpace\publish\win-x64-selfcontained\DeskLanes.exe"
-CFGDIR = r"C:\Users\TTjustTT\AppData\Local\DeskLanes"
+# 仓库根目录：本脚本在 tools\ 下，上一级就是仓库根（换个目录 / 换台机器也能直接用）
+REPO = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+EXE = os.path.join(REPO, "publish", "win-x64-selfcontained", "DeskLanes.exe")
+# 配置目录走 LOCALAPPDATA：不写死用户名，换台机器也能直接跑
+CFGDIR = os.path.join(os.environ.get("LOCALAPPDATA", ""), "DeskLanes")
 
 # WindowMode: Floating=0, Full=1, Sidebar=2
 MODE_FLOATING = 0
@@ -108,6 +111,23 @@ def get_rect(hwnd):
     u.GetWindowRect(hwnd, ctypes.byref(r))
     return (r.left, r.top, r.right - r.left, r.bottom - r.top)
 
+
+def wait_rect_stable(hwnd, tries=10, gap=0.4):
+    """Wait until the rect stops changing before touching the window.
+
+    A window that has just appeared may still be settling (DPI / size /
+    first layout). Dragging during that window makes the first drag land
+    only partly, which shows up as a bogus failure of an otherwise fine
+    feature. Seen once for real: asked (160,110), got (179,137).
+    """
+    last = None
+    for _ in range(tries):
+        r = get_rect(hwnd)
+        if r == last:
+            return r
+        last = r
+        time.sleep(gap)
+    return get_rect(hwnd)
 
 def get_showcmd(hwnd):
     wp = WINDOWPLACEMENT()
@@ -230,7 +250,7 @@ try:
         say("floating window appears", False, "window not found in 30s")
     else:
         time.sleep(2.5)
-        x0, y0, w0, h0 = get_rect(hwnd)
+        x0, y0, w0, h0 = wait_rect_stable(hwnd)
         say("floating window visible", w0 > 100 and h0 > 100,
             "rect=%dx%d at (%d,%d)" % (w0, h0, x0, y0))
 

@@ -12,13 +12,13 @@
 
 | 项目 | 命令 | 结果 |
 |---|---|---|
-| Release 构建 | `DOTNET_ROOT=C:/Users/TTjustTT/.dotnet dotnet build DeskSpace.sln -c Release` | **0 警告 / 0 错误**，5 个项目，1.86s（增量） |
+| Release 构建 | `DOTNET_ROOT=C:/Users/<用户名>/.dotnet dotnet build DeskSpace.sln -c Release` | **0 警告 / 0 错误**，5 个项目，1.86s（增量） |
 | 冒烟测试 | `dotnet run --project tests/DeskSpace.SmokeTests -c Release --no-build` | **292 / 292 全过，失败 0** |
 
 无回归。相比上周（289/289）多出的 3 条是阶段 8 第二步修 NaN 保存缺陷时补的回归断言
 （窗口偏好序列化不再因 `Left/Top` 为 NaN 抛异常）。
 
-> 环境注意：PATH 里的 `dotnet` 无 SDK，必须用 `C:\Users\TTjustTT\.dotnet\dotnet.exe` + `DOTNET_ROOT`，
+> 环境注意：PATH 里的 `dotnet` 无 SDK，必须用 `C:\Users\<用户名>\.dotnet\dotnet.exe` + `DOTNET_ROOT`，
 > 否则报 "No .NET SDKs were found"（本轮第一次构建即因此失败）。
 
 ## 1. 四项 P1 状态总览

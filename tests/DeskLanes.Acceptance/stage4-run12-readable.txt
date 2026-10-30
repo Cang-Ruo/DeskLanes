@@ -6,13 +6,13 @@ powershell.exe : ?# : �޷�����?#����ʶ��Ϊ cmdlet���
     + FullyQualifiedErrorId : NativeCommandError
  
 һ�Ρ�
-����λ�� C:\Users\TTjustTT\Documents\Github\DeskLanes\tests\DeskLanes.Acceptance\stage4-accept.ps1:1 �ַ�: 1
+����λ�� C:\Users\<用户名>\Documents\Github\DeskLanes\tests\DeskLanes.Acceptance\stage4-accept.ps1:1 �ַ�: 1
 + ?# ================================================================== ...
 + ~~
     + CategoryInfo          : ObjectNotFound: (?#:String) [], CommandNotFoundException
     + FullyQualifiedErrorId : CommandNotFoundException
  
-  [INFO] 已设�?DOTNET_ROOT=C:\Users\TTjustTT\.dotnet
+  [INFO] 已设�?DOTNET_ROOT=C:\Users\<用户名>\.dotnet
 
 == 0. 验收准备（备份配�?/ 清理残留进程 / 记录桌面清单�?==
   [INFO] 已备�?settings.json
@@ -88,9 +88,9 @@ powershell.exe : ?# : �޷�����?#����ʶ��Ϊ cmdlet���
 == 17. 清理：关闭进�?/ 还原配置 / 校验桌面零残�?==
   [INFO] 已还�?settings.json
   [INFO] 已还�?library.json
-  [INFO] 备份副本保留�?TEMP，可手动删除：C:\Users\TTjustTT\AppData\Local\Temp\DeskLanesBackup_S4_bb7db40d
+  [INFO] 备份副本保留�?TEMP，可手动删除：C:\Users\<用户名>\AppData\Local\Temp\DeskLanesBackup_S4_bb7db40d
   [PASS] 验收后桌面与验收前完全一致（零残留）
-  [INFO] 配置目录日志：C:\Users\TTjustTT\AppData\Local\DeskLanes\logs
+  [INFO] 配置目录日志：C:\Users\<用户名>\AppData\Local\DeskLanes\logs
 
 == 阶段 4 真实验收汇��?==
 托盘菜单驱动方式：托盘回调消�?  自动化限�? 从外部读取托盘菜单项文本 -> 本机 UIA / MN_GETHMENU / MSAA 三条路径都读不到 #32768 菜单内容；改为用后续各项的实际行为验证菜单每丢�个条�?  自动化限�? 双击/回车启动桌面项目（状态栏「已启动」反馈） -> 合成输入无法稳定触发 WPF ListBox 双击/回车绑定；OpenItem 代码路径已确认正确，真实输入可用

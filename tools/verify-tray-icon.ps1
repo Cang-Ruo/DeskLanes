@@ -15,8 +15,8 @@
   安全：只启动/结束 DeskLanes 自己；不移动鼠标、不改任何系统设置。
 #>
 param(
-    [string]$ExePath = 'C:\Users\TTjustTT\Documents\Github\DeskLanes\publish\win-x64\DeskLanes.exe',
-    [string]$OutDir  = 'C:\Users\TTjustTT\Documents\Github\DeskLanes\docs\stage7-evidence'
+    [string]$ExePath = "$env:USERPROFILE\Documents\Github\DeskLanes\publish\win-x64\DeskLanes.exe",
+    [string]$OutDir  = "$env:USERPROFILE\Documents\Github\DeskLanes\docs\stage7-evidence"
 )
 
 $ErrorActionPreference = 'Stop'
