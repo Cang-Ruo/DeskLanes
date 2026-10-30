@@ -1,5 +1,7 @@
 # DeskLanes · 一格桌面
 
+![build](https://github.com/Cang-Ruo/DeskLanes/actions/workflows/build.yml/badge.svg)
+
 **Windows 11 本地桌面工作空间管理器**：把桌面项目组织成分类和自由分区，用三种随叫随到的界面形态取用——
 **不动桌面上的任何一个文件**。
 
