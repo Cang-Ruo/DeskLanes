@@ -58,6 +58,20 @@ DeskLanes 的做法是：文件一个字节都不移动，只在自己的库里�
 
 ---
 
+## 实测数据
+
+都是真机跑出来的，不是估计值：
+
+| 项目 | 结果 |
+|---|---|
+| 冷启动 / 热启动到窗口可见 | 1.40 s / 1.25 s 中位 |
+| 扫描 800 个项目 | 约 15 ms（合并进库约 8 ms） |
+| 取 800 个图标 | 约 1.2 s（约 1.5 ms/个） |
+| 分类视图 ↔ 自由分区切换（220 项目） | 最慢 349 ms |
+| 6 小时驻留 | 私有内存首小时涨到 282 MB 后走平，最后 2 小时 +3.9 MB；句柄 / GDI / 线程不涨 |
+
+---
+
 ## 安装
 
 分发物是一个单文件 exe，有**两个版本**：
@@ -101,8 +115,10 @@ dotnet publish src/DeskLanes.App/DeskLanes.App.csproj -c Release -p:PublishProfi
 跑测试：
 
 ```bash
-dotnet run --project tests/DeskLanes.SmokeTests -c Release          # 冒烟（379 项）
-python tools/verify-floating-interaction.py                          # 端到端 UI（真实 exe + 合成鼠标，23 项）
+dotnet run --project tests/DeskLanes.SmokeTests -c Release          # 冒烟（460 项）
+python tools/verify-floating-interaction.py                          # 端到端 UI（真实 exe + 合成鼠标，36 项）
+python tools/measure-startup.py                                      # 启动耗时（7 项）
+python tools/soak-8h.py --exe <exe> --hours 6                        # 长时驻留资源采样
 ```
 
 ---
@@ -125,7 +141,8 @@ python tools/verify-floating-interaction.py                          # 端到端
 - **无自动更新**（刻意不做静默自更新），升级 = 覆盖安装
 - **只支持 Windows 11**（Mica 背景需 22621+）；Win10 兼容未验证
 - DPI 已验证 100% / 125% / 150% 与竖屏混合 DPI；**200%+ 与 1366×768 及以下未覆盖**
-- 未做长时（8h+）驻留的内存增长实测
+- 长时驻留已实测 **6 小时**（内存走平、句柄不涨，`docs/stage9-8-soak/report.md`）；
+  但**锁屏 / 睡眠唤醒后的行为未验证**，跨天（24h+）也没跑
 
 ---
 
