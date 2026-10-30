@@ -54,7 +54,8 @@ powershell -NoProfile -ExecutionPolicy Bypass -File install.ps1
 **默认快捷键**：`Ctrl`+`Alt`+`Space` 呼出悬浮窗。设置里可改，也能改停靠位置、
 开机自启、桌面图标隐藏等。
 
-> 完整说明见 [`docs/install-and-uninstall.md`](install-and-uninstall.md)。
+> 完整说明见
+> [`docs/install-and-uninstall.md`](https://github.com/Cang-Ruo/DeskLanes/blob/main/docs/install-and-uninstall.md)。
 
 ---
 
@@ -88,7 +89,8 @@ v0.1.1 是**公开发布前的收口版本**，不新增功能，专注修掉真
 
 ## 已知限制
 
-发布前建议先扫一眼 [`docs/known-limitations.md`](known-limitations.md)，
+发布前建议先扫一眼
+[`docs/known-limitations.md`](https://github.com/Cang-Ruo/DeskLanes/blob/main/docs/known-limitations.md)，
 里面列了明确未覆盖的场景（Windows 10、200%+ DPI、1366×768 及以下分辨率、
 运行中热插拔显示器、锁屏 / 睡眠唤醒等）与已知的行为取舍。
 
