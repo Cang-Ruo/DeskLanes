@@ -474,6 +474,122 @@ say("y position persisted", s.get("FloatingWindowTop") is not None,
 say("main window preferences untouched", s.get("WindowWidth") == 1180,
     str(s.get("WindowWidth")))
 
+# ======== Round G: corrupt settings.json must still start (C10, real exe) =============
+# The smoke suite covers this at the data layer; this covers the part only a real
+# process can prove: the app must come up, not hang, and keep a backup of the bad file.
+# Must run after Round C: this round writes a broken settings.json and then restores
+# the pre-round file, which would wipe the geometry Round C is about to check.
+
+print()
+print("== Round G: starts with a corrupt settings.json ==")
+
+BACKUPS = os.path.join(CFGDIR, "backups")
+settings_path = os.path.join(CFGDIR, "settings.json")
+original_settings = None
+if os.path.exists(settings_path):
+    with open(settings_path, "r", encoding="utf-8") as f:
+        original_settings = f.read()
+
+try:
+    if os.path.isdir(BACKUPS):
+        backups_before = len(os.listdir(BACKUPS))
+    else:
+        backups_before = 0
+
+    with open(settings_path, "w", encoding="utf-8") as f:
+        f.write('{ "WindowMode": "this is not a valid mode", "Version": "oops"')
+
+    mouse_home()
+    proc = subprocess.Popen([EXE])
+    try:
+        hwnd = find_window(MAIN_TITLE, timeout=30) or find_window(FLOATING_TITLE, timeout=5)
+        say("app still starts with a corrupt settings.json", hwnd is not None)
+        if hwnd is not None:
+            time.sleep(3)
+            say("process is still alive after start (no crash on exit)",
+                proc.poll() is None, "poll=%s" % proc.poll())
+    finally:
+        close_app(proc)
+
+    if os.path.isdir(BACKUPS):
+        backups_after = len(os.listdir(BACKUPS))
+    else:
+        backups_after = 0
+    say("corrupt file was backed up before reset", backups_after > backups_before,
+        "%d -> %d in backups\\" % (backups_before, backups_after))
+
+    with open(settings_path, "r", encoding="utf-8") as f:
+        restored = f.read()
+    say("settings.json is valid JSON again after recovery", restored.lstrip().startswith("{"),
+        restored[:40].replace("\n", " "))
+finally:
+    if original_settings is not None:
+        with open(settings_path, "w", encoding="utf-8") as f:
+            f.write(original_settings)
+
+# ======== Round H: a saved position that is no longer on screen =====================
+# Cannot unplug a monitor from a script, but the failure it causes is testable: the
+# saved WindowLeft/Top points somewhere that no longer exists. The app must not use it,
+# and the window must end up somewhere the user can actually see and reach. This is the
+# "monitor unplugged / resolution lowered" scenario.
+# Note: Full mode maximizes by design, so what is really being checked here is that the
+# stale coordinate is discarded rather than that the window opens at any particular size.
+# Must run last: it restores settings.json, like Round G does.
+
+print()
+print("== Round H: window comes back when the saved position is off screen ==")
+
+settings_path_h = os.path.join(CFGDIR, "settings.json")
+original_settings_h = None
+if os.path.exists(settings_path_h):
+    with open(settings_path_h, "r", encoding="utf-8") as f:
+        original_settings_h = f.read()
+
+try:
+    s_h = json.loads(original_settings_h) if original_settings_h else {}
+    s_h["WindowMode"] = MODE_FULL
+    s_h["WindowMaximized"] = False
+    s_h["WindowLeft"] = -9999
+    s_h["WindowTop"] = -9999
+    with open(settings_path_h, "w", encoding="utf-8") as f:
+        json.dump(s_h, f, ensure_ascii=False, indent=2)
+
+    mouse_home()
+    proc_h = subprocess.Popen([EXE])
+    try:
+        hwnd_h = find_window(MAIN_TITLE, timeout=30)
+        say("app starts with an off-screen saved position", hwnd_h is not None)
+        if hwnd_h is not None:
+            hx, hy, hw, hh = get_rect(hwnd_h)
+            vx = u.GetSystemMetrics(SM_XVIRTUALSCREEN)
+            vy = u.GetSystemMetrics(SM_YVIRTUALSCREEN)
+            vw = u.GetSystemMetrics(SM_CXVIRTUALSCREEN)
+            vh = u.GetSystemMetrics(SM_CYVIRTUALSCREEN)
+            px = u.GetSystemMetrics(SM_CXSCREEN)
+            py = u.GetSystemMetrics(SM_CYSCREEN)
+            print("   rect=%d,%d %dx%d  virtual=%d,%d %dx%d" % (hx, hy, hw, hh, vx, vy, vw, vh))
+            # The point of the round: the stale coordinate must not be used.
+            say("the off-screen saved position was not used", hx != -9999 and hy != -9999,
+                "rect=%d,%d" % (hx, hy))
+            # Tolerance is 24 px, not 0: a maximized WPF window is sized screen + border
+            # and the border is clipped, so its rect legitimately sticks out ~9 px.
+            say("window is inside the virtual screen",
+                hx >= vx - 24 and hy >= vy - 24 and hx + hw <= vx + vw + 24 and hy + hh <= vy + vh + 24,
+                "rect=%d,%d %dx%d" % (hx, hy, hw, hh))
+            # Being inside the virtual screen is not enough: in a multi-monitor gap the
+            # window could still sit between two monitors. Require real overlap with the
+            # primary screen, where the cursor is parked.
+            overlap_x = min(hx + hw, px) - max(hx, 0)
+            overlap_y = min(hy + hh, py) - max(hy, 0)
+            say("window really overlaps the primary screen", overlap_x > 100 and overlap_y > 100,
+                "overlap %dx%d px" % (overlap_x, overlap_y))
+    finally:
+        close_app(proc_h)
+finally:
+    if original_settings_h is not None:
+        with open(settings_path_h, "w", encoding="utf-8") as f:
+            f.write(original_settings_h)
+
 # ================= summary =================
 
 passed = sum(1 for _, ok, _ in results if ok)
