@@ -1,4 +1,4 @@
-#Requires -Version 5.1
+﻿#Requires -Version 5.1
 <#
 .SYNOPSIS
   DeskSpace 阶段 0 · 桌面窗口结构只读勘察

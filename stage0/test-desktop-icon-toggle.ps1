@@ -1,4 +1,4 @@
-#Requires -Version 5.1
+﻿#Requires -Version 5.1
 <#
 .SYNOPSIS
   DeskSpace 阶段 0 · 桌面图标隐藏/恢复机制实验脚本（需你亲自确认后运行）
