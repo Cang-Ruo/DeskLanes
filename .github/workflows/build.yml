@@ -1,0 +1,37 @@
+name: build
+
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+    branches: [ main ]
+
+jobs:
+  build:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: 安装 .NET 10 SDK
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: '10.0.x'
+
+      # 真正的门禁：编译必须过。
+      # 项目约定是 0 警告 0 错误，这里不额外加 -warnaserror，避免 SDK 自身的
+      # 偶发警告把构建打红；要看警告数量直接读这一步的输出。
+      - name: 构建（Release）
+        run: dotnet build DeskLanes.sln -c Release
+
+      # 冒烟 460 项里有一节要扫描**真实桌面**，并要求用户桌面与公共桌面都非空、
+      # 且同时存在快捷方式 / 文件夹 / 普通文件 —— GitHub 的 runner 上没有这些，
+      # 所以云端必然有几条失败（第 18 节甚至会因集合为空而中断）。
+      # 因此这一步标 continue-on-error：它的结果仅供参考，不会把构建打红。
+      #
+      # 完整验收只能在本地跑（README「从源码构建」一节有命令）：
+      #   dotnet run --project tests/DeskLanes.SmokeTests -c Release            # 460 项
+      #   python tools/verify-floating-interaction.py                            # 36 项，需真实桌面 + 合成鼠标
+      #   python tools/measure-startup.py                                        # 启动耗时
+      - name: 冒烟测试（需真实桌面，云端结果仅供参考）
+        continue-on-error: true
+        run: dotnet run --project tests/DeskLanes.SmokeTests -c Release --no-build
