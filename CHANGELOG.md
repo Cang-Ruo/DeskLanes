@@ -2,8 +2,9 @@
 
 格式参考 [Keep a Changelog](https://keepachangelog.com/)，版本号遵循语义化版本。
 
-## [未发布] — 2026-10-30 起
+## [0.1.1] — 2026-10-31（标签 `v0.1.1`）
 
+首个**公开发布**版本。相比内部里程碑 `v0.1.0`（2026-10-25），
 这一批是「公开发布前收口」：不新增功能，专注**能改就改的缺陷**与**补测自动化**。
 
 ### 修复
@@ -63,6 +64,14 @@
 - 长时驻留 **6 小时 / 72 采样**：私有内存首小时预热后走平，句柄 / GDI / USER / 线程不涨，
   `errors.log` 零增长（结论见 `docs/stage9-8-soak/report.md`）
 - 新增 `tools/measure-startup.py`（启动耗时）、`tools/soak-8h.py`（长时驻留资源采样）
+
+### 分发产物
+
+- 便携版 **541,789 B / MD5 `bc27d365…`**
+- 自包含版 **65,076,488 B / MD5 `25333315…`**
+- 打包为 `DeskLanes-v0.1.1-{selfcontained,portable}.zip`
+  （含 exe 与安装 / 卸载 / 体检脚本）。对外 Release 说明见
+  `docs/release-notes-v0.1.1.md`
 
 ---
 
