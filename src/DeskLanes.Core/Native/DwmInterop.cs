@@ -40,11 +40,23 @@ public static class DwmInterop
     /// <summary>DWMWCP_ROUND：系统圆角。</summary>
     public const int CornerPreferenceRound = 2;
 
+    /// <summary>DWMSBT_AUTO：交给系统决定（通常等价于 Mica）。</summary>
+    public const int BackdropAuto = 0;
+
+    /// <summary>DWMSBT_NONE：不使用系统背景材料。</summary>
+    public const int BackdropNone = 1;
+
     /// <summary>DWMSBT_MAINWINDOW：Mica 材料（随壁纸着色，无实时模糊）。</summary>
     public const int BackdropMica = 2;
 
     /// <summary>DWMSBT_TRANSIENTWINDOW：Acrylic 材料（磨砂模糊，更贴近"轻玻璃"定位）。</summary>
     public const int BackdropAcrylic = 3;
+
+    /// <summary>DWMSBT_TABBEDWINDOW：Mica Alt（比 Mica 更浓，用于多标签窗口）。</summary>
+    public const int BackdropTabbed = 4;
+
+    /// <summary>DWMWA_USE_HOSTBACKDROPBRUSH：Win10 1809+ 的旧式背景画刷（Acrylic 的前身）。</summary>
+    public const int AttributeUseHostBackdropBrush = 17;
 
     /// <summary>SM_REMOTESESSION：当前会话是否为远程桌面（远程会话下背景材料渲染不可靠）。</summary>
     public const int MetricRemoteSession = 90;
