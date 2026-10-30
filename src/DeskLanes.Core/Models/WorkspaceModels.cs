@@ -196,6 +196,7 @@ public sealed record HotkeyDefinition(int Modifiers, int Key)
     private static string KeyName(int key) => key switch
     {
         KeySpace => "Space",
+        0x09 => "Tab",
         0x0D => "Enter",
         0x1B => "Esc",
         0x2D => "Insert",
@@ -205,7 +206,12 @@ public sealed record HotkeyDefinition(int Modifiers, int Key)
         0x21 => "PageUp",
         0x22 => "PageDown",
         >= 0x70 and <= 0x87 => "F" + (key - 0x6F),
-        _ => ((char)key).ToString(),
+        >= '0' and <= '9' or >= 'A' and <= 'Z' => ((char)key).ToString(),
+
+        // 其余键值（含手工编辑配置写进的越界数字）不能强转 char：
+        // 99999 会被转成一个汉字，界面上就成了 "Alt+Win+蚟" 这类乱码。
+        // 这里给出可读且可直接写回配置的十六进制形式。
+        _ => "VK0x" + key.ToString("X", System.Globalization.CultureInfo.InvariantCulture),
     };
 }
 
@@ -294,8 +300,20 @@ public sealed class AppSettings : IVersionedData
 {
     public int Version { get; set; } = DataVersions.Current;
 
+    private LayoutMode _layoutMode = LayoutMode.CategoryNav;
+    private WindowMode _windowMode = WindowMode.Full;
+    private SidebarDock _sidebarDock = SidebarDock.Right;
+
     /// <summary>当前布局模式（分类导航式 / 自由分区式）。</summary>
-    public LayoutMode LayoutMode { get; set; } = LayoutMode.CategoryNav;
+    public LayoutMode LayoutMode
+    {
+        get => _layoutMode;
+        // 手工编辑配置、旧版本写入、跨设备拷贝都可能留下未定义的数字，
+        // 而 System.Text.Json 会把未知数字原样塞进枚举字段、不做任何校验。
+        // 界面拿到越界值做分支判断就会落到所有 case 之外（或表现为"什么都不对"），
+        // 因此在赋值这一层统一收回默认值——比在每个消费点各判一次更可靠。
+        set => _layoutMode = Enum.IsDefined(value) ? value : LayoutMode.CategoryNav;
+    }
 
     public double WindowWidth { get; set; } = 1100;
 
@@ -313,7 +331,11 @@ public sealed class AppSettings : IVersionedData
     public DateTime LastScanAt { get; set; }
 
     /// <summary>当前窗口模式（悬浮窗 / 全屏 / 侧边栏）。三种模式共用同一份数据。</summary>
-    public WindowMode WindowMode { get; set; } = WindowMode.Full;
+    public WindowMode WindowMode
+    {
+        get => _windowMode;
+        set => _windowMode = Enum.IsDefined(value) ? value : WindowMode.Full;
+    }
 
     // ---------- 全局快捷键（Win32 MOD_* / Virtual-Key） ----------
 
@@ -345,7 +367,11 @@ public sealed class AppSettings : IVersionedData
     // ---------- 侧边栏 ----------
 
     /// <summary>停靠位置（屏幕左侧 / 右侧）。</summary>
-    public SidebarDock SidebarDock { get; set; } = SidebarDock.Right;
+    public SidebarDock SidebarDock
+    {
+        get => _sidebarDock;
+        set => _sidebarDock = Enum.IsDefined(value) ? value : SidebarDock.Right;
+    }
 
     /// <summary>侧边栏是否处于展开状态。</summary>
     public bool SidebarExpanded { get; set; } = true;

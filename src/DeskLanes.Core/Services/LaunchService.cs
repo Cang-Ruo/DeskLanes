@@ -16,16 +16,18 @@ public sealed class LaunchService : ILaunchService
     {
         try
         {
-            bool exists = item.Kind == DesktopItemKind.Folder
-                ? Directory.Exists(item.FullPath)
-                : File.Exists(item.FullPath);
+            // Kind 是扫描那一刻的快照，磁盘上可能已经变了（文件夹被换成同名文件，或反之）。
+            // 因此"是否存在"两种形态都要看，"怎么打开"按此刻真实存在的形态决定，
+            // 否则会把一个好好存在的项目误报成"已不存在"。
+            bool directoryExists = Directory.Exists(item.FullPath);
+            bool fileExists = File.Exists(item.FullPath);
 
-            if (!exists)
+            if (!directoryExists && !fileExists)
             {
                 return LaunchResult.Fail($"项目已不存在或路径无效：\n{item.FullPath}");
             }
 
-            if (item.Kind == DesktopItemKind.Folder)
+            if (directoryExists)
             {
                 Process.Start(new ProcessStartInfo("explorer.exe", $"\"{item.FullPath}\"")
                 {

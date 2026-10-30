@@ -1,5 +1,9 @@
 # DeskSpace 发布准备检查（阶段 8 快照）
 
+> **这是 2026-10-26 的历史快照，不是当前状态。** 当时的结论（含"导出诊断包未开始"、
+> "冒烟 292 项"等）都已被后续阶段改写。**要看当前状态请读**
+> `docs/project-overview-and-roadmap.md` §五（唯一基线）与 `docs/known-limitations.md`。
+
 > 检查时间：2026-10-26 09:0x（自动化每周巡检，第 2 次）
 > 范围：**只检查与汇报，未修改任何代码**（仅覆盖本报告文件）
 > 基线：`docs/project-overview-and-roadmap.md` §七 P1

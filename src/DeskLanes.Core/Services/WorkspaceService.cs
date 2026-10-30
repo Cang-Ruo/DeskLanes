@@ -544,6 +544,17 @@ public sealed class WorkspaceService : IWorkspaceService
             return;
         }
 
+        // 与窗口偏好同一套守卫：X/Y/Width/Height 是双向绑定到 Canvas.Left/Top/Width/Height 的，
+        // 而 WPF 里 FrameworkElement.Width 的默认值就是 NaN（Auto），NaN 有可能被推回模型。
+        // Math.Clamp 对 NaN 的比较全为 false，会原样放行；而 System.Text.Json 写不了
+        // NaN / Infinity（直接抛 ArgumentException），异常会沿绑定 setter 一路冒上去把应用带崩。
+        // 所以先做有限值校验：非有限时整个调用丢弃，保留分区当前这套有效几何。
+        if (!double.IsFinite(x) || !double.IsFinite(y)
+            || !double.IsFinite(width) || !double.IsFinite(height))
+        {
+            return;
+        }
+
         double finalWidth = Math.Clamp(width, WorkspacePanel.MinWidth, WorkspacePanel.CanvasWidth);
         double finalHeight = Math.Clamp(height, WorkspacePanel.MinHeight, WorkspacePanel.CanvasHeight);
         double maxX = Math.Max(0, WorkspacePanel.CanvasWidth - finalWidth);
@@ -663,6 +674,12 @@ public sealed class WorkspaceService : IWorkspaceService
         catch (UnauthorizedAccessException ex)
         {
             SaveFailed?.Invoke(this, $"保存配置失败（没有写入权限）：{ex.Message}");
+        }
+        catch (Exception ex)
+        {
+            // 兜底：保存路径上任何没预料到的异常都必须变成"一句人话"，不能冒到界面把应用带崩。
+            // （NaN 写进 JSON 抛的就是 ArgumentException，不属于上面两类——已在上游挡住，这里再兜一层。）
+            SaveFailed?.Invoke(this, $"保存配置失败：{ex.GetType().Name}：{ex.Message}");
         }
     }
 

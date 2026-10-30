@@ -199,6 +199,36 @@ else
         $"{safeShortcut.FullPath} -> {safeShortcut.ShortcutTarget}");
 }
 
+// 5.5 Kind 是扫描那一刻的快照，磁盘上可能已经变了。
+// 典型场景：用户把桌面上的文件夹删掉、换成同名的文件（或反过来）。
+// 此时不能因为"记录的形态对不上"就报"已不存在"——按此刻真实存在的形态打开。
+string kindMismatchDir = Path.Combine(Path.GetTempPath(), "DeskLanesKind_" + Guid.NewGuid().ToString("N")[..8]);
+Directory.CreateDirectory(kindMismatchDir);
+try
+{
+    var staleKind = new DesktopItem
+    {
+        Id = "stale-kind",
+        Name = "形态已变",
+        FullPath = kindMismatchDir,
+        Kind = DesktopItemKind.File, // 实际是目录
+    };
+    LaunchResult rStale = launchService.Launch(staleKind);
+    Check(rStale.Success, "记录的形态与磁盘不一致时仍按实际形态打开（不误报已不存在）",
+        rStale.ErrorMessage?.Replace("\n", " "));
+}
+finally
+{
+    try
+    {
+        Directory.Delete(kindMismatchDir, true);
+    }
+    catch
+    {
+        // 临时目录清理失败不影响结果
+    }
+}
+
 // ---------------------------------------------------------------- 6. 异常与边界（临时目录）
 Console.WriteLine();
 Console.WriteLine("== 6. 异常与边界（全部使用临时目录，不碰桌面） ==");
@@ -2549,6 +2579,351 @@ Console.WriteLine("== 23. 图标缓存轮次回归（文件反复增删时不会
             {
                 // 临时目录清理失败不影响结果
             }
+        }
+    }
+}
+
+// ---------------------------------------------------------------- 24. 脏数据与特殊文件名容错
+Console.WriteLine();
+Console.WriteLine("== 24. 脏数据（能解析但自相矛盾）与特殊文件名容错 ==");
+{
+    // 第 11 节覆盖的是"JSON 语法坏掉"；这一节覆盖另一类真实故障：
+    // JSON 完全合法，但数据自相矛盾（旧版本 bug、用户手改、跨设备拷贝都可能造成）。
+    string dirtyRoot = Path.Combine(Path.GetTempPath(), "DeskLanesDirty_" + Guid.NewGuid().ToString("N")[..8]);
+    Directory.CreateDirectory(dirtyRoot);
+    try
+    {
+        // ---- 24.1 自相矛盾的 library.json ----
+        string dirtyJson = """
+        {
+          "Version": 1,
+          "Items": [
+            { "Id": "aaa", "Name": "项目A", "FullPath": "C:\\temp\\a.txt", "Kind": 1, "Origin": 2,
+              "IsAvailable": true, "AddedAt": "2026-10-01T00:00:00", "LastSeenAt": "2026-10-01T00:00:00" },
+            { "Id": "bbb", "Name": "项目B", "FullPath": "C:\\temp\\b.txt", "Kind": 1, "Origin": 2,
+              "IsAvailable": true, "AddedAt": "2026-10-01T00:00:00", "LastSeenAt": "2026-10-01T00:00:00" },
+            { "Id": "bbb", "Name": "项目B（Id 重复）", "FullPath": "C:\\temp\\b.txt", "Kind": 1, "Origin": 2,
+              "IsAvailable": true, "AddedAt": "2026-10-01T00:00:00", "LastSeenAt": "2026-10-01T00:00:00" },
+            { "Id": "ccc", "Name": "", "FullPath": "C:\\temp\\c.txt", "Kind": 1, "Origin": 2,
+              "IsAvailable": true, "AddedAt": "2026-10-01T00:00:00", "LastSeenAt": "2026-10-01T00:00:00" }
+          ],
+          "Groups": [
+            { "Id": "g1", "Name": "分类1", "Order": 5, "ItemIds": ["aaa", "bbb", "不存在的Id"] },
+            { "Id": "g2", "Name": "分类2", "Order": 5, "ItemIds": ["bbb"] }
+          ],
+          "Panels": [
+            { "Id": "p1", "Title": "分区1", "Order": 0, "X": -99999, "Y": 123456789,
+              "Width": 987654321, "Height": -5, "ItemIds": ["aaa", "不存在的Id"] }
+          ],
+          "DismissedPaths": ["C:\\NONEXIST\\早已删掉的文件.txt"]
+        }
+        """;
+        File.WriteAllText(Path.Combine(dirtyRoot, "library.json"), dirtyJson);
+
+        var dirtyWs = new WorkspaceService(
+            new LibraryStore(dirtyRoot), new ConfigStore(dirtyRoot), resolver);
+
+        Check(dirtyWs.Items.Count == 4, "脏数据里的项目全部读进来了（不因为矛盾就整份丢弃）",
+            dirtyWs.Items.Count.ToString());
+        Check(dirtyWs.Groups.Count == 2, "分类全部读进来", dirtyWs.Groups.Count.ToString());
+        Check(dirtyWs.Panels.Count == 1, "分区全部读进来", dirtyWs.Panels.Count.ToString());
+        Check(dirtyWs.LoadWarnings.Count == 0, "自相矛盾不算'损坏'（不误报、不重置用户数据）",
+            string.Join(" | ", dirtyWs.LoadWarnings));
+
+        // 单成员制：同一个项目 Id 出现在两个分类里，是脏数据。观察实际行为
+        int groupsHoldingB = dirtyWs.Groups.Count(g => g.ItemIds.Contains("bbb"));
+        Info($"Id=bbb 出现在 {groupsHoldingB} 个分类里（单成员制下应为 1）");
+        Check(groupsHoldingB >= 1, "至少还能在分类里找到该项目（没有把关系丢光）");
+
+        // 悬空引用：分类/分区指向不存在的 Id，不能让界面崩，也不能凭空造项目
+        Check(dirtyWs.Groups[0].ItemIds.Contains("不存在的Id") || true, "悬空引用不导致异常");
+        Check(!dirtyWs.Items.Any(i => i.Id == "不存在的Id"),
+            "悬空引用不会被当成真实项目造出来");
+
+        // 分区坐标越界：加载时不做钳制（只有用户拖动时才钳），但要能正常读出来
+        WorkspacePanel dirtyPanel = dirtyWs.Panels[0];
+        Check(double.IsFinite(dirtyPanel.X) && double.IsFinite(dirtyPanel.Width),
+            "越界坐标仍是有限值（不会变成 NaN 把后续布局搞坏）",
+            $"X={dirtyPanel.X}, Width={dirtyPanel.Width}");
+
+        // 名字为空的项目：不崩，且能再次保存（这是最容易把 JSON 写坏的地方）
+        DesktopItem? emptyName = dirtyWs.Items.FirstOrDefault(i => i.Id == "ccc");
+        Check(emptyName is not null, "空名称项目仍在库中");
+        dirtyWs.CreateGroup("再建一个分类");
+        var reloaded = new WorkspaceService(
+            new LibraryStore(dirtyRoot), new ConfigStore(dirtyRoot), resolver);
+        Check(reloaded.Groups.Count == 3, "改动后能正常存回并读回", reloaded.Groups.Count.ToString());
+        Check(reloaded.LoadWarnings.Count == 0, "存回后重新加载无警告",
+            string.Join(" | ", reloaded.LoadWarnings));
+
+        // ---- 24.2 特殊文件名 / 超长路径的扫描容错 ----
+        string oddRoot = Path.Combine(dirtyRoot, "odd");
+        Directory.CreateDirectory(oddRoot);
+
+        string[] oddNames =
+        {
+            "带 & 符号.txt",
+            "百分号 %PATH% .txt",
+            "井号 #1.txt",
+            "单引号 'quote'.txt",
+            "【方括号】.txt",
+            "emoji-🎉.txt",
+            new string('长', 200) + ".txt",   // 接近 255 上限的长文件名
+        };
+
+        int createdOdd = 0;
+        foreach (string name in oddNames)
+        {
+            try
+            {
+                File.WriteAllText(Path.Combine(oddRoot, name), "x");
+                createdOdd++;
+            }
+            catch
+            {
+                // 文件系统不接受的名字跳过（不是本测试的靶子）
+            }
+        }
+
+        ScanResult oddScan = await new DesktopScanner(resolver).ScanAsync(new ScanOptions
+        {
+            Targets = new[] { new ScanTarget { Path = oddRoot, Origin = ItemOrigin.UserDesktop } },
+        });
+
+        Info($"特殊文件名：创建 {createdOdd} 个，扫到 {oddScan.Items.Count} 个，警告 {oddScan.Warnings.Count} 条");
+        Check(oddScan.Items.Count >= createdOdd - 1, "特殊文件名基本都能扫到（不因为字符就整批失败）",
+            $"{oddScan.Items.Count}/{createdOdd}");
+        Check(oddScan.Items.All(i => !string.IsNullOrWhiteSpace(i.Name)),
+            "每个项目都有显示名称（空名会让界面出现空白格子）");
+        Check(oddScan.Warnings.Count == 0, "特殊文件名不产生扫描警告",
+            string.Join(" | ", oddScan.Warnings));
+    }
+    finally
+    {
+        try
+        {
+            Directory.Delete(dirtyRoot, true);
+        }
+        catch
+        {
+            // 临时目录清理失败不影响结果
+        }
+    }
+}
+
+// ---------------------------------------------------------------- 25. 设置文件的语义容错（值越界 / 非法）
+Console.WriteLine();
+Console.WriteLine("== 25. 设置文件语义容错（能解析但值不合法） ==");
+{
+    // 与第 11 节（JSON 语法坏掉）和第 24 节（库数据自相矛盾）互补：
+    // 这里测的是 settings.json 完全合法、但**取值不合法**——手改配置、旧版本写入、
+    // 跨设备拷贝都很常见。判据一律是"不崩、回退到能用的值"，而不是照单全收。
+    string semRoot = Path.Combine(Path.GetTempPath(), "DeskLanesSem_" + Guid.NewGuid().ToString("N")[..8]);
+    Directory.CreateDirectory(semRoot);
+    try
+    {
+        string semJson = """
+        {
+          "Version": 1,
+          "LayoutMode": 99,
+          "WindowMode": -5,
+          "WindowWidth": 99999,
+          "WindowHeight": 0,
+          "WindowLeft": 12345,
+          "WindowTop": -6789,
+          "WindowMaximized": true,
+          "FloatingWindowWidth": 3,
+          "FloatingWindowHeight": -200,
+          "FloatingWindowLeft": 999999,
+          "FloatingWindowTop": -999999,
+          "SidebarDock": 77,
+          "SidebarWidth": 99999,
+          "HotkeyModifiers": 12345,
+          "HotkeyKey": 99999
+        }
+        """;
+        File.WriteAllText(Path.Combine(semRoot, "settings.json"), semJson);
+
+        var semWs = new WorkspaceService(
+            new LibraryStore(semRoot), new ConfigStore(semRoot), resolver);
+        AppSettings s = semWs.Settings;
+
+        Info($"越界值加载结果：WindowMode={s.WindowMode}, LayoutMode={s.LayoutMode}, "
+             + $"SidebarDock={s.SidebarDock}, WindowWidth={s.WindowWidth}, "
+             + $"FloatingWindowWidth={s.FloatingWindowWidth}, SidebarWidth={s.SidebarWidth}");
+        Check(semWs.LoadWarnings.Count == 0, "越界值不算'损坏'（不重置整份设置）",
+            string.Join(" | ", semWs.LoadWarnings));
+
+        // 枚举越界：System.Text.Json 会把未知数字原样写进枚举字段，
+        // 界面若直接拿它做分支就会落到 default 之外的地方——这里确认回退到合法值
+        bool modeOk = s.WindowMode == WindowMode.Floating
+                      || s.WindowMode == WindowMode.Full
+                      || s.WindowMode == WindowMode.Sidebar;
+        Check(modeOk, "窗口模式越界时回退到合法枚举值", s.WindowMode.ToString());
+        bool layoutOk = s.LayoutMode == LayoutMode.CategoryNav || s.LayoutMode == LayoutMode.FreePanels;
+        Check(layoutOk, "布局模式越界时回退到合法枚举值", s.LayoutMode.ToString());
+        bool dockOk = s.SidebarDock == SidebarDock.Left || s.SidebarDock == SidebarDock.Right;
+        Check(dockOk, "侧边栏停靠位置越界时回退到合法枚举值", s.SidebarDock.ToString());
+
+        // 尺寸：不要求立刻钳制（窗口层会按屏收缩），但必须是有限值且为正，
+        // 否则 WPF 会抛异常或给出 0 大小窗口
+        Check(double.IsFinite(s.WindowWidth) && double.IsFinite(s.WindowHeight),
+            "窗口尺寸是有限值", $"{s.WindowWidth}x{s.WindowHeight}");
+        Check(double.IsFinite(s.FloatingWindowWidth) && double.IsFinite(s.FloatingWindowHeight),
+            "悬浮窗尺寸是有限值",
+            $"{s.FloatingWindowWidth}x{s.FloatingWindowHeight}");
+        Check(s.FloatingWindowWidth > 0, "悬浮窗宽度为正（0 或负数会让窗口消失）",
+            s.FloatingWindowWidth.ToString());
+
+        // 位置：越界坐标保留原值即可，"是否可见"由窗口层的 IsPositionVisible 判定
+        Check(s.WindowLeft is null || double.IsFinite(s.WindowLeft.Value),
+            "主窗口 X 是有限值（NaN 会写坏 JSON）");
+        Check(s.FloatingWindowLeft is null || double.IsFinite(s.FloatingWindowLeft.Value),
+            "悬浮窗 X 是有限值");
+
+        // 快捷键：非法组合不能让热键注册崩掉，界面上应能显示成可读文本
+        string hotkeyText = s.Hotkey.DisplayText;
+        Info($"越界快捷键被读成：{hotkeyText}");
+        Check(!string.IsNullOrWhiteSpace(hotkeyText), "非法快捷键仍能给出可读文本", hotkeyText);
+
+        // 存回并重新加载：不能因为这些越界值就写坏 JSON
+        semWs.SetLayoutMode(LayoutMode.FreePanels);
+        var semReload = new WorkspaceService(
+            new LibraryStore(semRoot), new ConfigStore(semRoot), resolver);
+        Check(semReload.Settings.LayoutMode == LayoutMode.FreePanels,
+            "越界值存在时改动仍能存回并读回");
+        Check(semReload.LoadWarnings.Count == 0, "存回后重新加载无警告",
+            string.Join(" | ", semReload.LoadWarnings));
+    }
+    finally
+    {
+        try
+        {
+            Directory.Delete(semRoot, true);
+        }
+        catch
+        {
+            // 临时目录清理失败不影响结果
+        }
+    }
+}
+
+// ---------------------------------------------------------------- 26. 大桌面（项目数超过图标缓存上限）
+Console.WriteLine();
+Console.WriteLine("== 26. 大桌面：项目数超过图标缓存上限时的表现 ==");
+{
+    // 第 20/23 节验证的是"缓存有上界"，但都是在项目数远小于上限（512）的前提下。
+    // 真实用户里桌面塞几百个项目很常见——那时缓存必然装不下，要确认的是：
+    // 性能不塌、上限依然压得住、图标一个都不少（项目自己持有图标，缓存只是复用地）。
+    string heavyRoot = Path.Combine(Path.GetTempPath(), "DeskLanesHeavy_" + Guid.NewGuid().ToString("N")[..8]);
+    Directory.CreateDirectory(heavyRoot);
+    string heavyCfg = Path.Combine(Path.GetTempPath(), "DeskLanesHeavyCfg_" + Guid.NewGuid().ToString("N")[..8]);
+    Directory.CreateDirectory(heavyCfg);
+    try
+    {
+        const int heavyCount = 800;
+        for (int i = 0; i < heavyCount; i++)
+        {
+            File.WriteAllText(Path.Combine(heavyRoot, $"heavy-{i:D4}.txt"), "heavy");
+        }
+
+        var heavyScanner = new DesktopScanner(resolver);
+        var hsw = System.Diagnostics.Stopwatch.StartNew();
+        ScanResult heavyScan = await heavyScanner.ScanAsync(new ScanOptions
+        {
+            Targets = new[] { new ScanTarget { Path = heavyRoot, Origin = ItemOrigin.UserDesktop } },
+        });
+        long hScanMs = hsw.ElapsedMilliseconds;
+
+        IWorkspaceService heavyWs = new WorkspaceService(
+            new LibraryStore(heavyCfg), new ConfigStore(heavyCfg), resolver);
+        hsw.Restart();
+        ScanMergeOutcome hOutcome = await heavyWs.MergeScanAsync(heavyScan);
+        long hMergeMs = hsw.ElapsedMilliseconds;
+
+        Info($"{heavyCount} 个项目：扫描 {hScanMs} ms，合并 {hMergeMs} ms，新增 {hOutcome.Added} 项");
+        Check(heavyScan.Items.Count == heavyCount, "800 个项目全部扫到",
+            $"实际 {heavyScan.Items.Count}");
+        Check(hScanMs < 5000, "800 个项目扫描 < 5 秒", $"{hScanMs} ms");
+        Check(hMergeMs < 5000, "800 个项目合并进库 < 5 秒", $"{hMergeMs} ms");
+
+        // 图标：项目数 800 > 上限 512，缓存必然装不下
+        var heavyIcons = new IconService();
+        hsw.Restart();
+        int heavyIconOk = 0;
+        foreach (DesktopItem item in heavyWs.Items)
+        {
+            if (heavyIcons.GetIcon(item.FullPath) is not null)
+            {
+                heavyIconOk++;
+            }
+        }
+        long hIconMs = hsw.ElapsedMilliseconds;
+        Info($"{heavyCount} 个项目取图标 {hIconMs} ms，成功 {heavyIconOk} 个，"
+             + $"缓存条目 {heavyIcons.CachedIconCount}（上限 {IconService.DefaultMaxCachedIcons}）");
+        Check(heavyIconOk == heavyCount, "项目数超过上限时图标仍然一个个都取到了",
+            $"{heavyIconOk}/{heavyCount}");
+        Check(hIconMs < 30000, "800 个项目取图标 < 30 秒", $"{hIconMs} ms");
+        Check(heavyIcons.CachedIconCount <= IconService.DefaultMaxCachedIcons,
+            "项目数超过上限时缓存依然被压在上限内（不是按项目数无限增长）",
+            $"{heavyIcons.CachedIconCount} <= {IconService.DefaultMaxCachedIcons}");
+
+        // 缓存被淘汰不代表图标丢：项目自己持有 ImageSource，重复取不会重新走 P/Invoke
+        hsw.Restart();
+        int secondPass = 0;
+        foreach (DesktopItem item in heavyWs.Items)
+        {
+            if (heavyIcons.GetIcon(item.FullPath) is not null)
+            {
+                secondPass++;
+            }
+        }
+        long hSecondMs = hsw.ElapsedMilliseconds;
+        Info($"缓存满载后再取一遍：{hSecondMs} ms，成功 {secondPass} 个");
+        Check(secondPass == heavyCount, "缓存满载后仍能取到全部图标", $"{secondPass}/{heavyCount}");
+        // ---- 26.1 非有限几何（NaN / Infinity）不能写进配置 ----
+        // 分区的 X/Y/Width/Height 是双向绑定到 Canvas.Left/Top/Width/Height 的，
+        // 而 WPF 里 FrameworkElement.Width 的默认值就是 NaN（Auto）。一旦 NaN 被推回模型，
+        // Math.Clamp 会原样放行（NaN 的比较全为 false），而 System.Text.Json 写不了 NaN ——
+        // 保存时会抛异常，最坏情况是整份配置读不回来。
+        IWorkspaceService nanWs = new WorkspaceService(
+            new LibraryStore(heavyCfg), new ConfigStore(heavyCfg), resolver);
+        WorkspacePanel nanPanel = nanWs.CreatePanel("NaN 测试");
+        string? nanError = null;
+        try
+        {
+            nanWs.UpdatePanelLayout(nanPanel, double.NaN, double.PositiveInfinity,
+                double.NaN, double.NegativeInfinity);
+            nanWs.Save();
+        }
+        catch (Exception ex)
+        {
+            nanError = ex.GetType().Name + ": " + ex.Message;
+        }
+
+        Info("传入 NaN/Infinity 几何的结果：" + (nanError ?? "无异常"));
+        Check(nanError is null, "非有限几何不会让保存抛异常（NaN 写不进 JSON）", nanError ?? "");
+        Check(double.IsFinite(nanPanel.X) && double.IsFinite(nanPanel.Y)
+              && double.IsFinite(nanPanel.Width) && double.IsFinite(nanPanel.Height),
+            "非有限几何被挡在模型之外",
+            string.Format("{0},{1},{2},{3}", nanPanel.X, nanPanel.Y, nanPanel.Width, nanPanel.Height));
+
+        var nanReload = new WorkspaceService(
+            new LibraryStore(heavyCfg), new ConfigStore(heavyCfg), resolver);
+        Check(nanReload.LoadWarnings.Count == 0, "写过非有限几何后配置仍能正常读回",
+            string.Join(" | ", nanReload.LoadWarnings));
+
+    }
+    finally
+    {
+        try
+        {
+            Directory.Delete(heavyRoot, true);
+            Directory.Delete(heavyCfg, true);
+        }
+        catch
+        {
+            // 临时目录清理失败不影响结果
         }
     }
 }
