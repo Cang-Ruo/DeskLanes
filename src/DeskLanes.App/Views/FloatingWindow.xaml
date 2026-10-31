@@ -1,16 +1,28 @@
 <Window x:Class="DeskLanes.App.Views.FloatingWindow"
         xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:shell="clr-namespace:System.Windows.Shell;assembly=PresentationFramework"
         xmlns:vm="clr-namespace:DeskLanes.App.ViewModels"
         xmlns:local="clr-namespace:DeskLanes.App.Views"
         Title="DeskLanes 快速启动"
         Width="780" Height="540" MinWidth="420" MinHeight="360"
-        WindowStyle="None" AllowsTransparency="True" Background="Transparent"
+        WindowStyle="None" Background="Transparent"
         Topmost="True" ShowInTaskbar="False"
         WindowStartupLocation="Manual"
         KeyDown="OnWindowKeyDown">
-    <!-- 分层窗口（AllowsTransparency=True）无法使用 DWM 系统背景材料，
-         按规格回退为高不透明度玻璃底色：文字与图标保持全不透明（见 GlassTheme.xaml） -->
+    <!--
+      曾经是分层窗口（AllowsTransparency=True），代价是用不了 DWM 的
+      Acrylic / Mica 材质，只能垫一块 90% 不透明的深色底——和主窗口的
+      玻璃感完全对不上。现在改为 WindowChrome 非分层窗口：
+        - CaptionHeight=0 / ResizeBorderThickness=0：系统不接管标题栏与边缘，
+          拖动与八方向缩放仍由自己的热区负责（行为与原来完全一致）
+        - 背景材质由 WindowBackdropService 在 SourceInitialized 后应用
+      根 Border 的背景绑定 Window.Background：Acrylic 成功时是轻 tint，
+      材质不可用回退时自动变成不透明底色，两种状态都保证可读。 -->
+    <shell:WindowChrome.WindowChrome>
+        <shell:WindowChrome CaptionHeight="0" ResizeBorderThickness="0"
+                            GlassFrameThickness="0" UseAeroCaptionButtons="False" />
+    </shell:WindowChrome.WindowChrome>
     <Window.Resources>
         <BooleanToVisibilityConverter x:Key="BoolToVis" />
 
@@ -28,11 +40,11 @@
         </Style>
     </Window.Resources>
 
-    <Border Background="{StaticResource BrushFloatingGlass}" CornerRadius="12" Padding="14"
+    <Border Background="{Binding Background, RelativeSource={RelativeSource AncestorType=Window}}"
+            CornerRadius="12" Padding="14"
             BorderBrush="{StaticResource BrushBorderGlass}" BorderThickness="1">
-        <Border.Effect>
-            <DropShadowEffect BlurRadius="18" ShadowDepth="3" Opacity="0.28" Color="#101820" />
-        </Border.Effect>
+        <!-- 非分层窗口在 Win11 上自带 DWM 系统阴影，原来的 DropShadowEffect 已无必要，
+             且它在窗口矩形外不渲染，留着只会误导 -->
 
         <Grid TextElement.Foreground="{StaticResource BrushTextPrimary}">
             <Grid.RowDefinitions>
