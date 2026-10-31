@@ -12,9 +12,10 @@ namespace DeskLanes.App.Views;
 /// 悬浮窗（快速启动）。置顶、无任务栏按钮、Esc 隐藏、失焦可配置是否自动隐藏。
 /// 窗口本身只负责呈现与键盘/焦点行为，全部数据来自共享视图模型。
 /// <para>
-/// 它是分层窗口（<c>WindowStyle=None</c> + <c>AllowsTransparency=True</c>），
+/// <c>WindowStyle=None</c> 的非分层窗口（WindowChrome 接管系统行为）：
 /// 系统不提供标题栏也不提供缩放边框，因此拖动（顶部热区 + <see cref="Window.DragMove"/>）
 /// 与缩放（右下角 Thumb）都由本窗口自行实现，松手后位置与尺寸写回配置。
+/// 背景材质走 <see cref="WindowBackdropService"/>（与主窗口同一套 Acrylic 路径）。
 /// </para>
 /// </summary>
 public partial class FloatingWindow : Window
@@ -29,6 +30,7 @@ public partial class FloatingWindow : Window
         _controller = controller ?? throw new ArgumentNullException(nameof(controller));
         DataContext = viewModel;
         InitializeComponent();
+        WindowBackdropService.Attach(this);
 
         // 恢复上次拖到的位置与缩到的尺寸（必须晚于 InitializeComponent）
         ApplyWindowPreferences();
