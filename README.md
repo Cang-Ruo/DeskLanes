@@ -160,5 +160,7 @@ python tools/soak-8h.py --exe <exe> --hours 6                        # 长时驻
 | [`docs/project-overview-and-roadmap.md`](docs/project-overview-and-roadmap.md) | 项目总览、功能清单、验证状态与后续建议（唯一基线） |
 | [`docs/install-and-uninstall.md`](docs/install-and-uninstall.md) | 安装 / 卸载、两个版本怎么选、跨机器操作步骤 |
 | [`docs/known-limitations.md`](docs/known-limitations.md) | 发布用已知限制完整清单 |
+| [`docs/release-notes-v0.2.0.md`](docs/release-notes-v0.2.0.md) | v0.2.0 的 Release 说明（界面视觉改版） |
+| [`docs/ui-acrylic-probe/`](docs/ui-acrylic-probe/) | 玻璃材质取证：Acrylic 与 Mica 的 A/B 对照与截图 |
 | `docs/stage9-4-*.md`、`stage9-5-*.md`、`stage9-6-*.md` | 悬浮窗拖动缩放、竖屏适配、图标缓存有界的实施与验收记录 |
 | `docs/stage8-*.md` | 分发兼容性与跨设备验收（发布产物、干净环境、系统级验收、DPI 边界） |
