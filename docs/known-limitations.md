@@ -77,7 +77,9 @@
 
 发布前请确认：
 
-- [ ] 两个版本的 exe 都是**最新代码**重新发布的（改完只 build 不 publish 会导致装的是旧界面）
+- [ ] 两个版本的 exe 都是**最新代码**重新发布的（改完只 build 不 publish 会导致装的是旧界面）。
+  用 `python tools/package-release.py <版本号>` 打包——它自带这条新鲜度自检，
+  exe 比最后一次改 `src/` 的提交还旧就直接拒绝打包
 - [ ] 冒烟 `dotnet run --project tests/DeskLanes.SmokeTests -c Release` 全绿
 - [ ] 端到端 `python tools/verify-floating-interaction.py` 全绿（36 项，含配置损坏自愈与屏幕外位置恢复）
 - [ ] 至少在**一台没有 .NET 运行时的机器**上双击自包含版验证过能打开

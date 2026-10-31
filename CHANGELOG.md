@@ -39,6 +39,22 @@
 - **侧边栏**仍是分层窗口深色底：它是贴边窗口，DWM 圆角会把贴边侧切成缺角，得不偿失
 - Win10 / 远程会话仍走不透明回退，窗口永远可见
 
+### 测试
+
+- 冒烟 **460/460**、端到端 **36/36**（真实 exe + 合成鼠标）、启动 **7/7**
+  （冷 1.25 s / 热中位 1.17 s）
+- 材质取证改为**屏幕合成截图**（GDI BitBlt，`tools/screenshot.py`）后重做 A/B 对照：
+  Acrylic 唯一颜色 5486 vs Mica 2549 —— 前者透出壁纸的模糊图案，后者是均匀色块。
+  取证过程与截图见 `docs/ui-acrylic-probe/`
+- 新增 `tools/probe-acrylic.py`（材质探针）、`tools/probe-floating.py`（悬浮窗取证）、
+  `tools/refresh-readme-shots.py`（对外截图重截）
+
+### 分发产物
+
+- 便携版 **545,885 B / MD5 `cf88e555…`**
+- 自包含版 **65,079,280 B / MD5 `722f1c52…`**
+- 打包为 `DeskLanes-v0.2.0-{selfcontained,portable}.zip`（含 exe、安装 / 卸载脚本与说明）
+
 ---
 
 ## [0.1.1] — 2026-10-31（标签 `v0.1.1`）
