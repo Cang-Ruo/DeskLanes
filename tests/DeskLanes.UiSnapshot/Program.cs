@@ -1,9 +1,12 @@
 // ============================================================================
 // DeskLanes 界面快照工具（UI 改版视觉验证用）
 // ----------------------------------------------------------------------------
-// 用法：DeskLanes.UiSnapshot.exe <category|panels|floating|sidebar|settings|dialog|perf> <输出.png> [--demo] [--top]
+// 用法：DeskLanes.UiSnapshot.exe <category|panels|floating|sidebar|settings|dialog|perf> <输出.png> [--demo] [--top] [--screen]
 //   perf 模式不出图：实测「分类导航 ↔ 自由分区」来回切换的耗时（B6 最后一项）。
 //   配 --demo 会用 220 个演示项目跑压力版，不加则用真实桌面。
+//   配 --screen 强制所有模式走 GDI 屏幕合成截图（默认只有 settings / dialog 走）：
+//          视觉树快照抓不到 DWM 材质与壁纸，展示玻璃效果必须加它；
+//          主窗口模式下会顺便最大化，避免把真实桌面图标拍进对外截图。
 //
 // 行为：
 //   1. 把真实配置目录（%LocalAppData%\DeskLanes）复制到临时目录，绝不写回真实配置；
@@ -70,12 +73,16 @@ public static class Program
         // --top：设置窗口不滚到底，保持顶部（默认滚到底是为了拍到末尾分区）
         bool keepTop = args.Skip(2).Any(a => string.Equals(a, "--top", StringComparison.OrdinalIgnoreCase));
 
+        // --screen：所有模式都用 GDI BitBlt 屏幕合成截图，而不只是 settings / dialog。
+        // 视觉树快照抓不到 DWM 材质与桌面壁纸，对外展示「玻璃效果」必须带这个开关。
+        bool screen = args.Skip(2).Any(a => string.Equals(a, "--screen", StringComparison.OrdinalIgnoreCase));
+
         // 屏幕合成截图需要物理像素坐标（与 GetWindowRect / GetDC 一致）
         SetProcessDPIAware();
 
         try
         {
-            RunAsync(mode, output, demo, keepTop).GetAwaiter().GetResult();
+            RunAsync(mode, output, demo, keepTop, screen).GetAwaiter().GetResult();
             return 0;
         }
         catch (Exception ex)
@@ -85,7 +92,7 @@ public static class Program
         }
     }
 
-    private static async Task RunAsync(string mode, string output, bool demo, bool keepTop)
+    private static async Task RunAsync(string mode, string output, bool demo, bool keepTop, bool screen = false)
     {
         // 1. 复制真实配置到临时目录（只读使用，不污染真实配置）；--demo 时不复制
         string realDir = Path.Combine(
@@ -219,8 +226,20 @@ public static class Program
                     Width = 1400,
                     Height = 900,
                     WindowStartupLocation = WindowStartupLocation.CenterScreen,
-                    ShowActivated = false,
+                    // WPF 不允许 ShowActivated=false 与 WindowState=Maximized 同时存在，
+                    // 否则 Show() 直接抛 InvalidOperationException。--screen 要最大化
+                    // （不然会把真实桌面图标拍进对外截图），所以这里放开激活——
+                    // 截图工具抢一下焦点无所谓。
+                    ShowActivated = screen,
                 };
+
+                // --screen：屏幕合成截图会把窗口之外的桌面一起拍进来，
+                // 真实桌面图标的文件名就跟着泄露了。主窗口最大化后背景只剩壁纸，
+                // 而且这也正好是"全屏工作空间"的真实形态。
+                if (screen)
+                {
+                    window.WindowState = WindowState.Maximized;
+                }
             }
 
             dialogService.SetOwner(window);
@@ -284,9 +303,10 @@ public static class Program
 
                     Directory.CreateDirectory(Path.GetDirectoryName(output)!);
 
-                    if (mode is "settings" or "dialog")
+                    if (mode is "settings" or "dialog" || screen)
                     {
-                        // 普通窗口：屏幕合成截图，能看到 DWM 实际渲染的 Mica 毛玻璃
+                        // 屏幕合成截图：能看到 DWM 实际渲染的 Acrylic 毛玻璃与透出的壁纸。
+                        // 视觉树快照做不到这一点，所以对外展示玻璃效果必须走这条路。
                         CaptureWindowToPng(new WindowInteropHelper(window).Handle, output);
                         Console.WriteLine($"快照已保存：{output}（屏幕合成，模式 {mode}）");
                     }
