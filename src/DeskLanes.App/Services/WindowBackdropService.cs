@@ -140,12 +140,6 @@ public static class WindowBackdropService
             TrySetBackdrop(hwnd, DwmInterop.BackdropMica);
         }
 
-        // 标题栏底色：延伸玻璃框后原生标题栏区域会透出后面的窗口（无材料），
-        // 给它一个与玻璃主题一致的深色，视觉上与 Mica 客户区衔接
-        var captionColor = new DwmInterop.ColorRef(0x1E, 0x30, 0x46);
-        _ = DwmInterop.DwmSetWindowAttributeColor(
-            hwnd, DwmInterop.AttributeCaptionColor, ref captionColor);
-
         // 读回校验：确认系统真的接受了背景类型，才延伸玻璃框；
         // 否则在旧系统上延伸玻璃框会把客户区染成黑色。
         // 注意 auto(0) 也是合法值，所以判据是「不是 none(1)」而不是「大于 0」。
@@ -158,6 +152,21 @@ public static class WindowBackdropService
 
         if (hrGet == 0 && applied != DwmInterop.BackdropNone)
         {
+            // 标题栏底色：Acrylic 让标题栏同样透出材质（COLOR_NONE），
+            // 否则原生标题栏会是一块与玻璃区域割裂的深色实心条；
+            // Mica / 回退路径仍用深色与客户区衔接。
+            if (applied == DwmInterop.BackdropAcrylic)
+            {
+                int none = DwmInterop.ColorNone;
+                _ = DwmInterop.DwmSetWindowAttribute(
+                    hwnd, DwmInterop.AttributeCaptionColor, ref none, sizeof(int));
+            }
+            else
+            {
+                var captionColor = new DwmInterop.ColorRef(0x1E, 0x30, 0x46);
+                _ = DwmInterop.DwmSetWindowAttributeColor(
+                    hwnd, DwmInterop.AttributeCaptionColor, ref captionColor);
+            }
             var source = HwndSource.FromHwnd(hwnd);
             if (source?.CompositionTarget == null)
             {

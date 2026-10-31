@@ -1,6 +1,7 @@
 using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Input;
+using DeskLanes.App.Services;
 using DeskLanes.Core.Models;
 
 namespace DeskLanes.App.Views;
@@ -53,11 +54,18 @@ public partial class ItemTile : UserControl
         _pendingDrag = false;
         try
         {
+            // 通知全局：此刻有项目在拖。底部移除区据此显示。
+            DragState.BeginDrag();
             DragDrop.DoDragDrop(this, DragDropFormats.CreateDataObject(Item.Id), DragDropEffects.Move);
         }
         catch
         {
             // 拖拽异常（极少数 COM 场景）不应影响应用
+        }
+        finally
+        {
+            // DoDragDrop 是同步阻塞的，返回即代表拖拽结束
+            DragState.EndDrag();
         }
     }
 

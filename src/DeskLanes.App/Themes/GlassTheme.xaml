@@ -33,11 +33,13 @@
     <SolidColorBrush x:Key="BrushSidebarGlass" Color="#E61E2F46" />
     <!-- 弹出层（菜单/提示）底色：近乎不透明 -->
     <SolidColorBrush x:Key="BrushMenuGlass" Color="#F21B2B3F" />
-    <!-- 普通窗口在原生 DWM 背景之上的内容层次 -->
-    <SolidColorBrush x:Key="BrushWindowBaseGlass" Color="#5920334A" />
-    <SolidColorBrush x:Key="BrushNavGlass" Color="#8C17283B" />
-    <SolidColorBrush x:Key="BrushPanelGlass" Color="#4D20334A" />
-    <SolidColorBrush x:Key="BrushCardGlass" Color="#7320334A" />
+    <!-- 普通窗口在原生 DWM 背景之上的内容层次。
+         下面这几层是叠在 Acrylic 之上的 tint：调太实会把玻璃感盖掉，
+         目标是「透得出壁纸，又压得住文字对比度」，所以都压在 15%~35%。 -->
+    <SolidColorBrush x:Key="BrushWindowBaseGlass" Color="#2E20334A" />
+    <SolidColorBrush x:Key="BrushNavGlass" Color="#5917283B" />
+    <SolidColorBrush x:Key="BrushPanelGlass" Color="#2420334A" />
+    <SolidColorBrush x:Key="BrushCardGlass" Color="#3D20334A" />
     <!-- 输入控件底色 -->
     <SolidColorBrush x:Key="BrushInputGlass" Color="#14FFFFFF" />
     <!-- 交互反馈 -->

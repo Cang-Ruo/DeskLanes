@@ -2,6 +2,7 @@ using System.Collections.ObjectModel;
 using System.Windows;
 using System.Windows.Media;
 using System.Windows.Threading;
+using DeskLanes.App.Services;
 using DeskLanes.Core.Infrastructure;
 using DeskLanes.Core.Models;
 using DeskLanes.Core.Services;
@@ -66,6 +67,9 @@ public sealed class MainViewModel : ObservableObject
         SwitchToFloatingCommand = new RelayCommand(_ => ModeSwitchRequested?.Invoke(this, WindowMode.Floating));
         SwitchToSidebarCommand = new RelayCommand(_ => ModeSwitchRequested?.Invoke(this, WindowMode.Sidebar));
         AddCustomCommand = new RelayCommand(_ => _ = AddCustomAsync());
+
+        // 拖拽状态变化时刷新绑定，让底部移除区按需显隐
+        DragState.Changed += OnDragStateChanged;
 
         Items.CollectionChanged += (_, _) =>
         {
@@ -139,6 +143,15 @@ public sealed class MainViewModel : ObservableObject
 
     /// <summary>布局切换按钮文字（点击后切换到另一种模式）。</summary>
     public string LayoutToggleText => IsCategoryNav ? "切换到自由分区" : "切换到分类导航";
+
+    /// <summary>
+    /// 当前是否有项目正在被拖拽。底部移除区只在拖拽时显示，
+    /// 平时让出视觉焦点——一条常驻的红色横条会不停抢戏。
+    /// </summary>
+    public bool IsDraggingItem => DragState.IsDragging;
+
+    private void OnDragStateChanged(object? sender, EventArgs e)
+        => OnPropertyChanged(nameof(IsDraggingItem));
 
     /// <summary>当前展示的项目（全库按搜索词过滤；具体布局由子视图模型渲染）。</summary>
     public ObservableCollection<DesktopItem> Items { get; } = new();
