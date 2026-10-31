@@ -41,10 +41,20 @@ param(
 $ErrorActionPreference = 'Stop'
 $scriptDir = Split-Path -Parent $MyInvocation.MyCommand.Path
 $productName = 'DeskLanes'
-$productVersion = '0.1.0'
 $uninstallKeyPath = 'HKCU:\Software\Microsoft\Windows\CurrentVersion\Uninstall\DeskLanes'
 
 function Say($msg) { Write-Host $msg }
+
+# 版本号从 CHANGELOG 的第一节标题里取（形如 `## [0.2.0] — ...`）。
+# 之前是硬编码的 '0.1.0'，结果装 v0.2.0 时「设置 → 已安装的应用」里还写着 0.1.0。
+# 取不到就退回一个保底值，不让安装失败。
+$productVersion = '0.0.0'
+$changelog = Join-Path (Split-Path -Parent $MyInvocation.MyCommand.Path) '..\CHANGELOG.md'
+if (Test-Path -LiteralPath $changelog) {
+    $m = [regex]::Match((Get-Content -LiteralPath $changelog -Raw -ErrorAction SilentlyContinue),
+                        '##\s*\[(\d+\.\d+\.\d+)\]')
+    if ($m.Success) { $productVersion = $m.Groups[1].Value }
+}
 
 Say '===== DeskLanes 安装 ====='
 
