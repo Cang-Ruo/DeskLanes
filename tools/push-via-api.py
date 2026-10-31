@@ -88,6 +88,31 @@ class Gh:
         raise last
 
 
+def iso_from_git_date(text):
+    """'Name <email> 1690000000 +0800' 里的 '<unix> +0800' -> ISO 8601。
+
+    GitHub 的 API 只吃 ISO 8601，git 内部存的是 unix 秒 + 时区偏移。
+    """
+    rest = text.rsplit(">", 1)[1].split() if ">" in text else []
+    if len(rest) < 2:
+        return None
+    ts, off = int(rest[0]), rest[1]
+    return "%s%s:%s" % (
+        datetime.datetime.fromtimestamp(
+            ts, datetime.timezone(datetime.timedelta(
+                hours=int(off[:3]), minutes=int(off[0] + off[3:])))
+        ).replace(microsecond=0).isoformat()[:19],
+        off[:3], off[3:])
+
+
+def who_from(text):
+    return {
+        "name": text.rsplit("<", 1)[0].strip(),
+        "email": text.rsplit("<", 1)[1].split(">", 1)[0] if "<" in text else "",
+        "date": iso_from_git_date(text),
+    }
+
+
 def commit_meta(sha):
     raw = git("cat-file", "commit", sha)
     head, _, message = raw.partition("\n\n")
@@ -95,24 +120,8 @@ def commit_meta(sha):
     for line in head.splitlines():
         key, _, val = line.partition(" ")
         meta[key] = val
-    who = {}
-    for role in ("author", "committer"):
-        # 形如  Name <email> 1690000000 +0800
-        text = meta.get(role, "")
-        name = text.rsplit("<", 1)[0].strip()
-        email = text.rsplit("<", 1)[1].split(">", 1)[0] if "<" in text else ""
-        rest = text.rsplit(">", 1)[1].split() if ">" in text else []
-        # GitHub 只吃 ISO 8601，git 给的是 "<unix> +0800"，要转换
-        date = None
-        if len(rest) >= 2:
-            ts, off = int(rest[0]), rest[1]
-            date = "%s%s:%s" % (
-                datetime.datetime.fromtimestamp(
-                    ts, datetime.timezone(datetime.timedelta(
-                        hours=int(off[:3]), minutes=int(off[0] + off[3:])))
-                ).replace(microsecond=0).isoformat()[:19],
-                off[:3], off[3:])
-        who[role] = {"name": name, "email": email, "date": date}
+    who = {role: who_from(meta.get(role, ""))
+           for role in ("author", "committer")}
     return message, who
 
 
@@ -128,11 +137,49 @@ def remote_url_parse():
     return owner, repo
 
 
+def push_tag(g, name, dry):
+    """附注标签也走同一条路：复刻 tag 对象 -> 比对 SHA -> 建 ref。
+
+    注意 --tag-name-filter 那类 filter-branch 只改 tag 指向、不改 tagger，
+    附注标签必须单独重建；这里直接按本地 tag 对象原样复刻。
+    """
+    local_sha = git("rev-parse", name).strip()
+    raw = git("cat-file", "tag", name)
+    head, _, message = raw.partition("\n\n")
+    meta = {}
+    for line in head.splitlines():
+        key, _, val = line.partition(" ")
+        meta[key] = val
+    tag_obj = g.call("POST", "git/tags", {
+        "tag": meta.get("tag", name),
+        "message": message,
+        "object": meta["object"],
+        "type": meta["type"],
+        "tagger": who_from(meta.get("tagger", "")),
+    })
+    if tag_obj["sha"] != local_sha:
+        print("[FAIL] %s 复刻 SHA 不一致：本地 %s vs API %s"
+              % (name, local_sha[:12], tag_obj["sha"][:12]))
+        return 1
+    print("[PASS] %s 附注标签对象复刻一致 %s" % (name, local_sha[:12]))
+    if dry:
+        print("--dry：不建远端 tag ref")
+        return 0
+    g.call("POST", "git/refs", {"ref": "refs/tags/" + name,
+                                "sha": tag_obj["sha"]})
+    print("[PASS] 远端 refs/tags/%s 已建" % name)
+    return 0
+
+
 def main():
     dry = "--dry" in sys.argv
     owner, repo = remote_url_parse()
     token = gh("auth", "token")
     g = Gh(token, owner, repo)
+
+    if "--tag" in sys.argv:
+        name = sys.argv[sys.argv.index("--tag") + 1]
+        return push_tag(g, name, dry)
 
     pending = git("rev-list", "--reverse", "origin/main..main").split()
     if not pending:
