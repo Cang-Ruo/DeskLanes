@@ -83,9 +83,12 @@
                 </DockPanel>
             </Border>
 
-            <!-- 移除区 -->
+            <!-- 移除区：只在拖拽项目时出现。
+                 平时一条常驻的红色横条会不停抢视觉焦点，与「低存在感」冲突；
+                 拖拽行为与安全规则本身完全不变。 -->
             <Border Style="{StaticResource DangerZone}"
-                    AllowDrop="True" Drop="OnRemoveDrop" DragOver="OnRemoveDragOver">
+                    AllowDrop="True" Drop="OnRemoveDrop" DragOver="OnRemoveDragOver"
+                    Visibility="{Binding IsDraggingItem, Converter={StaticResource BoolToVis}}">
                 <TextBlock Text="🗑 把项目拖到这里，从工作区移除（不会删除桌面文件）"
                            FontSize="12" Foreground="{StaticResource BrushDangerText}" HorizontalAlignment="Center" />
             </Border>
