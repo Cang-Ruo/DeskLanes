@@ -1,5 +1,6 @@
 using System.Collections.ObjectModel;
 using System.Windows.Media;
+using DeskLanes.App.Services;
 using DeskLanes.Core.Infrastructure;
 using DeskLanes.Core.Models;
 using DeskLanes.Core.Services;
@@ -46,6 +47,7 @@ public sealed class CategoryNavViewModel : ObservableObject
         RemoveItemCommand = new RelayCommand(RemoveItem, parameter => parameter is DesktopItem);
 
         _workspace.Changed += (_, _) => Rebuild();
+        DragState.Changed += OnDragStateChanged;
         _shellState.PropertyChanged += (_, e) =>
         {
             if (e.PropertyName == nameof(ShellState.SearchText))
@@ -119,6 +121,15 @@ public sealed class CategoryNavViewModel : ObservableObject
     public RelayCommand OpenItemCommand { get; }
 
     public RelayCommand RemoveItemCommand { get; }
+
+    /// <summary>
+    /// 当前是否有项目正在被拖拽。底部移除区据此显隐：
+    /// 平时藏起来，拖起来才出现，避免一条红色横条常驻抢戏。
+    /// </summary>
+    public bool IsDraggingItem => DragState.IsDragging;
+
+    private void OnDragStateChanged(object? sender, EventArgs e)
+        => OnPropertyChanged(nameof(IsDraggingItem));
 
     /// <summary>把新添加的自定义项目放入当前选中的分类（未分组除外由用户自行拖拽）。</summary>
     public void AssignToSelected(DesktopItem item)

@@ -225,7 +225,8 @@ def main(argv):
             return 1
         r = wait_rect_stable(hwnd)
         sys.stdout.write("window rect = %s\n" % (r,))
-        time.sleep(1.2)
+        # 等首轮桌面扫描完成（截图里出现"正在扫描桌面…"说明拍早了）
+        time.sleep(4.0)
         w, h, rgb = capture(r[0], r[1], r[2] - r[0], r[3] - r[1], out)
         analyse(w, h, rgb)
         return 0

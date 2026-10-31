@@ -58,6 +58,9 @@ public static class DwmInterop
     /// <summary>DWMWA_USE_HOSTBACKDROPBRUSH：Win10 1809+ 的旧式背景画刷（Acrylic 的前身）。</summary>
     public const int AttributeUseHostBackdropBrush = 17;
 
+    /// <summary>DWMWA_COLOR_NONE：标题栏 / 边框不绘制颜色（透出背后的材质，0xFFFFFFFE）。</summary>
+    public const int ColorNone = unchecked((int)0xFFFFFFFE);
+
     /// <summary>SM_REMOTESESSION：当前会话是否为远程桌面（远程会话下背景材料渲染不可靠）。</summary>
     public const int MetricRemoteSession = 90;
 
