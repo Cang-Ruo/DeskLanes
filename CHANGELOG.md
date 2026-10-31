@@ -53,7 +53,9 @@
 
 - 便携版 **545,885 B / MD5 `cf88e555…`**
 - 自包含版 **65,079,280 B / MD5 `722f1c52…`**
-- 打包为 `DeskLanes-v0.2.0-{selfcontained,portable}.zip`（含 exe、安装 / 卸载脚本与说明）
+- 打包为 `DeskLanes-v0.2.0-{selfcontained,portable}.zip`（含 exe、安装 / 卸载脚本与说明）。
+  打包走 `tools/package-release.py`，自带「exe 是否比源码新」的自检。
+  对外 Release 说明见 `docs/release-notes-v0.2.0.md`
 
 ---
 
