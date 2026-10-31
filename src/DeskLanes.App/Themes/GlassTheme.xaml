@@ -28,9 +28,11 @@
     <SolidColorBrush x:Key="BrushDangerText" Color="{StaticResource ColorDanger}" />
 
     <!-- ============ 玻璃画刷（分层透明度） ============ -->
-    <!-- 分层窗口（悬浮窗/侧边栏）底色：约 90% 不透明，保证任何壁纸下文字可读 -->
-    <SolidColorBrush x:Key="BrushFloatingGlass" Color="#E620334A" />
+    <!-- 侧边栏底色：仍是分层窗口（贴边窗口用 DWM 圆角会把贴边侧切成缺角，
+         得不偿失），保持高不透明度保证任何壁纸下文字可读。
+         悬浮窗已改为 WindowChrome 非分层窗口走真 Acrylic，不再用 BrushFloatingGlass。 -->
     <SolidColorBrush x:Key="BrushSidebarGlass" Color="#E61E2F46" />
+    <SolidColorBrush x:Key="BrushFloatingGlass" Color="#E620334A" />
     <!-- 弹出层（菜单/提示）底色：近乎不透明 -->
     <SolidColorBrush x:Key="BrushMenuGlass" Color="#F21B2B3F" />
     <!-- 普通窗口在原生 DWM 背景之上的内容层次。
