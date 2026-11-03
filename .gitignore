@@ -28,3 +28,6 @@ docs/stage7-evidence/
 # Python 字节码缓存（tools/*.py 编译产物）
 __pycache__/
 *.pyc
+
+# 阶段验收的整屏原始帧：含真实桌面图标，不入仓库（本地留存用于复核）
+docs/ui-acrylic-final/raw/
