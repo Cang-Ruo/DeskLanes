@@ -22,6 +22,9 @@ public partial class SidebarWindow : Window
         DataContext = viewModel;
         InitializeComponent();
 
+        // 与主窗口 / 悬浮窗同一套 DWM Acrylic；贴边停靠所以不要系统圆角
+        WindowBackdropService.Attach(this, squareCorner: true);
+
         Deactivated += OnDeactivated;
         _viewModel.HideRequested += (_, _) => _controller.HideSidebar();
         _viewModel.PropertyChanged += (_, e) =>
