@@ -342,7 +342,9 @@ public static class Program
                     {
                         // 屏幕合成截图：能看到 DWM 实际渲染的 Acrylic 毛玻璃与透出的壁纸。
                         // 视觉树快照做不到这一点，所以对外展示玻璃效果必须走这条路。
-                        CaptureWindowToPng(new WindowInteropHelper(window).Handle, output);
+                        IntPtr captureHwnd = new WindowInteropHelper(window).Handle;
+                        ActivateForCapture(captureHwnd);
+                        CaptureWindowToPng(captureHwnd, output);
                         Console.WriteLine($"快照已保存：{output}（屏幕合成，模式 {mode}）");
                     }
                     else
@@ -426,6 +428,46 @@ public static class Program
 
     [DllImport("user32.dll")]
     private static extern bool SetProcessDPIAware();
+
+    [DllImport("user32.dll")]
+    private static extern bool SetForegroundWindow(IntPtr hWnd);
+
+    [DllImport("user32.dll")]
+    private static extern IntPtr GetForegroundWindow();
+
+    [DllImport("user32.dll")]
+    private static extern bool SetCursorPos(int x, int y);
+
+    [DllImport("user32.dll")]
+    private static extern void mouse_event(uint flags, uint dx, uint dy, uint data, UIntPtr extra);
+
+    /// <summary>
+    /// 把窗口点成活动窗口再截图。Win11 的 Acrylic 只对**活动窗口**渲染，
+    /// 非活动会退成近乎实心的底色 —— 不点一下，截出来的永远是"平板"，
+    /// 看起来像材质没生效（这个坑踩过）。
+    /// 点的是窗口右下角的状态栏区域，不触发任何操作。
+    /// </summary>
+    private static void ActivateForCapture(IntPtr hwnd)
+    {
+        if (hwnd == IntPtr.Zero)
+        {
+            return;
+        }
+
+        SetForegroundWindow(hwnd);
+        System.Threading.Thread.Sleep(250);
+        if (GetForegroundWindow() != hwnd)
+        {
+            if (GetWindowRect(hwnd, out RECT r))
+            {
+                SetCursorPos(r.Right - 40, r.Bottom - 12);
+                System.Threading.Thread.Sleep(120);
+                mouse_event(0x0002, 0, 0, 0, UIntPtr.Zero);   // LEFTDOWN
+                mouse_event(0x0004, 0, 0, 0, UIntPtr.Zero);   // LEFTUP
+                System.Threading.Thread.Sleep(350);
+            }
+        }
+    }
 
     [DllImport("user32.dll")]
     private static extern bool GetWindowRect(IntPtr hWnd, out RECT rect);
