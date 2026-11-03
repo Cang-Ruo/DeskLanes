@@ -40,6 +40,9 @@ public static class DwmInterop
     /// <summary>DWMWCP_ROUND：系统圆角。</summary>
     public const int CornerPreferenceRound = 2;
 
+    /// <summary>不做圆角：贴屏幕边缘停靠的窗口用它，否则 DWM 会把外侧角切掉一块。</summary>
+    public const int CornerPreferenceDoNotRound = 1;
+
     /// <summary>DWMSBT_AUTO：交给系统决定（通常等价于 Mica）。</summary>
     public const int BackdropAuto = 0;
 

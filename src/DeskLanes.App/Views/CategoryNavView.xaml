@@ -38,8 +38,8 @@
                     <ListBox.ItemTemplate>
                         <DataTemplate>
                             <Grid Margin="2,1">
-                                <TextBlock Text="{Binding Name}" TextTrimming="CharacterEllipsis"
-                                           FontSize="13" VerticalAlignment="Center" />
+                                <TextBlock Text="{Binding Name}" Style="{StaticResource ItemNameTextTight}"
+                                           VerticalAlignment="Center" />
                                 <TextBlock Text="{Binding ItemCount}" Foreground="{StaticResource BrushTextTertiary}"
                                            FontSize="11" HorizontalAlignment="Right"
                                            VerticalAlignment="Center" />
@@ -50,8 +50,10 @@
             </DockPanel>
         </Border>
 
-        <!-- 右：项目网格 -->
-        <Grid Grid.Column="1">
+        <!-- 右：项目区。外面套一层玻璃面板：项目直接裸在壁纸上会和背后的
+             模糊图标抢注意力，加这一层才有"导航 / 面板 / 卡片"三个层次的区分 -->
+        <Border Grid.Column="1" Style="{StaticResource GlassPanel}" Padding="12,8,12,10">
+            <Grid>
             <Grid.RowDefinitions>
                 <RowDefinition Height="Auto" />
                 <RowDefinition Height="*" />
@@ -127,6 +129,7 @@
                 <TextBlock Text="🗑 把项目拖到这里，从工作区移除（不会删除桌面文件）"
                            FontSize="12" Foreground="{StaticResource BrushDangerText}" HorizontalAlignment="Center" />
             </Border>
-        </Grid>
+            </Grid>
+        </Border>
     </Grid>
 </UserControl>

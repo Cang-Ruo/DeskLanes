@@ -79,14 +79,18 @@ public static class WindowBackdropService
     /// 在窗口构造函数里调用一次：SourceInitialized 后自动应用背景效果。
     /// 幂等；对分层窗口是无操作。
     /// </summary>
-    public static void Attach(Window window)
+    /// <param name="squareCorner">
+    /// 贴屏幕边缘停靠的窗口（侧边栏）传 true：系统圆角会把贴边那侧的角切掉一块，
+    /// 看着像缺角。这个是公开的 DWMWA_WINDOW_CORNER_PREFERENCE，不涉及未公开接口。
+    /// </param>
+    public static void Attach(Window window, bool squareCorner = false)
     {
         ArgumentNullException.ThrowIfNull(window);
-        window.SourceInitialized += (_, _) => Apply(window);
+        window.SourceInitialized += (_, _) => Apply(window, squareCorner);
     }
 
     /// <summary>对已创建句柄的窗口应用背景效果。返回是否应用了原生 DWM 背景。</summary>
-    public static bool Apply(Window window)
+    public static bool Apply(Window window, bool squareCorner = false)
     {
         ArgumentNullException.ThrowIfNull(window);
 
@@ -106,7 +110,9 @@ public static class WindowBackdropService
         int on = 1;
         _ = DwmInterop.DwmSetWindowAttribute(
             hwnd, DwmInterop.AttributeUseImmersiveDarkMode, ref on, sizeof(int));
-        int round = DwmInterop.CornerPreferenceRound;
+        int round = squareCorner
+            ? DwmInterop.CornerPreferenceDoNotRound
+            : DwmInterop.CornerPreferenceRound;
         _ = DwmInterop.DwmSetWindowAttribute(
             hwnd, DwmInterop.AttributeCornerPreference, ref round, sizeof(int));
 

@@ -18,9 +18,8 @@
         <StackPanel>
             <Image Source="{Binding Icon}" Width="48" Height="48"
                    Margin="0,2,0,6" RenderOptions.BitmapScalingMode="HighQuality" />
-            <TextBlock Text="{Binding Name}" TextTrimming="CharacterEllipsis"
-                       TextAlignment="Center" MaxWidth="100" FontSize="13"
-                       Foreground="{StaticResource BrushTextPrimary}" />
+            <TextBlock Text="{Binding Name}" MaxWidth="100"
+                       Style="{StaticResource ItemNameText}" />
             <TextBlock Text="{Binding StatusText}" FontSize="10" Foreground="{StaticResource BrushDangerText}"
                        TextAlignment="Center" TextTrimming="CharacterEllipsis">
                 <TextBlock.Style>
