@@ -36,12 +36,15 @@
     <!-- 弹出层（菜单/提示）底色：近乎不透明 -->
     <SolidColorBrush x:Key="BrushMenuGlass" Color="#F21B2B3F" />
     <!-- 普通窗口在原生 DWM 背景之上的内容层次。
-         下面这几层是叠在 Acrylic 之上的 tint：调太实会把玻璃感盖掉，
-         目标是「透得出壁纸，又压得住文字对比度」，所以都压在 15%~35%。 -->
+         这几层是叠在 Acrylic 之上的 tint：每多一层 α，透进来的起伏就乘一次 (1-α)，
+         叠三层就已经把 DWM 给的透光吃掉了大半 —— 实测（tools/glass-proof.py）
+         只贴材质、零 tint 时能保留背景起伏的 ~33%，叠到三层只剩 ~19%。
+         所以这里的 α 全部按「够读出层次就行」压到最低，别再往上加：
+         再厚一点，眼前的"玻璃"就会退化成"深灰块"。 -->
     <SolidColorBrush x:Key="BrushWindowBaseGlass" Color="#2E20334A" />
-    <SolidColorBrush x:Key="BrushNavGlass" Color="#5917283B" />
-    <SolidColorBrush x:Key="BrushPanelGlass" Color="#2420334A" />
-    <SolidColorBrush x:Key="BrushCardGlass" Color="#3D20334A" />
+    <SolidColorBrush x:Key="BrushNavGlass" Color="#4D17283B" />
+    <SolidColorBrush x:Key="BrushPanelGlass" Color="#3320334A" />
+    <SolidColorBrush x:Key="BrushCardGlass" Color="#4020334A" />
     <!-- 输入控件底色 -->
     <SolidColorBrush x:Key="BrushInputGlass" Color="#14FFFFFF" />
     <!-- 交互反馈 -->
@@ -471,10 +474,32 @@
     </Style>
 
     <!-- 文字层级 -->
+    <!-- 玻璃上的文字投影：非常轻（1px 偏移 + 小半径），只负责把字从模糊背景上"托"起来。
+         玻璃一旦真透光，浅色字在任何亮背景上都会糊；靠加深整块面板去救，
+         就等于把玻璃又糊成实心 —— 所以用投影换对比度，面板保持通透。 -->
+    <DropShadowEffect x:Key="TextShadowGlass" BlurRadius="3" ShadowDepth="1"
+                      Direction="270" Opacity="0.55" Color="#000000" />
+
     <Style x:Key="SectionTitle" TargetType="TextBlock">
         <Setter Property="FontSize" Value="13" />
         <Setter Property="FontWeight" Value="SemiBold" />
         <Setter Property="Foreground" Value="{StaticResource BrushTextPrimary}" />
+        <Setter Property="Effect" Value="{StaticResource TextShadowGlass}" />
+    </Style>
+
+    <Style x:Key="ItemNameText" TargetType="TextBlock">
+        <Setter Property="FontSize" Value="13" />
+        <Setter Property="Foreground" Value="{StaticResource BrushTextPrimary}" />
+        <Setter Property="TextTrimming" Value="CharacterEllipsis" />
+        <Setter Property="TextAlignment" Value="Center" />
+        <Setter Property="Effect" Value="{StaticResource TextShadowGlass}" />
+    </Style>
+
+    <Style x:Key="ItemNameTextTight" TargetType="TextBlock">
+        <Setter Property="FontSize" Value="12.5" />
+        <Setter Property="Foreground" Value="{StaticResource BrushTextPrimary}" />
+        <Setter Property="TextTrimming" Value="CharacterEllipsis" />
+        <Setter Property="Effect" Value="{StaticResource TextShadowGlass}" />
     </Style>
 
     <Style x:Key="HintText" TargetType="TextBlock">

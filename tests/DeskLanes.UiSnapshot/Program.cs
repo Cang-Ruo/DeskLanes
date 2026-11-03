@@ -52,7 +52,7 @@ namespace DeskLanes.UiSnapshot;
 public static class Program
 {
     private static readonly string[] Modes =
-        { "category", "panels", "floating", "sidebar", "settings", "dialog", "perf" };
+        { "category", "panels", "floating", "sidebar", "settings", "dialog", "perf", "reference" };
 
     [STAThread]
     public static int Main(string[] args)
@@ -77,12 +77,29 @@ public static class Program
         // 视觉树快照抓不到 DWM 材质与桌面壁纸，对外展示「玻璃效果」必须带这个开关。
         bool screen = args.Skip(2).Any(a => string.Equals(a, "--screen", StringComparison.OrdinalIgnoreCase));
 
+        // --keep-size：与 --screen 一起用时**不最大化**。
+        // 最大化虽然避免了把真实桌面图标拍进对外截图，但窗口铺满整屏后
+        // 也就没东西可"透"了——验证玻璃材质需要窗口化的窗口浮在真实桌面上。
+        bool keepSize = args.Skip(2).Any(a => string.Equals(a, "--keep-size", StringComparison.OrdinalIgnoreCase));
+
+        // --hold <毫秒>：截完图再保留窗口一段时间，让外部脚本能抓同一位置的
+        // 桌面参照帧（用来证明"透出来的是壁纸"，而不是一块灰色。见 tools/glass-proof.py）。
+        int holdMs = 0;
+        foreach (string a in args.Skip(2))
+        {
+            if (a.StartsWith("--hold=", StringComparison.OrdinalIgnoreCase) &&
+                int.TryParse(a["--hold=".Length..], out int v))
+            {
+                holdMs = v;
+            }
+        }
+
         // 屏幕合成截图需要物理像素坐标（与 GetWindowRect / GetDC 一致）
         SetProcessDPIAware();
 
         try
         {
-            RunAsync(mode, output, demo, keepTop, screen).GetAwaiter().GetResult();
+            RunAsync(mode, output, demo, keepTop, screen, keepSize, holdMs).GetAwaiter().GetResult();
             return 0;
         }
         catch (Exception ex)
@@ -92,7 +109,8 @@ public static class Program
         }
     }
 
-    private static async Task RunAsync(string mode, string output, bool demo, bool keepTop, bool screen = false)
+    private static async Task RunAsync(string mode, string output, bool demo, bool keepTop,
+                                       bool screen = false, bool keepSize = false, int holdMs = 0)
     {
         // 1. 复制真实配置到临时目录（只读使用，不污染真实配置）；--demo 时不复制
         string realDir = Path.Combine(
@@ -168,7 +186,7 @@ public static class Program
                     Width = 0,
                     Height = 0,
                     ShowInTaskbar = false,
-                    ShowActivated = false,
+                    ShowActivated = screen,
                     WindowStyle = WindowStyle.None,
                     Visibility = Visibility.Hidden,
                 };
@@ -180,7 +198,7 @@ public static class Program
                 window = new SettingsWindow(vm)
                 {
                     WindowStartupLocation = WindowStartupLocation.CenterScreen,
-                    ShowActivated = false,
+                    ShowActivated = screen,
                 };
             }
             else if (mode == "dialog")
@@ -188,7 +206,7 @@ public static class Program
                 window = new TextInputDialog("重命名分类", "请输入新的分类名称：", "工作")
                 {
                     WindowStartupLocation = WindowStartupLocation.CenterScreen,
-                    ShowActivated = false,
+                    ShowActivated = screen,
                 };
             }
             else if (mode == "floating")
@@ -197,7 +215,7 @@ public static class Program
                 window = new FloatingWindow(vm, controller)
                 {
                     WindowStartupLocation = WindowStartupLocation.CenterScreen,
-                    ShowActivated = false,
+                    ShowActivated = screen,
                 };
             }
             else if (mode == "sidebar")
@@ -206,7 +224,7 @@ public static class Program
                 window = new SidebarWindow(vm, controller)
                 {
                     WindowStartupLocation = WindowStartupLocation.CenterScreen,
-                    ShowActivated = false,
+                    ShowActivated = screen,
                 };
                 // 快照固定展示展开态（收起态只有 44 DIP 窄条，无法验证视觉规范）；
                 // 顺带关掉失焦自动收起，避免快照期间窗口被收起。
@@ -217,6 +235,22 @@ public static class Program
                 }
 
                 vm.AutoCollapseOnFocusLost = false;
+            }
+            else if (mode == "reference")
+            {
+                // 参照窗口：只贴材质、不放任何内容。
+                // 用来区分两种失败：材质本身没生效（参照也一样平），
+                // 还是我们的 XAML 把它糊住了（参照很透、主窗口很平）。
+                window = new Window
+                {
+                    Title = "参照-纯玻璃",
+                    Width = 900,
+                    Height = 620,
+                    Background = Brushes.Transparent,
+                    WindowStartupLocation = WindowStartupLocation.CenterScreen,
+                    ShowActivated = true,
+                };
+                WindowBackdropService.Attach(window);
             }
             else
             {
@@ -234,9 +268,10 @@ public static class Program
                 };
 
                 // --screen：屏幕合成截图会把窗口之外的桌面一起拍进来，
-                // 真实桌面图标的文件名就跟着泄露了。主窗口最大化后背景只剩壁纸，
+                // 真实桌面图标的文件名就跟着泄露了。默认主窗口最大化——背景只剩壁纸，
                 // 而且这也正好是"全屏工作空间"的真实形态。
-                if (screen)
+                // 但 --keep-size 时不最大化：验证玻璃材质必须留一圈真实桌面在窗外。
+                if (screen && !keepSize)
                 {
                     window.WindowState = WindowState.Maximized;
                 }
@@ -324,6 +359,12 @@ public static class Program
                         encoder.Save(stream);
 
                         Console.WriteLine($"快照已保存：{output}（{width}x{height}，模式 {mode}）");
+                    }
+
+                    // --hold：截完先别关，留给外部脚本抓「窗口后面原本是什么」的参照帧
+                    if (holdMs > 0)
+                    {
+                        await Task.Delay(holdMs);
                     }
                 }
                 catch (Exception ex)
