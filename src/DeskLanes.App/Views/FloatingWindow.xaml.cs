@@ -30,7 +30,9 @@ public partial class FloatingWindow : Window
         _controller = controller ?? throw new ArgumentNullException(nameof(controller));
         DataContext = viewModel;
         InitializeComponent();
-        WindowBackdropService.Attach(this);
+        // paintWindowSurface: false —— 根 Border 会用圆角画这层底色，
+        // 窗口自身再画一遍就是同一像素叠两层 tint（18%+18%≈33%），玻璃会发闷
+        WindowBackdropService.Attach(this, paintWindowSurface: false);
 
         // 恢复上次拖到的位置与缩到的尺寸（必须晚于 InitializeComponent）
         ApplyWindowPreferences();
