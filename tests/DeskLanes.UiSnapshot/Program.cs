@@ -52,7 +52,11 @@ namespace DeskLanes.UiSnapshot;
 public static class Program
 {
     private static readonly string[] Modes =
-        { "category", "panels", "floating", "sidebar", "settings", "dialog", "perf", "reference" };
+        { "category", "panels", "floating", "sidebar", "settings", "dialog", "perf", "reference", "perf200" };
+
+    /// <summary>进程启动时刻：用来量"从双击到首屏可用"的端到端时间。</summary>
+    private static readonly System.Diagnostics.Stopwatch ProgramClock =
+        System.Diagnostics.Stopwatch.StartNew();
 
     [STAThread]
     public static int Main(string[] args)
@@ -152,13 +156,19 @@ public static class Program
             if (demo)
             {
                 // perf 模式按 B6 的"200+ 项目"来压：12 个文件 + 3 个文件夹 + 205 个批量项 = 220
-                SeedDemoItems(workspace, tempDir, mode == "perf" ? 205 : 0);
+                SeedDemoItems(workspace, tempDir, mode is "perf" or "perf200" ? 205 : 0);
             }
 
             if (mode == "panels")
             {
                 workspace.SetLayoutMode(LayoutMode.FreePanels);
                 SeedPanels(workspace);
+            }
+            else if (mode == "perf200")
+            {
+                // 分区先建好但不切过去：切换耗时要在测量里现算
+                SeedPanels(workspace);
+                SeedCategories(workspace);
             }
             else
             {
@@ -316,6 +326,12 @@ public static class Program
                     if (mode == "perf")
                     {
                         await MeasureLayoutToggleAsync(window, mainViewModel, demo);
+                        return;
+                    }
+
+                    if (mode == "perf200")
+                    {
+                        await MeasurePerf200Async(window, mainViewModel, output);
                         return;
                     }
 
@@ -598,6 +614,154 @@ public static class Program
         window.UpdateLayout();
         sw.Stop();
         return sw.Elapsed.TotalMilliseconds;
+    }
+
+
+    /// <summary>把一组耗时压成 (中位数, 最小, 最大)，报表只用中位数判断。</summary>
+    private static (double med, double min, double max) Summarize(List<double> xs)
+    {
+        if (xs.Count == 0)
+        {
+            return (0, 0, 0);
+        }
+
+        var sorted = xs.OrderBy(v => v).ToList();
+        double med = sorted.Count % 2 == 1
+            ? sorted[sorted.Count / 2]
+            : (sorted[sorted.Count / 2 - 1] + sorted[sorted.Count / 2]) / 2;
+        return (med, sorted[0], sorted[^1]);
+    }
+
+    /// <summary>
+    /// 200+ 项目的渲染性能：首屏、布局切换、滚动、缩放。
+    /// 设 DESKLANES_NO_TEXT_SHADOW=1 可以在同一个构建上关掉文字投影做对照，
+    /// 免得为了对比再去改代码重编译（那会把编译差异混进结论）。
+    /// </summary>
+    private static async Task MeasurePerf200Async(Window window, MainViewModel viewModel, string outPath)
+    {
+        // 先切到项目最多的那个分类：默认选中的分类只有十来项，
+        // 在这样的视图上测 220 项的性能等于没测。
+        var biggest = viewModel.CategoryNav.Categories
+            .OrderByDescending(c => c.ItemCount)
+            .FirstOrDefault();
+        if (biggest is not null)
+        {
+            viewModel.CategoryNav.SelectedCategory = biggest;
+        }
+
+        // 等首屏：Items 到位 + ContextIdle 跑完 = 瓦片都进了视觉树并完成布局
+        await window.Dispatcher.InvokeAsync(
+            () => { }, System.Windows.Threading.DispatcherPriority.ContextIdle);
+        window.UpdateLayout();
+        double openMs = ProgramClock.Elapsed.TotalMilliseconds;
+        int itemCount = viewModel.Items.Count;
+        int visibleTiles = FindVisualChildren<ItemTile>(window).Count();
+
+        bool stripShadow = Environment.GetEnvironmentVariable("DESKLANES_NO_TEXT_SHADOW") == "1";
+        int stripped = 0;
+        if (stripShadow)
+        {
+            foreach (TextBlock tb in FindVisualChildren<TextBlock>(window))
+            {
+                if (tb.Effect is not null)
+                {
+                    tb.Effect = null;
+                    stripped++;
+                }
+            }
+
+            window.UpdateLayout();
+            await window.Dispatcher.InvokeAsync(
+                () => { }, System.Windows.Threading.DispatcherPriority.ContextIdle);
+        }
+
+        // 布局切换：先热身一次（首次要实例化另一套视图），再取 5 次中位数
+        await ToggleLayoutOnceAsync(window, viewModel);
+        var toggles = new List<double>();
+        for (int i = 0; i < 5; i++)
+        {
+            toggles.Add(await ToggleLayoutOnceAsync(window, viewModel));
+        }
+
+        // 滚动：取内容区那个 ScrollViewer（窗口里还有 TextBox 模板自带的）
+        // 必须挑"真的能滚"的那个：窗口里还有 TextBox 模板自带的 ScrollViewer 和
+        // 分区画布，按高度挑会挑到 ScrollableHeight = 0 的，测出来永远是 0.0ms。
+        ScrollViewer? content = FindVisualChildren<ScrollViewer>(window)
+            .Where(s => s.ScrollableHeight > 0)
+            .OrderByDescending(s => s.ScrollableHeight)
+            .FirstOrDefault();
+        var scrollTimes = new List<double>();
+        double cpuBefore = System.Diagnostics.Process.GetCurrentProcess()
+            .TotalProcessorTime.TotalMilliseconds;
+        if (content is not null)
+        {
+            for (int i = 0; i < 10; i++)
+            {
+                double target = content.ScrollableHeight * (i / 9.0);
+                var sw = System.Diagnostics.Stopwatch.StartNew();
+                content.ScrollToVerticalOffset(target);
+
+                // 必须等"下一帧真的画出来"再停表：只调 UpdateLayout 的话
+                // WPF 会把布局推迟到渲染阶段，量出来是 0.3ms 的假数字（踩过）。
+                var frame = new TaskCompletionSource<bool>();
+                EventHandler onRendering = null!;
+                onRendering = (_, _) =>
+                {
+                    CompositionTarget.Rendering -= onRendering;
+                    frame.TrySetResult(true);
+                };
+                CompositionTarget.Rendering += onRendering;
+                Task done = await Task.WhenAny(frame.Task, Task.Delay(2000));
+                if (done != frame.Task)
+                {
+                    CompositionTarget.Rendering -= onRendering;
+                }
+
+                sw.Stop();
+                scrollTimes.Add(sw.Elapsed.TotalMilliseconds);
+            }
+        }
+
+        double cpuAfter = System.Diagnostics.Process.GetCurrentProcess()
+            .TotalProcessorTime.TotalMilliseconds;
+
+        // 缩放：改窗口尺寸 + 等布局稳定
+        var resizeTimes = new List<double>();
+        foreach ((int w, int h) in new[] { (1200, 800), (1600, 1000), (1400, 900), (1800, 1100), (1400, 900) })
+        {
+            var sw = System.Diagnostics.Stopwatch.StartNew();
+            window.Width = w;
+            window.Height = h;
+            window.UpdateLayout();
+            await window.Dispatcher.InvokeAsync(
+                () => { }, System.Windows.Threading.DispatcherPriority.ContextIdle);
+            sw.Stop();
+            resizeTimes.Add(sw.Elapsed.TotalMilliseconds);
+        }
+
+        var proc = System.Diagnostics.Process.GetCurrentProcess();
+        var (tMed, tMin, tMax) = Summarize(toggles);
+        var (sMed, sMin, sMax) = Summarize(scrollTimes);
+        var (rMed, rMin, rMax) = Summarize(resizeTimes);
+
+        string json = "{" +
+            $"\"shadow\":{(stripShadow ? "false" : "true")}," +
+            $"\"stripped_textblocks\":{stripped}," +
+            $"\"item_count\":{itemCount}," +
+            $"\"visible_tiles\":{visibleTiles}," +
+            $"\"scrollable_height\":{(content?.ScrollableHeight ?? 0):F0}," +
+            $"\"open_ms\":{openMs:F1}," +
+            $"\"toggle_ms\":{tMed:F1},\"toggle_min\":{tMin:F1},\"toggle_max\":{tMax:F1}," +
+            $"\"scroll_ms\":{sMed:F1},\"scroll_min\":{sMin:F1},\"scroll_max\":{sMax:F1}," +
+            $"\"resize_ms\":{rMed:F1},\"resize_min\":{rMin:F1},\"resize_max\":{rMax:F1}," +
+            $"\"scroll_cpu_ms\":{cpuAfter - cpuBefore:F1}," +
+            $"\"working_set_mb\":{proc.WorkingSet64 / 1024.0 / 1024.0:F1}," +
+            $"\"managed_mb\":{GC.GetTotalMemory(false) / 1024.0 / 1024.0:F1}" +
+            "}";
+
+        Console.WriteLine(json);
+        Directory.CreateDirectory(Path.GetDirectoryName(outPath)!);
+        File.WriteAllText(outPath, json);
     }
 
     private static async Task MeasureLayoutToggleAsync(Window window, MainViewModel viewModel, bool demo)
