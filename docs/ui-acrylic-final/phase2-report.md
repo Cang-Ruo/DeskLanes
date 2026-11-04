@@ -87,11 +87,11 @@
 | 侧边栏 | 63.9 | **71.9** | +12.5% |
 
 悬浮窗 +21% 正好印证了"画两遍"的判断——去掉一层 18% 就是这么多。
-三张改前/改后图（`phase2-before-*.png` / `phase2-after-*.png`）与指标
-（`metrics-before.json` / `metrics-after.json`）都在 `docs/ui-acrylic-final/`。
+指标已入库（`metrics-before.json` / `metrics-after.json`）。
 
-> 隐私说明：前后对照图里带出了真实桌面的项目名，**已加入 `.gitignore` 只留本地**；
-> 仓库里只提交指标 JSON 与本报告。阶段 3 的可读性截图会用脱敏后的数据重拍。
+> 隐私说明：对照图里会带出真实桌面的项目名，所以**没有入库**（本轮生成后即删除）。
+> 数字是可复现的：`python tools/phase2-ab.py before|after` 会在同一位置重拍并重算指标；
+> 阶段 3 的可读性截图会用脱敏后的数据重拍并入库。
 
 ---
 
