@@ -130,9 +130,26 @@ public sealed class SidebarViewModel : ObservableObject
     /// <summary>与 HasItems 互补：空状态文字的可见性绑定（悬浮窗 VM 同名同义）。</summary>
     public bool HasNoItems => Items.Count == 0;
 
-    public string EmptyStateText => _shellState.IsSearching
-        ? $"没有包含“{_shellState.SearchText.Trim()}”的项目。"
-        : "这个分类还没有项目。";
+    /// <summary>
+    /// 空状态文案。
+    /// 注意：侧边栏**不伪造分类**（没有用户分类时 Categories 就是空的，有冒烟断言守着）。
+    /// 但只说"这个分类还没有项目"会让人以为数据丢了 —— 所以这里区分两种情况：
+    /// 根本没有分类 vs 分类里没有项目。
+    /// </summary>
+    public string EmptyStateText
+    {
+        get
+        {
+            if (_shellState.IsSearching)
+            {
+                return $"没有包含“{_shellState.SearchText.Trim()}”的项目。";
+            }
+
+            return Categories.Count == 0
+                ? "还没有分类。\n在主窗口「分类」里新建一个，这里会跟着显示。\n（桌面上的文件不会被移动）"
+                : "这个分类还没有项目。";
+        }
+    }
 
     public string StatusText
     {
