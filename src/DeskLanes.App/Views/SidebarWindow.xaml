@@ -92,7 +92,10 @@
                     <ListBox.ItemTemplate>
                         <DataTemplate>
                             <Grid Margin="2,1">
-                                <TextBlock Text="{Binding Name}" FontSize="12" TextTrimming="CharacterEllipsis" />
+                                <Border Background="{StaticResource BrushLabelScrim}" CornerRadius="3"
+                                        Padding="3,0" HorizontalAlignment="Left">
+                                    <TextBlock Text="{Binding Name}" FontSize="12" TextTrimming="CharacterEllipsis" />
+                                </Border>
                                 <TextBlock Text="{Binding ItemCount}" FontSize="10"
                                            Foreground="{StaticResource BrushTextTertiary}"
                                            HorizontalAlignment="Right" />
@@ -111,8 +114,11 @@
                             <Border Padding="6,4" CornerRadius="6" ToolTip="{Binding TooltipText}">
                                 <StackPanel Orientation="Horizontal">
                                     <Image Source="{Binding Icon}" Width="18" Height="18" Margin="0,0,8,0" />
-                                    <TextBlock Text="{Binding Name}" FontSize="12" TextTrimming="CharacterEllipsis"
-                                               VerticalAlignment="Center" MaxWidth="200" />
+                                    <Border Background="{StaticResource BrushLabelScrim}" CornerRadius="3"
+                                            Padding="3,0" VerticalAlignment="Center">
+                                        <TextBlock Text="{Binding Name}" FontSize="12" TextTrimming="CharacterEllipsis"
+                                                   VerticalAlignment="Center" MaxWidth="200" />
+                                    </Border>
                                 </StackPanel>
                             </Border>
                         </DataTemplate>

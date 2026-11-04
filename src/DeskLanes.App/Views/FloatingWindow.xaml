@@ -115,7 +115,10 @@
                 <ListBox.ItemTemplate>
                     <DataTemplate>
                         <StackPanel Orientation="Horizontal">
-                            <TextBlock Text="{Binding Name}" FontSize="13" VerticalAlignment="Center" />
+                            <Border Background="{StaticResource BrushLabelScrim}" CornerRadius="3"
+                                    Padding="4,0" VerticalAlignment="Center">
+                                <TextBlock Text="{Binding Name}" FontSize="13" VerticalAlignment="Center" />
+                            </Border>
                             <TextBlock Text="{Binding ItemCount}" FontSize="11" Foreground="{StaticResource BrushTextTertiary}"
                                        Margin="6,0,0,0" VerticalAlignment="Center" />
                         </StackPanel>
