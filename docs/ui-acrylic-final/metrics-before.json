@@ -1,0 +1,35 @@
+[
+  {
+    "mean": 109.9,
+    "std": 12.3,
+    "mode": "panels",
+    "active": true,
+    "size": [
+      2578,
+      1398
+    ],
+    "dwm_backdrop": 3
+  },
+  {
+    "mean": 124.2,
+    "std": 35.7,
+    "mode": "floating",
+    "active": true,
+    "size": [
+      890,
+      675
+    ],
+    "dwm_backdrop": 3
+  },
+  {
+    "mean": 63.9,
+    "std": 7.8,
+    "mode": "sidebar",
+    "active": true,
+    "size": [
+      350,
+      950
+    ],
+    "dwm_backdrop": 3
+  }
+]

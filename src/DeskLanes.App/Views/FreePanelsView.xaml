@@ -97,8 +97,11 @@
         <!-- 虚拟画布：1600×900，用 ScaleTransform 等比缩放到可用空间
              （不用 Viewbox：Viewbox 与 RenderTargetBitmap 截图不兼容，且对动态内容有渲染怪癖） -->
         <Grid x:Name="CanvasHost" ClipToBounds="True" SizeChanged="OnCanvasHostSizeChanged">
+            <!-- 画布背景原本写死 #2E20334A，和窗口基底 BrushWindowBaseGlass 完全同色同 alpha：
+                 等于整块 1600×900 画布上又压了一层 18% 的 tint（18%+18%≈33%），
+                 分区卡片再叠 25% 就到 50% 了，玻璃被压成半实心。这里交还给窗口基底。 -->
             <Border x:Name="CanvasBorder" Width="1600" Height="900" CornerRadius="10"
-                    Background="#2E20334A" BorderBrush="{StaticResource BrushBorderGlass}" BorderThickness="1"
+                    Background="Transparent" BorderBrush="{StaticResource BrushBorderGlass}" BorderThickness="1"
                     HorizontalAlignment="Left" VerticalAlignment="Top">
                 <Border.RenderTransform>
                     <TransformGroup>

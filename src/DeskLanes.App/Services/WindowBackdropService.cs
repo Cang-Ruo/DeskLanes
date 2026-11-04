@@ -83,14 +83,19 @@ public static class WindowBackdropService
     /// 贴屏幕边缘停靠的窗口（侧边栏）传 true：系统圆角会把贴边那侧的角切掉一块，
     /// 看着像缺角。这个是公开的 DWMWA_WINDOW_CORNER_PREFERENCE，不涉及未公开接口。
     /// </param>
-    public static void Attach(Window window, bool squareCorner = false)
+    public static void Attach(Window window, bool squareCorner = false, bool paintWindowSurface = true)
     {
         ArgumentNullException.ThrowIfNull(window);
-        window.SourceInitialized += (_, _) => Apply(window, squareCorner);
+        window.SourceInitialized += (_, _) => Apply(window, squareCorner, paintWindowSurface);
     }
 
     /// <summary>对已创建句柄的窗口应用背景效果。返回是否应用了原生 DWM 背景。</summary>
-    public static bool Apply(Window window, bool squareCorner = false)
+    /// <param name="paintWindowSurface">
+    /// true（默认）：由窗口自身背景画基底 tint，适合没有圆角需求的普通窗口。
+    /// false：窗口自身背景留空，由带圆角的子 Border 画一次——
+    /// 悬浮窗 / 侧边栏用这个，避免同一像素叠两层 tint。
+    /// </param>
+    public static bool Apply(Window window, bool squareCorner = false, bool paintWindowSurface = true)
     {
         ArgumentNullException.ThrowIfNull(window);
 
@@ -188,9 +193,15 @@ public static class WindowBackdropService
             var margins = new DwmInterop.Margins { Left = -1, Right = -1, Top = -1, Bottom = -1 };
             if (DwmInterop.DwmExtendFrameIntoClientArea(hwnd, ref margins) == 0)
             {
-                // 窗口基底：Mica 会染上壁纸色调，叠一层低透明度的雾蓝灰，
-                // 让窗口在不同壁纸上都保持统一的主题色（壁纸仍隐约可见）
-                window.Background = FindThemeBrush("BrushWindowBaseGlass") ?? Brushes.Transparent;
+                // 窗口基底：叠一层低透明度的雾蓝灰，让窗口在不同壁纸上都保持统一的主题色。
+                //
+                // paintWindowSurface=false 的窗口（悬浮窗 / 侧边栏）自己用一个**带圆角**的
+                // Border 画这层底色：如果这里再画一遍，同一像素上就叠了两层 tint
+                // （18% + 18% ≈ 33%），玻璃会明显变闷。所以这种情况下把窗口自身背景留空，
+                // 交给子元素画一次。
+                window.Background = paintWindowSurface
+                    ? FindThemeBrush("BrushWindowBaseGlass") ?? Brushes.Transparent
+                    : Brushes.Transparent;
                 return true;
             }
         }
