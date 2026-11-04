@@ -34,3 +34,8 @@ docs/ui-acrylic-final/raw/
 
 # 阶段 2 前后对照截图：含真实桌面项目名，只留本地
 docs/ui-acrylic-final/phase2-*.png
+
+# 阶段 3 的可读性整窗截图：含真实项目名，只留本地
+docs/ui-acrylic-final/readability-*.png
+# 测试壁纸由脚本生成，不入库
+docs/ui-acrylic-final/wallpapers/

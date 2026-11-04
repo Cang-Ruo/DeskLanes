@@ -18,8 +18,13 @@
         <StackPanel>
             <Image Source="{Binding Icon}" Width="48" Height="48"
                    Margin="0,2,0,6" RenderOptions.BitmapScalingMode="HighQuality" />
-            <TextBlock Text="{Binding Name}" MaxWidth="100"
-                       Style="{StaticResource ItemNameText}" />
+            <!-- 只给名字垫一层极轻的深底（见 GlassTheme 的 BrushLabelScrim）：
+                 亮壁纸下浅色名字压在浅玻璃上会糊，加深整个面板会把玻璃又糊实。 -->
+            <Border Background="{StaticResource BrushLabelScrim}" CornerRadius="4"
+                    Padding="4,1" HorizontalAlignment="Center">
+                <TextBlock Text="{Binding Name}" MaxWidth="100"
+                           Style="{StaticResource ItemNameText}" />
+            </Border>
             <TextBlock Text="{Binding StatusText}" FontSize="10" Foreground="{StaticResource BrushDangerText}"
                        TextAlignment="Center" TextTrimming="CharacterEllipsis">
                 <TextBlock.Style>
