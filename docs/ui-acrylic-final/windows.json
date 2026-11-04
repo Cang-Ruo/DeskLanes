@@ -1,0 +1,72 @@
+{
+  "settings": {
+    "file": "phase5-settings.png",
+    "size": [
+      575,
+      650
+    ],
+    "active": true,
+    "backdrop": 3,
+    "corner": 2,
+    "after_focus_loss": {
+      "visible": true,
+      "width": 575
+    }
+  },
+  "sidebar-right-expanded": {
+    "file": "phase5-sidebar-right-expanded.png",
+    "size": [
+      350,
+      950
+    ],
+    "active": true,
+    "backdrop": 3,
+    "corner": 1,
+    "after_focus_loss": {
+      "visible": true,
+      "width": 55
+    }
+  },
+  "sidebar-left-expanded": {
+    "file": "phase5-sidebar-left-expanded.png",
+    "size": [
+      420,
+      1140
+    ],
+    "active": true,
+    "backdrop": 3,
+    "corner": 1,
+    "after_focus_loss": {
+      "visible": true,
+      "width": 66
+    }
+  },
+  "sidebar-collapsed": {
+    "file": "phase5-sidebar-collapsed.png",
+    "size": [
+      55,
+      950
+    ],
+    "active": true,
+    "backdrop": 3,
+    "corner": 1,
+    "after_focus_loss": {
+      "visible": true,
+      "width": 55
+    }
+  },
+  "floating-default": {
+    "file": "phase5-floating-default.png",
+    "size": [
+      1068,
+      810
+    ],
+    "active": true,
+    "backdrop": 3,
+    "corner": 2,
+    "after_focus_loss": {
+      "visible": true,
+      "width": 1068
+    }
+  }
+}
