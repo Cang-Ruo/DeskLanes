@@ -1,22 +1,140 @@
 [
   {
-    "bg_p05": 128.16326530612244,
-    "bg_p50": 140.9387755102041,
-    "bg_p95": 170.89795918367346,
+    "bg_p05": 55.06122448979592,
+    "bg_p50": 80.65306122448979,
+    "bg_p95": 124.34693877551021,
+    "bg_max": 166.48979591836735,
+    "primary": {
+      "p50": 7.37,
+      "p95_worst": 3.81,
+      "max_worst": 2.22
+    },
+    "secondary": {
+      "p50": 4.64,
+      "p95_worst": 2.4,
+      "max_worst": 1.4
+    },
+    "tertiary": {
+      "p50": 3.01,
+      "p95_worst": 1.56,
+      "max_worst": 1.1
+    },
+    "mode": "category",
+    "wallpaper": "dark",
+    "active": true,
+    "size": [
+      2578,
+      1398
+    ],
+    "file": "readability-dark-category.png"
+  },
+  {
+    "bg_p05": 101.89795918367346,
+    "bg_p50": 138.42857142857142,
+    "bg_p95": 167.22448979591837,
     "bg_max": 216.12244897959184,
     "primary": {
-      "p50": 3.07,
-      "p95_worst": 2.12,
+      "p50": 3.15,
+      "p95_worst": 2.2,
       "max_worst": 1.3
     },
     "secondary": {
-      "p50": 1.93,
-      "p95_worst": 1.34,
+      "p50": 1.99,
+      "p95_worst": 1.38,
       "max_worst": 1.22
     },
     "tertiary": {
-      "p50": 1.25,
-      "p95_worst": 1.15,
+      "p50": 1.29,
+      "p95_worst": 1.11,
+      "max_worst": 1.88
+    },
+    "mode": "floating",
+    "wallpaper": "dark",
+    "active": true,
+    "size": [
+      890,
+      675
+    ],
+    "file": "readability-dark-floating.png",
+    "corner_mean": 101.2,
+    "inner_mean": 108.1
+  },
+  {
+    "bg_p05": 68.88636363636364,
+    "bg_p50": 70.0,
+    "bg_p95": 116.98484848484848,
+    "bg_max": 132.1625,
+    "primary": {
+      "p50": 8.62,
+      "p95_worst": 4.27,
+      "max_worst": 3.42
+    },
+    "secondary": {
+      "p50": 5.43,
+      "p95_worst": 2.69,
+      "max_worst": 2.15
+    },
+    "tertiary": {
+      "p50": 3.52,
+      "p95_worst": 1.74,
+      "max_worst": 1.4
+    },
+    "mode": "sidebar",
+    "wallpaper": "dark",
+    "active": true,
+    "size": [
+      350,
+      950
+    ],
+    "file": "readability-dark-sidebar.png"
+  },
+  {
+    "bg_p05": 85.85714285714286,
+    "bg_p50": 105.93877551020408,
+    "bg_p95": 126.46938775510205,
+    "bg_max": 166.48979591836735,
+    "primary": {
+      "p50": 5.01,
+      "p95_worst": 3.71,
+      "max_worst": 2.22
+    },
+    "secondary": {
+      "p50": 3.16,
+      "p95_worst": 2.34,
+      "max_worst": 1.4
+    },
+    "tertiary": {
+      "p50": 2.05,
+      "p95_worst": 1.51,
+      "max_worst": 1.1
+    },
+    "mode": "category",
+    "wallpaper": "light",
+    "active": true,
+    "size": [
+      2578,
+      1398
+    ],
+    "file": "readability-light-category.png"
+  },
+  {
+    "bg_p05": 98.0,
+    "bg_p50": 134.0,
+    "bg_p95": 163.87755102040816,
+    "bg_max": 216.12244897959184,
+    "primary": {
+      "p50": 3.33,
+      "p95_worst": 2.3,
+      "max_worst": 1.3
+    },
+    "secondary": {
+      "p50": 2.09,
+      "p95_worst": 1.45,
+      "max_worst": 1.22
+    },
+    "tertiary": {
+      "p50": 1.36,
+      "p95_worst": 1.06,
       "max_worst": 1.88
     },
     "mode": "floating",
@@ -27,28 +145,28 @@
       675
     ],
     "file": "readability-light-floating.png",
-    "corner_mean": 136.2,
-    "inner_mean": 146.8
+    "corner_mean": 131.5,
+    "inner_mean": 109.4
   },
   {
     "bg_p05": 131.0,
-    "bg_p50": 134.0,
-    "bg_p95": 141.06666666666666,
-    "bg_max": 164.0,
+    "bg_p50": 133.16666666666666,
+    "bg_p95": 136.0,
+    "bg_max": 142.92045454545453,
     "primary": {
-      "p50": 3.33,
-      "p95_worst": 3.03,
-      "max_worst": 2.28
+      "p50": 3.37,
+      "p95_worst": 3.24,
+      "max_worst": 2.99
     },
     "secondary": {
-      "p50": 2.09,
-      "p95_worst": 1.91,
-      "max_worst": 1.43
+      "p50": 2.12,
+      "p95_worst": 2.04,
+      "max_worst": 1.88
     },
     "tertiary": {
-      "p50": 1.36,
-      "p95_worst": 1.24,
-      "max_worst": 1.08
+      "p50": 1.38,
+      "p95_worst": 1.32,
+      "max_worst": 1.22
     },
     "mode": "sidebar",
     "wallpaper": "light",
