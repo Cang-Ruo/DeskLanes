@@ -1,0 +1,180 @@
+[
+  {
+    "bg_p05": 53.6530612244898,
+    "bg_p50": 85.51020408163265,
+    "bg_p95": 123.73469387755102,
+    "bg_max": 163.26530612244898,
+    "primary": {
+      "p50": 6.81,
+      "p95_worst": 3.87,
+      "max_worst": 2.3
+    },
+    "secondary": {
+      "p50": 4.29,
+      "p95_worst": 2.44,
+      "max_worst": 1.45
+    },
+    "tertiary": {
+      "p50": 2.78,
+      "p95_worst": 1.58,
+      "max_worst": 1.06
+    },
+    "mode": "category",
+    "wallpaper": "dark",
+    "active": true,
+    "size": [
+      2578,
+      1398
+    ],
+    "file": "readability-dark-category-before.png"
+  },
+  {
+    "bg_p05": 101.40816326530613,
+    "bg_p50": 139.28571428571428,
+    "bg_p95": 167.3265306122449,
+    "bg_max": 216.12244897959184,
+    "primary": {
+      "p50": 3.11,
+      "p95_worst": 2.2,
+      "max_worst": 1.3
+    },
+    "secondary": {
+      "p50": 1.96,
+      "p95_worst": 1.38,
+      "max_worst": 1.22
+    },
+    "tertiary": {
+      "p50": 1.27,
+      "p95_worst": 1.11,
+      "max_worst": 1.88
+    },
+    "mode": "floating",
+    "wallpaper": "dark",
+    "active": true,
+    "size": [
+      890,
+      675
+    ],
+    "file": "readability-dark-floating-before.png",
+    "corner_mean": 96.1,
+    "inner_mean": 106.3
+  },
+  {
+    "bg_p05": 69.0,
+    "bg_p50": 70.45454545454545,
+    "bg_p95": 128.5151515151515,
+    "bg_max": 140.7,
+    "primary": {
+      "p50": 8.62,
+      "p95_worst": 3.61,
+      "max_worst": 3.07
+    },
+    "secondary": {
+      "p50": 5.43,
+      "p95_worst": 2.27,
+      "max_worst": 1.93
+    },
+    "tertiary": {
+      "p50": 3.52,
+      "p95_worst": 1.47,
+      "max_worst": 1.25
+    },
+    "mode": "sidebar",
+    "wallpaper": "dark",
+    "active": true,
+    "size": [
+      350,
+      950
+    ],
+    "file": "readability-dark-sidebar-before.png"
+  },
+  {
+    "bg_p05": 68.10204081632654,
+    "bg_p50": 103.65306122448979,
+    "bg_p95": 124.26530612244898,
+    "bg_max": 163.28571428571428,
+    "primary": {
+      "p50": 5.17,
+      "p95_worst": 3.81,
+      "max_worst": 2.3
+    },
+    "secondary": {
+      "p50": 3.25,
+      "p95_worst": 2.4,
+      "max_worst": 1.45
+    },
+    "tertiary": {
+      "p50": 2.11,
+      "p95_worst": 1.56,
+      "max_worst": 1.06
+    },
+    "mode": "category",
+    "wallpaper": "light",
+    "active": true,
+    "size": [
+      2578,
+      1398
+    ],
+    "file": "readability-light-category-before.png"
+  },
+  {
+    "bg_p05": 101.40816326530613,
+    "bg_p50": 139.28571428571428,
+    "bg_p95": 167.3265306122449,
+    "bg_max": 216.12244897959184,
+    "primary": {
+      "p50": 3.11,
+      "p95_worst": 2.2,
+      "max_worst": 1.3
+    },
+    "secondary": {
+      "p50": 1.96,
+      "p95_worst": 1.38,
+      "max_worst": 1.22
+    },
+    "tertiary": {
+      "p50": 1.27,
+      "p95_worst": 1.11,
+      "max_worst": 1.88
+    },
+    "mode": "floating",
+    "wallpaper": "light",
+    "active": true,
+    "size": [
+      890,
+      675
+    ],
+    "file": "readability-light-floating-before.png",
+    "corner_mean": 96.1,
+    "inner_mean": 106.3
+  },
+  {
+    "bg_p05": 114.54545454545455,
+    "bg_p50": 132.0,
+    "bg_p95": 136.0,
+    "bg_max": 142.92045454545453,
+    "primary": {
+      "p50": 3.42,
+      "p95_worst": 3.24,
+      "max_worst": 2.99
+    },
+    "secondary": {
+      "p50": 2.15,
+      "p95_worst": 2.04,
+      "max_worst": 1.88
+    },
+    "tertiary": {
+      "p50": 1.4,
+      "p95_worst": 1.32,
+      "max_worst": 1.22
+    },
+    "mode": "sidebar",
+    "wallpaper": "light",
+    "active": true,
+    "size": [
+      350,
+      950
+    ],
+    "file": "readability-light-sidebar-before.png"
+  }
+]

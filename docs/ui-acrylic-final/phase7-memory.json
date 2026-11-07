@@ -1,0 +1,543 @@
+{
+  "method": "真实 WPF 进程逐层拆除；同一 Release 构建；DESKLANES_MEM_ITEMS 控制批量项数量",
+  "metrics": {
+    "ws_mb": "WorkingSet64，系统按内存压力管理，可能只是高水位",
+    "private_mb": "PrivateMemorySize64，进程真正提交的内存",
+    "managed_mb": "GC.GetTotalMemory(false)",
+    "heap_mb": "GC.GetGCMemoryInfo().HeapSizeBytes"
+  },
+  "scaling": {
+    "bulk_0": {
+      "stripped_effects": 12,
+      "stripped_icons": 8,
+      "points": [
+        {
+          "stage": "raw",
+          "items": 0,
+          "tiles": 8,
+          "images": 8,
+          "effects": 12,
+          "ws_mb": 142.5,
+          "private_mb": 88.7,
+          "managed_mb": 7.9,
+          "heap_mb": 0.0
+        },
+        {
+          "stage": "after_gc",
+          "items": 0,
+          "tiles": 8,
+          "images": 8,
+          "effects": 12,
+          "ws_mb": 144.5,
+          "private_mb": 89.9,
+          "managed_mb": 2.9,
+          "heap_mb": 2.9
+        },
+        {
+          "stage": "after_trim",
+          "items": 0,
+          "tiles": 8,
+          "images": 8,
+          "effects": 12,
+          "ws_mb": 13.3,
+          "private_mb": 89.9,
+          "managed_mb": 3.0,
+          "heap_mb": 2.9
+        },
+        {
+          "stage": "effects_off",
+          "items": 0,
+          "tiles": 8,
+          "images": 8,
+          "effects": 0,
+          "ws_mb": 16.2,
+          "private_mb": 89.8,
+          "managed_mb": 2.9,
+          "heap_mb": 2.9
+        },
+        {
+          "stage": "icons_off",
+          "items": 0,
+          "tiles": 8,
+          "images": 8,
+          "effects": 0,
+          "ws_mb": 25.9,
+          "private_mb": 90.5,
+          "managed_mb": 2.9,
+          "heap_mb": 2.9
+        },
+        {
+          "stage": "tiles_unloaded",
+          "items": 0,
+          "tiles": 0,
+          "images": 0,
+          "effects": 0,
+          "ws_mb": 24.7,
+          "private_mb": 90.9,
+          "managed_mb": 2.6,
+          "heap_mb": 2.6
+        }
+      ]
+    },
+    "bulk_50": {
+      "stripped_effects": 55,
+      "stripped_icons": 51,
+      "points": [
+        {
+          "stage": "raw",
+          "items": 50,
+          "tiles": 51,
+          "images": 51,
+          "effects": 55,
+          "ws_mb": 152.2,
+          "private_mb": 106.6,
+          "managed_mb": 18.5,
+          "heap_mb": 4.0
+        },
+        {
+          "stage": "after_gc",
+          "items": 50,
+          "tiles": 51,
+          "images": 51,
+          "effects": 55,
+          "ws_mb": 156.5,
+          "private_mb": 109.8,
+          "managed_mb": 4.8,
+          "heap_mb": 4.6
+        },
+        {
+          "stage": "after_trim",
+          "items": 50,
+          "tiles": 51,
+          "images": 51,
+          "effects": 55,
+          "ws_mb": 29.2,
+          "private_mb": 110.5,
+          "managed_mb": 4.9,
+          "heap_mb": 4.6
+        },
+        {
+          "stage": "effects_off",
+          "items": 50,
+          "tiles": 51,
+          "images": 51,
+          "effects": 0,
+          "ws_mb": 24.8,
+          "private_mb": 107.1,
+          "managed_mb": 4.6,
+          "heap_mb": 4.4
+        },
+        {
+          "stage": "icons_off",
+          "items": 50,
+          "tiles": 51,
+          "images": 51,
+          "effects": 0,
+          "ws_mb": 36.0,
+          "private_mb": 107.1,
+          "managed_mb": 4.5,
+          "heap_mb": 4.3
+        },
+        {
+          "stage": "tiles_unloaded",
+          "items": 50,
+          "tiles": 0,
+          "images": 0,
+          "effects": 0,
+          "ws_mb": 37.7,
+          "private_mb": 111.9,
+          "managed_mb": 2.8,
+          "heap_mb": 2.8
+        }
+      ]
+    },
+    "bulk_205": {
+      "stripped_effects": 210,
+      "stripped_icons": 206,
+      "points": [
+        {
+          "stage": "raw",
+          "items": 205,
+          "tiles": 206,
+          "images": 206,
+          "effects": 210,
+          "ws_mb": 170.4,
+          "private_mb": 128.6,
+          "managed_mb": 12.2,
+          "heap_mb": 20.7
+        },
+        {
+          "stage": "after_gc",
+          "items": 205,
+          "tiles": 206,
+          "images": 206,
+          "effects": 210,
+          "ws_mb": 171.1,
+          "private_mb": 128.5,
+          "managed_mb": 10.4,
+          "heap_mb": 12.6
+        },
+        {
+          "stage": "after_trim",
+          "items": 205,
+          "tiles": 206,
+          "images": 206,
+          "effects": 210,
+          "ws_mb": 34.4,
+          "private_mb": 128.8,
+          "managed_mb": 11.0,
+          "heap_mb": 12.6
+        },
+        {
+          "stage": "effects_off",
+          "items": 205,
+          "tiles": 206,
+          "images": 206,
+          "effects": 0,
+          "ws_mb": 34.8,
+          "private_mb": 129.0,
+          "managed_mb": 10.4,
+          "heap_mb": 12.6
+        },
+        {
+          "stage": "icons_off",
+          "items": 205,
+          "tiles": 206,
+          "images": 206,
+          "effects": 0,
+          "ws_mb": 51.9,
+          "private_mb": 136.3,
+          "managed_mb": 10.0,
+          "heap_mb": 12.2
+        },
+        {
+          "stage": "tiles_unloaded",
+          "items": 205,
+          "tiles": 0,
+          "images": 0,
+          "effects": 0,
+          "ws_mb": 29.2,
+          "private_mb": 123.4,
+          "managed_mb": 3.3,
+          "heap_mb": 6.1
+        }
+      ]
+    },
+    "bulk_500": {
+      "stripped_effects": 505,
+      "stripped_icons": 501,
+      "points": [
+        {
+          "stage": "raw",
+          "items": 500,
+          "tiles": 501,
+          "images": 501,
+          "effects": 505,
+          "ws_mb": 222.1,
+          "private_mb": 175.5,
+          "managed_mb": 32.5,
+          "heap_mb": 58.7
+        },
+        {
+          "stage": "after_gc",
+          "items": 500,
+          "tiles": 501,
+          "images": 501,
+          "effects": 505,
+          "ws_mb": 198.3,
+          "private_mb": 150.9,
+          "managed_mb": 21.9,
+          "heap_mb": 22.5
+        },
+        {
+          "stage": "after_trim",
+          "items": 500,
+          "tiles": 501,
+          "images": 501,
+          "effects": 505,
+          "ws_mb": 41.1,
+          "private_mb": 150.9,
+          "managed_mb": 23.4,
+          "heap_mb": 22.5
+        },
+        {
+          "stage": "effects_off",
+          "items": 500,
+          "tiles": 501,
+          "images": 501,
+          "effects": 0,
+          "ws_mb": 51.7,
+          "private_mb": 151.1,
+          "managed_mb": 21.9,
+          "heap_mb": 22.6
+        },
+        {
+          "stage": "icons_off",
+          "items": 500,
+          "tiles": 501,
+          "images": 501,
+          "effects": 0,
+          "ws_mb": 55.2,
+          "private_mb": 148.9,
+          "managed_mb": 20.9,
+          "heap_mb": 21.5
+        },
+        {
+          "stage": "tiles_unloaded",
+          "items": 500,
+          "tiles": 0,
+          "images": 0,
+          "effects": 0,
+          "ws_mb": 30.7,
+          "private_mb": 137.8,
+          "managed_mb": 4.7,
+          "heap_mb": 6.9
+        }
+      ]
+    }
+  },
+  "toggle_curve": {
+    "points": [
+      {
+        "stage": "raw",
+        "items": 205,
+        "tiles": 206,
+        "images": 206,
+        "effects": 210,
+        "ws_mb": 175.0,
+        "private_mb": 131.9,
+        "managed_mb": 12.2,
+        "heap_mb": 20.7
+      },
+      {
+        "stage": "toggle_00_warmup",
+        "items": 205,
+        "tiles": 220,
+        "images": 220,
+        "effects": 220,
+        "ws_mb": 178.6,
+        "private_mb": 139.2,
+        "managed_mb": 28.2,
+        "heap_mb": 18.9
+      },
+      {
+        "stage": "toggle_01",
+        "items": 205,
+        "tiles": 206,
+        "images": 206,
+        "effects": 210,
+        "ws_mb": 181.1,
+        "private_mb": 141.4,
+        "managed_mb": 23.1,
+        "heap_mb": 27.9
+      },
+      {
+        "stage": "toggle_02",
+        "items": 205,
+        "tiles": 220,
+        "images": 220,
+        "effects": 220,
+        "ws_mb": 191.3,
+        "private_mb": 151.6,
+        "managed_mb": 29.3,
+        "heap_mb": 28.3
+      },
+      {
+        "stage": "toggle_03",
+        "items": 205,
+        "tiles": 206,
+        "images": 206,
+        "effects": 210,
+        "ws_mb": 195.9,
+        "private_mb": 156.4,
+        "managed_mb": 23.8,
+        "heap_mb": 35.6
+      },
+      {
+        "stage": "toggle_04",
+        "items": 205,
+        "tiles": 220,
+        "images": 220,
+        "effects": 220,
+        "ws_mb": 197.3,
+        "private_mb": 157.3,
+        "managed_mb": 29.2,
+        "heap_mb": 39.6
+      },
+      {
+        "stage": "toggle_05",
+        "items": 205,
+        "tiles": 206,
+        "images": 206,
+        "effects": 210,
+        "ws_mb": 202.7,
+        "private_mb": 162.2,
+        "managed_mb": 32.2,
+        "heap_mb": 39.8
+      },
+      {
+        "stage": "toggle_06",
+        "items": 205,
+        "tiles": 220,
+        "images": 220,
+        "effects": 220,
+        "ws_mb": 204.1,
+        "private_mb": 163.1,
+        "managed_mb": 23.1,
+        "heap_mb": 39.4
+      },
+      {
+        "stage": "toggle_07",
+        "items": 205,
+        "tiles": 206,
+        "images": 206,
+        "effects": 210,
+        "ws_mb": 204.6,
+        "private_mb": 163.1,
+        "managed_mb": 36.3,
+        "heap_mb": 34.5
+      },
+      {
+        "stage": "toggle_08",
+        "items": 205,
+        "tiles": 220,
+        "images": 220,
+        "effects": 220,
+        "ws_mb": 205.4,
+        "private_mb": 163.9,
+        "managed_mb": 27.4,
+        "heap_mb": 35.6
+      },
+      {
+        "stage": "toggle_09",
+        "items": 205,
+        "tiles": 206,
+        "images": 206,
+        "effects": 210,
+        "ws_mb": 207.7,
+        "private_mb": 165.8,
+        "managed_mb": 30.8,
+        "heap_mb": 35.8
+      },
+      {
+        "stage": "toggle_10",
+        "items": 205,
+        "tiles": 220,
+        "images": 220,
+        "effects": 220,
+        "ws_mb": 205.1,
+        "private_mb": 163.0,
+        "managed_mb": 21.9,
+        "heap_mb": 37.1
+      },
+      {
+        "stage": "toggle_11",
+        "items": 205,
+        "tiles": 206,
+        "images": 206,
+        "effects": 210,
+        "ws_mb": 208.8,
+        "private_mb": 166.6,
+        "managed_mb": 36.4,
+        "heap_mb": 40.3
+      },
+      {
+        "stage": "toggle_12",
+        "items": 205,
+        "tiles": 220,
+        "images": 220,
+        "effects": 220,
+        "ws_mb": 206.7,
+        "private_mb": 164.0,
+        "managed_mb": 41.6,
+        "heap_mb": 39.8
+      },
+      {
+        "stage": "after_gc_trim",
+        "items": 205,
+        "tiles": 220,
+        "images": 220,
+        "effects": 220,
+        "ws_mb": 49.2,
+        "private_mb": 138.5,
+        "managed_mb": 11.4,
+        "heap_mb": 13.5
+      }
+    ]
+  },
+  "perf200_reruns": [
+    {
+      "shadow": true,
+      "stripped_textblocks": 0,
+      "item_count": 220,
+      "visible_tiles": 206,
+      "scrollable_height": 2067,
+      "open_ms": 5584.4,
+      "toggle_ms": 324.1,
+      "toggle_min": 293.5,
+      "toggle_max": 365.6,
+      "scroll_ms": 0.2,
+      "scroll_min": 0.1,
+      "scroll_max": 1.1,
+      "resize_ms": 76.7,
+      "resize_min": 60.6,
+      "resize_max": 98.0,
+      "scroll_cpu_ms": 0.0,
+      "working_set_mb": 200.8,
+      "peak_working_set_mb": 200.8,
+      "trimmed_working_set_mb": 30.3,
+      "private_mb": 276.0,
+      "managed_mb": 29.6
+    },
+    {
+      "shadow": true,
+      "stripped_textblocks": 0,
+      "item_count": 220,
+      "visible_tiles": 206,
+      "scrollable_height": 2067,
+      "open_ms": 5417.1,
+      "toggle_ms": 319.1,
+      "toggle_min": 258.7,
+      "toggle_max": 344.4,
+      "scroll_ms": 0.2,
+      "scroll_min": 0.2,
+      "scroll_max": 2.4,
+      "resize_ms": 59.9,
+      "resize_min": 46.0,
+      "resize_max": 67.0,
+      "scroll_cpu_ms": 0.0,
+      "working_set_mb": 201.2,
+      "peak_working_set_mb": 201.2,
+      "trimmed_working_set_mb": 30.8,
+      "private_mb": 279.0,
+      "managed_mb": 29.5
+    },
+    {
+      "shadow": true,
+      "stripped_textblocks": 0,
+      "item_count": 220,
+      "visible_tiles": 206,
+      "scrollable_height": 2067,
+      "open_ms": 5321.8,
+      "toggle_ms": 308.3,
+      "toggle_min": 264.4,
+      "toggle_max": 319.6,
+      "scroll_ms": 0.1,
+      "scroll_min": 0.1,
+      "scroll_max": 0.9,
+      "resize_ms": 59.8,
+      "resize_min": 51.9,
+      "resize_max": 74.3,
+      "scroll_cpu_ms": 31.2,
+      "working_set_mb": 196.9,
+      "peak_working_set_mb": 196.9,
+      "trimmed_working_set_mb": 30.7,
+      "private_mb": 277.4,
+      "managed_mb": 29.7
+    }
+  ],
+  "phase4_original_median": {
+    "working_set_mb": 507.9,
+    "managed_mb": 30.0
+  }
+}
