@@ -51,33 +51,50 @@ TARGETS = [
 ]
 
 
+# 句柄按指针宽传；此前调用了不存在的 screenshot._class()，异常被 except 吞掉，
+# 导致清场从未生效（整屏原始帧里其它窗口一直挡在 Acrylic 后面）。
+_u32 = ctypes.WinDLL("user32", use_last_error=True)
+_u32.IsWindowVisible.argtypes = [ctypes.c_void_p]
+_u32.IsIconic.argtypes = [ctypes.c_void_p]
+_u32.GetWindowTextLengthW.argtypes = [ctypes.c_void_p]
+_u32.ShowWindow.argtypes = [ctypes.c_void_p, ctypes.c_int]
+_u32.GetClassNameW.argtypes = [ctypes.c_void_p, ctypes.c_wchar_p, ctypes.c_int]
+
+
+def window_class(h):
+    buf = ctypes.create_unicode_buffer(256)
+    _u32.GetClassNameW(ctypes.c_void_p(h), buf, 256)
+    return buf.value
+
+
 def set_aside(keep):
     hidden = []
+    CB = ctypes.WINFUNCTYPE(ctypes.c_bool, ctypes.c_void_p, ctypes.c_void_p)
 
     def cb(h, _):
         try:
-            if h == keep or not u.IsWindowVisible(h) or u.IsIconic(h):
+            if h == keep or not _u32.IsWindowVisible(h) or _u32.IsIconic(h):
                 return True
-            if u.GetWindowTextLengthW(h) <= 0:
+            if _u32.GetWindowTextLengthW(h) <= 0:
                 return True
-            cls = screenshot._class(h) or ""
+            cls = window_class(h) or ""
             if any(k in cls for k in ("Shell_TrayWn", "Shell_SecondaryTrayWn", "Progman",
                                       "WorkerW", "DV2ControlHost", "Butt", "LockApp")):
                 return True
-            u.ShowWindow(h, SW_MINIMIZE)
+            _u32.ShowWindow(ctypes.c_void_p(h), SW_MINIMIZE)
             hidden.append(h)
-        except Exception:
-            pass
+        except Exception as ex:
+            print("  set_aside: %s" % ex)
         return True
 
-    u.EnumWindows(ctypes.WINFUNCTYPE(ctypes.c_bool, ctypes.c_void_p, ctypes.c_void_p)(cb), 0)
+    u.EnumWindows(CB(cb), 0)
     return hidden
 
 
 def restore_windows(hidden):
     for h in hidden:
         try:
-            u.ShowWindow(h, SW_RESTORE)
+            _u32.ShowWindow(ctypes.c_void_p(h), SW_RESTORE)
         except Exception:
             pass
 
