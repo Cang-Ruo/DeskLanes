@@ -1,7 +1,8 @@
 <UserControl x:Class="DeskLanes.App.Views.FreePanelsView"
              xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
-             xmlns:local="clr-namespace:DeskLanes.App.Views">
+             xmlns:local="clr-namespace:DeskLanes.App.Views"
+             xmlns:dt="clr-namespace:DeskLanes.App.Services">
     <UserControl.Resources>
         <local:BindingProxy x:Key="VM" Data="{Binding}" />
         <BooleanToVisibilityConverter x:Key="BoolToVis" />
@@ -36,7 +37,7 @@
                 <DockPanel>
                     <TextBlock DockPanel.Dock="Top" Text="{Binding PoolHeaderText}"
                                FontSize="12" FontWeight="SemiBold" Foreground="{StaticResource BrushTextPrimary}"
-                               Margin="2,0,0,6" />
+                               dt:DynamicText.Tone="Primary" Margin="2,0,0,6" />
                     <ListBox ItemsSource="{Binding PoolItems}"
                              Background="Transparent" BorderThickness="0"
                              MaxHeight="150"

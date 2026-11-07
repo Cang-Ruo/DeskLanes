@@ -239,6 +239,12 @@ def capture_one(name, mode, layout, title, out_dir):
             s["WindowTop"] = 80
         s["SidebarExpanded"] = (mode == 2)
         s["FloatingHideOnDeactivate"] = False
+        # 端到端跨屏用例会把收缩后的悬浮窗尺寸/位置写进配置；取证必须归一化，
+        # 否则同一张 floating.png 每次大小都不一样，前后对照失去意义。
+        s["FloatingWindowWidth"] = 780
+        s["FloatingWindowHeight"] = 540
+        s["FloatingWindowLeft"] = None
+        s["FloatingWindowTop"] = None
         # 清场会最小化其它窗口＝制造一次失焦；不临时关掉自动收起，
         # 侧边栏会被拍成 55px 收起态（阶段 8 踩过）。
         s["SidebarAutoCollapse"] = False
@@ -309,6 +315,12 @@ def capture_one(name, mode, layout, title, out_dir):
         time.sleep(0.8)
         u.GetWindowRect(hwnd, ctypes.byref(r))
 
+        # 最大化过渡期 DWM 可能还没把材质贴上去，此时读 38 会得到 0（不是材质失效）。
+        # 三屏 + 混合 DPI 下偶发过一次，等它到位再记，判据不变。
+        for _ in range(8):
+            if dwm_attr(hwnd, 38).get("value") == 3:
+                break
+            time.sleep(0.4)
         attrs = {
             "dark_mode(20)": dwm_attr(hwnd, 20),
             "system_backdrop(38)": dwm_attr(hwnd, 38),

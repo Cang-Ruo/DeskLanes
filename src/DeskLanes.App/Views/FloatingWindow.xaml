@@ -4,6 +4,7 @@
         xmlns:shell="clr-namespace:System.Windows.Shell;assembly=PresentationFramework"
         xmlns:vm="clr-namespace:DeskLanes.App.ViewModels"
         xmlns:local="clr-namespace:DeskLanes.App.Views"
+        xmlns:dt="clr-namespace:DeskLanes.App.Services"
         Title="DeskLanes 快速启动"
         Width="780" Height="540" MinWidth="420" MinHeight="360"
         WindowStyle="None" Background="Transparent"
@@ -118,8 +119,8 @@
                 <ListBox.ItemTemplate>
                     <DataTemplate>
                         <StackPanel Orientation="Horizontal">
-                            <Border Background="{StaticResource BrushLabelScrim}" CornerRadius="3"
-                                    Padding="4,0" VerticalAlignment="Center">
+                            <Border Background="{StaticResource BrushLabelScrim}" dt:DynamicText.Scrim="True"
+                                    CornerRadius="3" Padding="4,0" VerticalAlignment="Center">
                                 <TextBlock Text="{Binding Name}" FontSize="13" VerticalAlignment="Center" />
                             </Border>
                             <TextBlock Text="{Binding ItemCount}" FontSize="11" Foreground="{StaticResource BrushTextTertiary}"
@@ -161,7 +162,8 @@
 
             <!-- 空状态 -->
             <TextBlock Grid.Row="2" Text="{Binding EmptyStateText}" FontSize="13"
-                       Foreground="{StaticResource BrushTextTertiary}" HorizontalAlignment="Center" VerticalAlignment="Center"
+                       Foreground="{StaticResource BrushTextTertiary}" dt:DynamicText.Tone="Tertiary"
+                       HorizontalAlignment="Center" VerticalAlignment="Center"
                        TextWrapping="Wrap"
                        Visibility="{Binding HasNoItems, Converter={StaticResource BoolToVis}}" />
 

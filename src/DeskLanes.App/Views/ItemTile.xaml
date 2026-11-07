@@ -1,6 +1,7 @@
 <UserControl x:Class="DeskLanes.App.Views.ItemTile"
              xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:dt="clr-namespace:DeskLanes.App.Services"
              Width="112" Height="110">
     <!-- 项目磁贴：图标是视觉焦点（规格 4.4）；悬停只做轻微提亮，不做厚重卡片 -->
     <UserControl.Resources>
@@ -20,8 +21,8 @@
                    Margin="0,2,0,6" RenderOptions.BitmapScalingMode="HighQuality" />
             <!-- 只给名字垫一层极轻的深底（见 GlassTheme 的 BrushLabelScrim）：
                  亮壁纸下浅色名字压在浅玻璃上会糊，加深整个面板会把玻璃又糊实。 -->
-            <Border Background="{StaticResource BrushLabelScrim}" CornerRadius="4"
-                    Padding="4,1" HorizontalAlignment="Center">
+            <Border Background="{StaticResource BrushLabelScrim}" dt:DynamicText.Scrim="True"
+                    CornerRadius="4" Padding="4,1" HorizontalAlignment="Center">
                 <TextBlock Text="{Binding Name}" MaxWidth="100"
                            Style="{StaticResource ItemNameText}" />
             </Border>

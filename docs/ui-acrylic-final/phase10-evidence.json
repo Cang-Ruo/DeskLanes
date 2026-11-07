@@ -1,0 +1,245 @@
+{
+  "purpose": "阶段 10：三屏拓扑复测 + 局部亮度自适应动态文字色验收",
+  "topology": {
+    "dpi": 120,
+    "scale": 1.25,
+    "windows_build": "10.0.26300",
+    "primary": {
+      "w": 2560,
+      "h": 1440
+    },
+    "virtual": {
+      "x": -1080,
+      "y": 0,
+      "w": 6200,
+      "h": 1920
+    },
+    "monitor_count": 3,
+    "wallpaper": "C:\\Users\\TTjustTT\\Pictures\\Camera Roll\\爱上紫禁城.jpg"
+  },
+  "phase1_shots": [
+    {
+      "name": "fullscreen-category",
+      "active": true,
+      "visible": true,
+      "cleared_windows": 7,
+      "size": [
+        2578,
+        1398
+      ],
+      "dwm": {
+        "dark_mode(20)": {
+          "hr": 0,
+          "value": 1
+        },
+        "system_backdrop(38)": {
+          "hr": 0,
+          "value": 3
+        },
+        "corner(33)": {
+          "hr": 0,
+          "value": 2
+        }
+      }
+    },
+    {
+      "name": "fullscreen-panels",
+      "active": true,
+      "visible": true,
+      "cleared_windows": 7,
+      "size": [
+        2578,
+        1398
+      ],
+      "dwm": {
+        "dark_mode(20)": {
+          "hr": 0,
+          "value": 1
+        },
+        "system_backdrop(38)": {
+          "hr": 0,
+          "value": 3
+        },
+        "corner(33)": {
+          "hr": 0,
+          "value": 2
+        }
+      }
+    },
+    {
+      "name": "floating",
+      "active": true,
+      "visible": true,
+      "cleared_windows": 7,
+      "size": [
+        975,
+        675
+      ],
+      "dwm": {
+        "dark_mode(20)": {
+          "hr": 0,
+          "value": 1
+        },
+        "system_backdrop(38)": {
+          "hr": 0,
+          "value": 3
+        },
+        "corner(33)": {
+          "hr": 0,
+          "value": 2
+        }
+      }
+    },
+    {
+      "name": "sidebar",
+      "active": true,
+      "visible": true,
+      "cleared_windows": 7,
+      "size": [
+        420,
+        1140
+      ],
+      "dwm": {
+        "dark_mode(20)": {
+          "hr": 0,
+          "value": 1
+        },
+        "system_backdrop(38)": {
+          "hr": 0,
+          "value": 3
+        },
+        "corner(33)": {
+          "hr": 0,
+          "value": 1
+        }
+      }
+    },
+    {
+      "name": "settings",
+      "active": true,
+      "visible": true,
+      "cleared_windows": 7,
+      "size": [
+        575,
+        650
+      ],
+      "dwm": {
+        "dark_mode(20)": {
+          "hr": 0,
+          "value": 1
+        },
+        "system_backdrop(38)": {
+          "hr": 0,
+          "value": 3
+        },
+        "corner(33)": {
+          "hr": 0,
+          "value": 2
+        }
+      }
+    }
+  ],
+  "e2e_three_monitors": "32/36; 4 failures all from saved WindowLeft=-800 not honored (window maximizes on primary instead of left portrait); root cause confirmed via MonitorFromWindow; not changed in this phase",
+  "dynamic_text": {
+    "implementation": "startup pre-window desktop frame -> 32px median-luma grid + 3x3 blur -> calibrated tint transform -> per-control light/dark scheme with 0.8 hysteresis; scrim and text color switch together",
+    "pixel_proof_light": {
+      "active": true,
+      "app_controls": 16,
+      "app_dark_scheme": 16,
+      "measured_plates": 16,
+      "pixel_dark_scheme": 16,
+      "pixel_contrast_p50": 6.77,
+      "pixel_contrast_min": 5.11,
+      "fixed_light_text_p50": 2.11,
+      "fixed_light_text_min": 1.93,
+      "flips_at_capture": 0,
+      "idle_flips_delta": 0
+    },
+    "pixel_proof_dark": {
+      "active": true,
+      "app_controls": 16,
+      "app_dark_scheme": 1,
+      "measured_plates": 16,
+      "pixel_dark_scheme": 1,
+      "pixel_contrast_p50": 10.67,
+      "pixel_contrast_min": 7.66,
+      "fixed_light_text_p50": 13.05,
+      "flips_at_capture": 2,
+      "idle_flips_delta": 0
+    },
+    "six_case_app_reported": [
+      {
+        "mode": "category",
+        "wallpaper": "dark",
+        "controls": 63,
+        "dark_scheme": 4,
+        "contrast_p50": 15.57,
+        "contrast_min": 8.55,
+        "flips": 0,
+        "pre_cleared_windows": 7
+      },
+      {
+        "mode": "floating",
+        "wallpaper": "dark",
+        "controls": 16,
+        "dark_scheme": 1,
+        "contrast_p50": 15.9,
+        "contrast_min": 8.09,
+        "flips": 2,
+        "pre_cleared_windows": 7
+      },
+      {
+        "mode": "sidebar",
+        "wallpaper": "dark",
+        "controls": 1,
+        "dark_scheme": 0,
+        "contrast_p50": 9.18,
+        "contrast_min": 9.18,
+        "flips": 0,
+        "pre_cleared_windows": 7
+      },
+      {
+        "mode": "category",
+        "wallpaper": "light",
+        "controls": 63,
+        "dark_scheme": 63,
+        "contrast_p50": 12.42,
+        "contrast_min": 8.16,
+        "flips": 0,
+        "pre_cleared_windows": 7
+      },
+      {
+        "mode": "floating",
+        "wallpaper": "light",
+        "controls": 16,
+        "dark_scheme": 16,
+        "contrast_p50": 12.67,
+        "contrast_min": 11.69,
+        "flips": 0,
+        "pre_cleared_windows": 7
+      },
+      {
+        "mode": "sidebar",
+        "wallpaper": "light",
+        "controls": 1,
+        "dark_scheme": 1,
+        "contrast_p50": 8.55,
+        "contrast_min": 8.55,
+        "flips": 0,
+        "pre_cleared_windows": 7
+      }
+    ]
+  },
+  "regression": {
+    "release": "0 warning / 0 error",
+    "smoke": "460/460",
+    "e2e": "32/36 (3 monitors; 4 known geometry failures)",
+    "startup": "7/7; dynamic on cold 1.59s warm median 1.35s; capture disabled cold 1.55s warm median 1.24s -> one-time capture ~0.11s",
+    "glass_proof_floating": "flat cell corr 0.749 vs opaque 0.007 -> PASS"
+  },
+  "build": {
+    "portable_md5": "5fe000ae34fbe97218d5fb2a2dc5f301",
+    "selfcontained_md5": "e7845e99d9b88336d751b459023d0df7",
+    "installed_matches": true
+  }
+}

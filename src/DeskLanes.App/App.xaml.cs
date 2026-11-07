@@ -21,6 +21,10 @@ public partial class App : Application
         AppDomain.CurrentDomain.UnhandledException += OnAppDomainUnhandledException;
         TaskScheduler.UnobservedTaskException += OnUnobservedTaskException;
 
+        // 局部亮度自适应文字色：必须在任何窗口 Show 之前抓这一帧纯桌面，
+        // 否则采到的是窗口自己的文字/图标。失败时服务自动退回静态文字色。
+        DynamicTextService.Instance.CaptureDesktop();
+
         // 手动组装依赖（阶段规模小，暂不引入 DI 容器）
         IShortcutResolver shortcutResolver = new ShortcutResolver();
         IDesktopScanner scanner = new DesktopScanner(shortcutResolver);
