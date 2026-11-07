@@ -143,6 +143,12 @@ CASES = [
 
 
 def main():
+    global OUT
+    for a in sys.argv[1:]:
+        if a.startswith("--out="):
+            OUT = os.path.abspath(a[6:])
+    only = [a[7:] for a in sys.argv[1:] if a.startswith("--only=")]
+    only = only[0].split(",") if only else None
     screenshot._set_dpi_aware()
     os.makedirs(OUT, exist_ok=True)
     bak_s = open(SETTINGS, encoding="utf-8").read()
@@ -152,6 +158,8 @@ def main():
     results = {}
     try:
         for name, patch, first_title, target_title, pos in CASES:
+            if only and name not in only:
+                continue
             print("\n=== %s ===" % name)
             proc, hwnd = launch(patch, first_title, target_title, pos)
             try:

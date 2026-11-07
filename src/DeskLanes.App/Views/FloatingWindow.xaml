@@ -17,8 +17,11 @@
         - CaptionHeight=0 / ResizeBorderThickness=0：系统不接管标题栏与边缘，
           拖动与八方向缩放仍由自己的热区负责（行为与原来完全一致）
         - 背景材质由 WindowBackdropService 在 SourceInitialized 后应用
-      根 Border 的背景绑定 Window.Background：Acrylic 成功时是轻 tint，
-      材质不可用回退时自动变成不透明底色，两种状态都保证可读。 -->
+      根 Border 自己画那一层 18% 基底（带圆角），窗口表面留空：
+      WindowBackdropService 以 paintWindowSurface=false 把 Window.Background 置为透明，
+      若这里再绑定 Window.Background，这层 tint 就一层都画不上（阶段 2 的遗留缺陷，
+      也是悬浮窗对比度一直是三个窗口里最差的原因）。
+      材质不可用回退时窗口自身是深色不透明底，Border 只是在它上面再压 18%，仍然可读。 -->
     <shell:WindowChrome.WindowChrome>
         <shell:WindowChrome CaptionHeight="0" ResizeBorderThickness="0"
                             GlassFrameThickness="0" UseAeroCaptionButtons="False" />
@@ -40,7 +43,7 @@
         </Style>
     </Window.Resources>
 
-    <Border Background="{Binding Background, RelativeSource={RelativeSource AncestorType=Window}}"
+    <Border Background="{StaticResource BrushWindowBaseGlass}"
             CornerRadius="12" Padding="14"
             BorderBrush="{StaticResource BrushBorderGlass}" BorderThickness="1">
         <!-- 非分层窗口在 Win11 上自带 DWM 系统阴影，原来的 DropShadowEffect 已无必要，

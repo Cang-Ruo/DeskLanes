@@ -200,7 +200,7 @@ CASES = [
 ]
 
 
-def capture(case_name, mode, layout, title, pos, wall_tag):
+def capture(case_name, mode, layout, title, pos, wall_tag, tag=""):
     cfg = json.load(open(SETTINGS, encoding="utf-8"))
     cfg.update({"WindowMode": mode, "LayoutMode": layout, "WindowMaximized": (mode == 1),
                 "SidebarExpanded": (mode == 2), "WindowLeft": 120, "WindowTop": 80})
@@ -235,7 +235,8 @@ def capture(case_name, mode, layout, title, pos, wall_tag):
         active = u.GetForegroundWindow() == hwnd
         u.GetWindowRect(hwnd, ctypes.byref(r))
         w, h = r.Right - r.Left, r.Bottom - r.Top
-        name = "readability-%s-%s.png" % (wall_tag, case_name)
+        suffix = ("-" + tag) if tag else ""
+        name = "readability-%s-%s%s.png" % (wall_tag, case_name, suffix)
         cw, ch, rgb = screenshot.capture(r.Left, r.Top, w, h, os.path.join(OUT, name))
         res = analyse(rgb, cw, ch)
         res.update({"mode": case_name, "wallpaper": wall_tag, "active": active,
@@ -283,6 +284,9 @@ def main():
     want_walls = want_walls[0].split(",") if want_walls else ["dark", "light"]
     want_cases = [a[8:] for a in sys.argv[1:] if a.startswith("--cases=")]
     want_cases = want_cases[0].split(",") if want_cases else None
+    # --tag=<名字>：把这一轮的 PNG / JSON 单独存一份，做前后对照时不覆盖基线证据。
+    want_tag = [a[6:] for a in sys.argv[1:] if a.startswith("--tag=")]
+    run_tag = want_tag[0] if want_tag else ""
 
     results = []
     try:
@@ -296,7 +300,7 @@ def main():
                 if want_cases and case_name not in want_cases:
                     continue
                 print("\n=== %s / %s ===" % (tag, case_name))
-                res = capture(case_name, mode, layout, title, pos, tag)
+                res = capture(case_name, mode, layout, title, pos, tag, run_tag)
                 print("  " + json.dumps(res, ensure_ascii=False))
                 results.append(res)
     finally:
@@ -307,9 +311,10 @@ def main():
             set_wallpaper(orig_wall)
         print("配置已还原；壁纸已切回：%s" % current_wallpaper())
 
-    with open(os.path.join(OUT, "readability.json"), "w", encoding="utf-8") as f:
+    json_name = "readability-%s.json" % run_tag if run_tag else "readability.json"
+    with open(os.path.join(OUT, json_name), "w", encoding="utf-8") as f:
         json.dump(results, f, ensure_ascii=False, indent=2)
-    print("指标写入 readability.json")
+    print("指标写入 %s" % json_name)
     return 0
 
 
