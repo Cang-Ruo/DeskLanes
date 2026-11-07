@@ -1,0 +1,57 @@
+{
+  "wallpaper": "light",
+  "active": true,
+  "size": [
+    975,
+    675
+  ],
+  "app_controls": 16,
+  "app_dark_scheme": 16,
+  "measured_plates": 16,
+  "pixel_dark_scheme": 16,
+  "pixel_contrast_p50": 6.77,
+  "pixel_contrast_min": 5.11,
+  "pixel_contrast_worst_p05": 5.11,
+  "fixed_light_text_p50": 2.11,
+  "fixed_light_text_min": 1.93,
+  "flips_at_capture": 0,
+  "idle_flips_delta": 0,
+  "idle_flip_series": [
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0
+  ],
+  "samples_head": [
+    {
+      "scheme": "dark_text",
+      "bg": 178,
+      "fg": 15,
+      "contrast": 9.04
+    },
+    {
+      "scheme": "dark_text",
+      "bg": 168,
+      "fg": 46,
+      "contrast": 5.71
+    },
+    {
+      "scheme": "dark_text",
+      "bg": 172,
+      "fg": 20,
+      "contrast": 8.12
+    }
+  ]
+}

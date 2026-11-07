@@ -4,6 +4,7 @@
         xmlns:shell="clr-namespace:System.Windows.Shell;assembly=PresentationFramework"
         xmlns:vm="clr-namespace:DeskLanes.App.ViewModels"
         xmlns:local="clr-namespace:DeskLanes.App.Views"
+        xmlns:dt="clr-namespace:DeskLanes.App.Services"
         Title="DeskLanes 侧边栏"
         Width="280" Height="760" MinWidth="44" MinHeight="240"
         WindowStyle="None" Background="Transparent"
@@ -94,8 +95,8 @@
                     <ListBox.ItemTemplate>
                         <DataTemplate>
                             <Grid Margin="2,1">
-                                <Border Background="{StaticResource BrushLabelScrim}" CornerRadius="3"
-                                        Padding="3,0" HorizontalAlignment="Left">
+                                <Border Background="{StaticResource BrushLabelScrim}" dt:DynamicText.Scrim="True"
+                                        CornerRadius="3" Padding="3,0" HorizontalAlignment="Left">
                                     <TextBlock Text="{Binding Name}" FontSize="12" TextTrimming="CharacterEllipsis" />
                                 </Border>
                                 <TextBlock Text="{Binding ItemCount}" FontSize="10"
@@ -116,8 +117,8 @@
                             <Border Padding="6,4" CornerRadius="6" ToolTip="{Binding TooltipText}">
                                 <StackPanel Orientation="Horizontal">
                                     <Image Source="{Binding Icon}" Width="18" Height="18" Margin="0,0,8,0" />
-                                    <Border Background="{StaticResource BrushLabelScrim}" CornerRadius="3"
-                                            Padding="3,0" VerticalAlignment="Center">
+                                    <Border Background="{StaticResource BrushLabelScrim}" dt:DynamicText.Scrim="True"
+                                            CornerRadius="3" Padding="3,0" VerticalAlignment="Center">
                                         <TextBlock Text="{Binding Name}" FontSize="12" TextTrimming="CharacterEllipsis"
                                                    VerticalAlignment="Center" MaxWidth="200" />
                                     </Border>
@@ -136,7 +137,8 @@
                 </ListBox>
 
                 <TextBlock Grid.Row="2" Text="{Binding EmptyStateText}" FontSize="12"
-                           Foreground="{StaticResource BrushTextTertiary}" HorizontalAlignment="Center" VerticalAlignment="Center"
+                           Foreground="{StaticResource BrushTextTertiary}" dt:DynamicText.Tone="Tertiary"
+                           HorizontalAlignment="Center" VerticalAlignment="Center"
                            TextWrapping="Wrap"
                            Visibility="{Binding HasNoItems, Converter={StaticResource BoolToVis}}" />
 

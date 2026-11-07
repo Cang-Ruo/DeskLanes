@@ -46,3 +46,8 @@ docs/ui-acrylic-final/phase9-clean/
 docs/ui-acrylic-final/phase9-tint26/
 docs/ui-acrylic-final/phase9-tint29/
 docs/ui-acrylic-final/phase9-glassproof/
+
+# 阶段 10 的像素验收截图含真实桌面项目名，只留本地；指标 JSON 入库
+docs/ui-acrylic-final/phase10-dynamic-*.png
+docs/ui-acrylic-final/phase10-recheck/
+docs/ui-acrylic-final/phase10-glassproof/
