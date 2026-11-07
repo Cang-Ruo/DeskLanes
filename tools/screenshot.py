@@ -64,6 +64,24 @@ def _set_dpi_aware():
             pass
 
 
+# ---- 窗口枚举辅助 ----------------------------------------------------------
+# 这几个函数被 glass-proof.py / glass-causal.py / shoot-window.py /
+# phase1-capture.py 的「清场」逻辑调用。此前它们根本不存在，调用方又都用
+# `except Exception: pass` 包着，于是「最小化其它窗口」从来没生效过 ——
+# 拍出来的 Acrylic 背后挡着别的窗口，明暗壁纸读数会一模一样。
+# 句柄一律显式转成 c_void_p：64 位下让 ctypes 默认按 c_int 传会截断句柄。
+def _class(hwnd):
+    buf = ctypes.create_unicode_buffer(256)
+    ctypes.windll.user32.GetClassNameW(ctypes.c_void_p(hwnd), buf, 256)
+    return buf.value
+
+
+def _title(hwnd):
+    buf = ctypes.create_unicode_buffer(512)
+    ctypes.windll.user32.GetWindowTextW(ctypes.c_void_p(hwnd), buf, 512)
+    return buf.value
+
+
 def _write_png(path, width, height, rgb):
     """rgb 为自顶向下的 RGB 三通道字节串。"""
     raw = bytearray()

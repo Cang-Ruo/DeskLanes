@@ -13,6 +13,11 @@
 
 用法：
     python tools/phase3-readability.py
+    python tools/phase3-readability.py --clear --tag=glass   # 清场后量「玻璃状态」
+
+--clear 很重要：Acrylic 模糊的是窗口背后**实际挡着的那个东西**。若背后有个白色
+应用窗口，暗/亮壁纸测出来会一模一样（都是均匀浅灰），数字只能当"最坏均匀亮底"，
+不是玻璃常规值。清场会临时最小化其它可见窗口，拍完在 finally 里逐个还原。
 """
 
 import ctypes
@@ -37,6 +42,7 @@ WALL_DIR = os.path.join(OUT, "wallpapers")
 u = ctypes.windll.user32
 SPI_SETDESKWALLPAPER = 20
 SPIF_UPDATEINIFILE, SPIF_SENDCHANGE = 0x01, 0x02
+SW_MINIMIZE, SW_RESTORE = 6, 9
 
 TEXT_COLORS = {           # GlassTheme 里的文字色
     "primary":   (0xF1, 0xF5, 0xFA),
@@ -113,6 +119,57 @@ def set_wallpaper(path):
                                  SPIF_UPDATEINIFILE | SPIF_SENDCHANGE)
     time.sleep(2.5)     # 等 DWM 更新背景，否则会拍到旧壁纸
     return bool(ok)
+
+
+# ---------------- 清场（--clear） ----------------
+
+# 句柄必须按指针宽传：早先版本直接把 HWND 当 c_int 用，再调一个不存在的
+# screenshot._class()，异常被 except 吞掉 → 一个窗口都没最小化（清场形同虚设）。
+_u32 = ctypes.WinDLL("user32", use_last_error=True)
+_u32.IsWindowVisible.argtypes = [ctypes.c_void_p]
+_u32.IsIconic.argtypes = [ctypes.c_void_p]
+_u32.GetWindowTextLengthW.argtypes = [ctypes.c_void_p]
+_u32.ShowWindow.argtypes = [ctypes.c_void_p, ctypes.c_int]
+_u32.GetClassNameW.argtypes = [ctypes.c_void_p, ctypes.c_wchar_p, ctypes.c_int]
+
+
+def window_class(h):
+    buf = ctypes.create_unicode_buffer(256)
+    _u32.GetClassNameW(ctypes.c_void_p(h), buf, 256)
+    return buf.value
+
+
+def set_aside(keep):
+    """最小化其它可见窗口，保证 Acrylic 背后只剩壁纸。返回句柄列表供还原。"""
+    hidden = []
+    CB = ctypes.WINFUNCTYPE(ctypes.c_bool, ctypes.c_void_p, ctypes.c_void_p)
+
+    def cb(h, _):
+        try:
+            if h == keep or not _u32.IsWindowVisible(h) or _u32.IsIconic(h):
+                return True
+            if _u32.GetWindowTextLengthW(h) <= 0:
+                return True
+            cls = window_class(h) or ""
+            if any(k in cls for k in ("Shell_TrayWn", "Shell_SecondaryTrayWn", "Progman",
+                                      "WorkerW", "DV2ControlHost", "Butt", "LockApp")):
+                return True
+            _u32.ShowWindow(ctypes.c_void_p(h), SW_MINIMIZE)
+            hidden.append(h)
+        except Exception as ex:
+            print("  set_aside: %s" % ex)
+        return True
+
+    ctypes.windll.user32.EnumWindows(CB(cb), 0)
+    return hidden
+
+
+def restore_windows(hidden):
+    for h in hidden:
+        try:
+            _u32.ShowWindow(ctypes.c_void_p(h), SW_RESTORE)
+        except Exception:
+            pass
 
 
 # ---------------- 对比度 ----------------
@@ -200,10 +257,16 @@ CASES = [
 ]
 
 
-def capture(case_name, mode, layout, title, pos, wall_tag, tag=""):
+def capture(case_name, mode, layout, title, pos, wall_tag, tag="", clear=False):
     cfg = json.load(open(SETTINGS, encoding="utf-8"))
     cfg.update({"WindowMode": mode, "LayoutMode": layout, "WindowMaximized": (mode == 1),
                 "SidebarExpanded": (mode == 2), "WindowLeft": 120, "WindowTop": 80})
+    # --clear 会最小化其它窗口，等于制造一次失焦：侧边栏会自动收起成 55px 窄条、
+    # 悬浮窗可能直接隐藏，拍到就不是要验的展开态了。测试期间关掉这两个行为
+    #（与 tools/phase5-windows.py 对 FloatingHideOnDeactivate 的处理同理）。
+    if clear:
+        cfg["SidebarAutoCollapse"] = False
+        cfg["FloatingHideOnDeactivate"] = False
     json.dump(cfg, open(SETTINGS, "w", encoding="utf-8"), ensure_ascii=False, indent=2)
 
     subprocess.run(["taskkill", "/IM", "DeskLanes.exe", "/F"],
@@ -211,6 +274,7 @@ def capture(case_name, mode, layout, title, pos, wall_tag, tag=""):
     time.sleep(1.2)
     proc = subprocess.Popen([EXE], cwd=os.path.dirname(EXE),
                             stdout=subprocess.DEVNULL, stderr=subprocess.STDOUT)
+    hidden = []
     try:
         hwnd = 0
         for _ in range(60):
@@ -226,12 +290,17 @@ def capture(case_name, mode, layout, title, pos, wall_tag, tag=""):
             time.sleep(1.0)
         u.SetWindowPos(hwnd, -1, 0, 0, 0, 0, 0x0001 | 0x0002 | 0x0010)
         time.sleep(0.6)
+        # --clear：先最小化其它窗口，让 Acrylic 背后只剩壁纸；
+        # DWM 换背景要一点时间，等 2 秒再激活窗口，否则拍到的是旧帧。
+        if clear:
+            hidden = set_aside(hwnd)
+            time.sleep(2.0)
         r = screenshot.RECT()
         u.GetWindowRect(hwnd, ctypes.byref(r))
         u.SetCursorPos(r.Left + 60, r.Bottom - 14)
         u.mouse_event(0x0002, 0, 0, 0, 0)
         u.mouse_event(0x0004, 0, 0, 0, 0)
-        time.sleep(0.8)
+        time.sleep(1.2 if clear else 0.8)
         active = u.GetForegroundWindow() == hwnd
         u.GetWindowRect(hwnd, ctypes.byref(r))
         w, h = r.Right - r.Left, r.Bottom - r.Top
@@ -240,7 +309,8 @@ def capture(case_name, mode, layout, title, pos, wall_tag, tag=""):
         cw, ch, rgb = screenshot.capture(r.Left, r.Top, w, h, os.path.join(OUT, name))
         res = analyse(rgb, cw, ch)
         res.update({"mode": case_name, "wallpaper": wall_tag, "active": active,
-                    "size": [cw, ch], "file": name})
+                    "size": [cw, ch], "file": name, "cleared": clear,
+                    "cleared_windows": len(hidden)})
         # 悬浮窗：顺手取左上角 26px 方块，看圆角外圈有没有"未染色"的亮边
         if case_name == "floating":
             corner = []
@@ -263,6 +333,7 @@ def capture(case_name, mode, layout, title, pos, wall_tag, tag=""):
                 proc.wait(timeout=6)
             except Exception:
                 pass
+        restore_windows(hidden)   # --clear 最小化的窗口必须逐个还原
         time.sleep(1.0)
 
 
@@ -287,6 +358,11 @@ def main():
     # --tag=<名字>：把这一轮的 PNG / JSON 单独存一份，做前后对照时不覆盖基线证据。
     want_tag = [a[6:] for a in sys.argv[1:] if a.startswith("--tag=")]
     run_tag = want_tag[0] if want_tag else ""
+    clear = "--clear" in sys.argv[1:]
+    if clear:
+        if not run_tag:
+            run_tag = "glass"   # 不带 --tag 也别覆盖基线证据
+        print("清场模式：每个用例拍照前最小化其它窗口，拍完还原")
 
     results = []
     try:
@@ -300,7 +376,7 @@ def main():
                 if want_cases and case_name not in want_cases:
                     continue
                 print("\n=== %s / %s ===" % (tag, case_name))
-                res = capture(case_name, mode, layout, title, pos, tag, run_tag)
+                res = capture(case_name, mode, layout, title, pos, tag, run_tag, clear)
                 print("  " + json.dumps(res, ensure_ascii=False))
                 results.append(res)
     finally:
