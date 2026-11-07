@@ -24,7 +24,9 @@
          只能垫 90% 不透明的深色底 —— 三个窗口里就它一个不像玻璃。
          贴边停靠时用 DWMWA_WINDOW_CORNER_PREFERENCE=DoNotRound（见 code-behind），
          避免 DWM 把贴着屏幕边缘的那两个角切掉。 -->
-    <Border Background="{Binding Background, RelativeSource={RelativeSource AncestorType=Window}}"
+    <!-- 与悬浮窗同理：paintWindowSurface=false 时 Window.Background 是透明的，
+         基底 tint 必须由这个带停靠侧圆角的 Border 画一次，不能绑定回去。 -->
+    <Border Background="{StaticResource BrushWindowBaseGlass}"
             Padding="10"
             BorderBrush="{StaticResource BrushBorderGlass}">
         <!-- 圆角与边框方向随停靠侧自适应：左侧停靠圆左边、无右边框；右侧停靠镜像 -->

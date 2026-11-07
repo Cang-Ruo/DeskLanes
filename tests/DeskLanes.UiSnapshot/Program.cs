@@ -1,7 +1,8 @@
 // ============================================================================
 // DeskLanes 界面快照工具（UI 改版视觉验证用）
 // ----------------------------------------------------------------------------
-// 用法：DeskLanes.UiSnapshot.exe <category|panels|floating|sidebar|settings|dialog|perf> <输出.png> [--demo] [--top] [--screen]
+// 用法：DeskLanes.UiSnapshot.exe <category|panels|floating|sidebar|settings|dialog|perf|reference|perf200|mem|memtoggle> <输出> [--demo] [--top] [--screen]
+//   mem / memtoggle 不出图：输出内存分解 / 连续切换曲线 JSON（阶段 7）。
 //   perf 模式不出图：实测「分类导航 ↔ 自由分区」来回切换的耗时（B6 最后一项）。
 //   配 --demo 会用 220 个演示项目跑压力版，不加则用真实桌面。
 //   配 --screen 强制所有模式走 GDI 屏幕合成截图（默认只有 settings / dialog 走）：
@@ -52,7 +53,8 @@ namespace DeskLanes.UiSnapshot;
 public static class Program
 {
     private static readonly string[] Modes =
-        { "category", "panels", "floating", "sidebar", "settings", "dialog", "perf", "reference", "perf200" };
+        { "category", "panels", "floating", "sidebar", "settings", "dialog", "perf", "reference",
+          "perf200", "mem", "memtoggle" };
 
     /// <summary>进程启动时刻：用来量"从双击到首屏可用"的端到端时间。</summary>
     private static readonly System.Diagnostics.Stopwatch ProgramClock =
@@ -64,7 +66,7 @@ public static class Program
         if (args.Length < 2 || !Modes.Contains(args[0]))
         {
             Console.Error.WriteLine(
-                "用法：DeskLanes.UiSnapshot.exe <category|panels|floating|sidebar|settings|dialog|perf> <输出.png> [--demo] [--top]");
+                "用法：DeskLanes.UiSnapshot.exe <category|panels|floating|sidebar|settings|dialog|perf|reference|perf200|mem|memtoggle> <输出> [--demo] [--top] [--screen]");
             return 1;
         }
 
@@ -155,8 +157,15 @@ public static class Program
             // 3. 演示数据（--demo 时项目也是演示的；否则分类/分区套在真实项目上）
             if (demo)
             {
-                // perf 模式按 B6 的"200+ 项目"来压：12 个文件 + 3 个文件夹 + 205 个批量项 = 220
-                SeedDemoItems(workspace, tempDir, mode is "perf" or "perf200" ? 205 : 0);
+                // perf 模式按 B6 的"200+ 项目"来压：12 个文件 + 3 个文件夹 + 205 个批量项 = 220。
+                // mem 模式用 DESKLANES_MEM_ITEMS 控制批量项数量，用来画「项目数 → 内存」曲线。
+                int bulk = mode switch
+                {
+                    "perf" or "perf200" => 205,
+                    "mem" or "memtoggle" => ParseMemItemCount(),
+                    _ => 0,
+                };
+                SeedDemoItems(workspace, tempDir, bulk);
             }
 
             if (mode == "panels")
@@ -164,7 +173,7 @@ public static class Program
                 workspace.SetLayoutMode(LayoutMode.FreePanels);
                 SeedPanels(workspace);
             }
-            else if (mode == "perf200")
+            else if (mode is "perf200" or "mem" or "memtoggle")
             {
                 // 分区先建好但不切过去：切换耗时要在测量里现算
                 SeedPanels(workspace);
@@ -332,6 +341,18 @@ public static class Program
                     if (mode == "perf200")
                     {
                         await MeasurePerf200Async(window, mainViewModel, output);
+                        return;
+                    }
+
+                    if (mode == "mem")
+                    {
+                        await MeasureMemoryAsync(window, mainViewModel, output, ParseMemItemCount());
+                        return;
+                    }
+
+                    if (mode == "memtoggle")
+                    {
+                        await MeasureMemoryToggleAsync(window, mainViewModel, output, ParseMemItemCount());
                         return;
                     }
 
@@ -632,6 +653,182 @@ public static class Program
         return (med, sorted[0], sorted[^1]);
     }
 
+    // ============ 内存分解诊断（阶段 7） ============
+    // 阶段 4 量到 206 个瓦片 ≈508 MB 工作集，但托管堆只有 30 MB。
+    // 单看这两个数字分不清：真泄漏 / 瓦片实体化 / 渲染中间表面 / 只是工作集高水位。
+    // 这个模式在同一进程里逐层拆除，每一步都记录四个口径，用差值定位。
+
+    [DllImport("kernel32.dll", SetLastError = true)]
+    private static extern bool SetProcessWorkingSetSize(
+        IntPtr hProcess, IntPtr dwMinimumWorkingSetSize, IntPtr dwMaximumWorkingSetSize);
+
+    private static readonly List<string> MemPoints = new();
+
+    private static int ParseMemItemCount()
+    {
+        string? raw = Environment.GetEnvironmentVariable("DESKLANES_MEM_ITEMS");
+        return int.TryParse(raw, out int n) ? Math.Clamp(n, 0, 2000) : 205;
+    }
+
+    /// <summary>强制完整 GC（含 LOH 压缩），否则工作集里可能还挂着已死对象。</summary>
+    private static void ForceGc()
+    {
+        GC.Collect(GC.MaxGeneration, GCCollectionMode.Forced, blocking: true, compacting: true);
+        GC.WaitForPendingFinalizers();
+        GC.Collect(GC.MaxGeneration, GCCollectionMode.Forced, blocking: true, compacting: true);
+    }
+
+    /// <summary>把工作集交还给系统；用来区分"还活着的内存"与"曾经到过的高水位"。</summary>
+    private static void TrimWorkingSet() =>
+        SetProcessWorkingSetSize(
+            System.Diagnostics.Process.GetCurrentProcess().Handle,
+            new IntPtr(-1), new IntPtr(-1));
+
+    private static void MemPoint(Window window, string stage, int items)
+    {
+        var proc = System.Diagnostics.Process.GetCurrentProcess();
+        proc.Refresh();
+        int tiles = FindVisualChildren<ItemTile>(window).Count();
+        int images = FindVisualChildren<Image>(window).Count();
+        int effects = FindVisualChildren<TextBlock>(window).Count(t => t.Effect is not null);
+        string json = "{" +
+            $"\"stage\":\"{stage}\"," +
+            $"\"items\":{items}," +
+            $"\"tiles\":{tiles}," +
+            $"\"images\":{images}," +
+            $"\"effects\":{effects}," +
+            $"\"ws_mb\":{proc.WorkingSet64 / 1048576.0:F1}," +
+            $"\"private_mb\":{proc.PrivateMemorySize64 / 1048576.0:F1}," +
+            $"\"managed_mb\":{GC.GetTotalMemory(false) / 1048576.0:F1}," +
+            $"\"heap_mb\":{GC.GetGCMemoryInfo().HeapSizeBytes / 1048576.0:F1}" +
+            "}";
+        MemPoints.Add(json);
+        Console.WriteLine(json);
+    }
+
+    /// <summary>
+    /// 逐层拆除视图，记录每一步的内存。顺序：原始 → GC → 裁剪工作集 → 摘文字投影
+    /// → 摘图标 → 卸载瓦片视觉树 → 最后再 GC+裁剪。
+    /// 每一步都等一帧渲染，避免把"还没来得及释放"误读成"占用"。
+    /// </summary>
+    private static async Task MeasureMemoryAsync(Window window, MainViewModel viewModel,
+                                                 string outPath, int items)
+    {
+        var biggest = viewModel.CategoryNav.Categories
+            .OrderByDescending(c => c.ItemCount)
+            .FirstOrDefault();
+        if (biggest is not null)
+        {
+            viewModel.CategoryNav.SelectedCategory = biggest;
+        }
+
+        await window.Dispatcher.InvokeAsync(
+            () => { }, System.Windows.Threading.DispatcherPriority.ContextIdle);
+        window.UpdateLayout();
+        await Task.Delay(800);
+
+        MemPoint(window, "raw", items);
+
+        ForceGc();
+        await Task.Delay(300);
+        MemPoint(window, "after_gc", items);
+
+        TrimWorkingSet();
+        await Task.Delay(300);
+        MemPoint(window, "after_trim", items);
+
+        int strippedEffects = 0;
+        foreach (TextBlock tb in FindVisualChildren<TextBlock>(window))
+        {
+            if (tb.Effect is not null)
+            {
+                tb.Effect = null;
+                strippedEffects++;
+            }
+        }
+        window.UpdateLayout();
+        ForceGc();
+        TrimWorkingSet();
+        await Task.Delay(300);
+        MemPoint(window, "effects_off", items);
+
+        int strippedIcons = 0;
+        foreach (Image img in FindVisualChildren<Image>(window))
+        {
+            if (img.Source is not null)
+            {
+                img.Source = null;
+                strippedIcons++;
+            }
+        }
+        window.UpdateLayout();
+        ForceGc();
+        TrimWorkingSet();
+        await Task.Delay(300);
+        MemPoint(window, "icons_off", items);
+
+        // 卸载所有 ListBox 的 ItemsSource：容器与 ItemTile 视觉树整体出栈
+        foreach (ListBox box in FindVisualChildren<ListBox>(window))
+        {
+            box.ItemsSource = null;
+        }
+        window.UpdateLayout();
+        await window.Dispatcher.InvokeAsync(
+            () => { }, System.Windows.Threading.DispatcherPriority.ContextIdle);
+        ForceGc();
+        TrimWorkingSet();
+        await Task.Delay(300);
+        MemPoint(window, "tiles_unloaded", items);
+
+        string json = "{\"stripped_effects\":" + strippedEffects +
+                      ",\"stripped_icons\":" + strippedIcons +
+                      ",\"points\":[" + string.Join(",", MemPoints) + "]}";
+        Directory.CreateDirectory(Path.GetDirectoryName(outPath)!);
+        File.WriteAllText(outPath, json);
+        Console.WriteLine("MEM_RESULT " + json);
+    }
+
+    /// <summary>
+    /// 连续切换「分类导航 ↔ 自由分区」时的内存曲线：如果私有提交随切换次数线性涨，
+    /// 就是切换时泄漏；如果第一次涨完就走平，那只是两套视图各自的常驻成本。
+    /// </summary>
+    private static async Task MeasureMemoryToggleAsync(Window window, MainViewModel viewModel,
+                                                       string outPath, int items)
+    {
+        var biggest = viewModel.CategoryNav.Categories
+            .OrderByDescending(c => c.ItemCount)
+            .FirstOrDefault();
+        if (biggest is not null)
+        {
+            viewModel.CategoryNav.SelectedCategory = biggest;
+        }
+
+        await window.Dispatcher.InvokeAsync(
+            () => { }, System.Windows.Threading.DispatcherPriority.ContextIdle);
+        window.UpdateLayout();
+        await Task.Delay(800);
+
+        MemPoint(window, "raw", items);
+        await ToggleLayoutOnceAsync(window, viewModel);
+        MemPoint(window, "toggle_00_warmup", items);
+
+        for (int i = 1; i <= 12; i++)
+        {
+            await ToggleLayoutOnceAsync(window, viewModel);
+            MemPoint(window, "toggle_" + i.ToString("00"), items);
+        }
+
+        ForceGc();
+        TrimWorkingSet();
+        await Task.Delay(500);
+        MemPoint(window, "after_gc_trim", items);
+
+        string json = "{\"points\":[" + string.Join(",", MemPoints) + "]}";
+        Directory.CreateDirectory(Path.GetDirectoryName(outPath)!);
+        File.WriteAllText(outPath, json);
+        Console.WriteLine("MEM_RESULT " + json);
+    }
+
     /// <summary>
     /// 200+ 项目的渲染性能：首屏、布局切换、滚动、缩放。
     /// 设 DESKLANES_NO_TEXT_SHADOW=1 可以在同一个构建上关掉文字投影做对照，
@@ -744,6 +941,17 @@ public static class Program
         var (sMed, sMin, sMax) = Summarize(scrollTimes);
         var (rMed, rMin, rMax) = Summarize(resizeTimes);
 
+        // WorkingSet64 由系统按内存压力管理，单次读数不等于"真实占用"。
+        // 同时记私有提交（进程真正要到的内存）与裁剪后工作集，避免把高水位当泄漏。
+        proc.Refresh();
+        double wsMb = proc.WorkingSet64 / 1048576.0;
+        double peakWsMb = proc.PeakWorkingSet64 / 1048576.0;
+        double privateMb = proc.PrivateMemorySize64 / 1048576.0;
+        TrimWorkingSet();
+        await Task.Delay(300);
+        proc.Refresh();
+        double trimmedWsMb = proc.WorkingSet64 / 1048576.0;
+
         string json = "{" +
             $"\"shadow\":{(stripShadow ? "false" : "true")}," +
             $"\"stripped_textblocks\":{stripped}," +
@@ -755,7 +963,10 @@ public static class Program
             $"\"scroll_ms\":{sMed:F1},\"scroll_min\":{sMin:F1},\"scroll_max\":{sMax:F1}," +
             $"\"resize_ms\":{rMed:F1},\"resize_min\":{rMin:F1},\"resize_max\":{rMax:F1}," +
             $"\"scroll_cpu_ms\":{cpuAfter - cpuBefore:F1}," +
-            $"\"working_set_mb\":{proc.WorkingSet64 / 1024.0 / 1024.0:F1}," +
+            $"\"working_set_mb\":{wsMb:F1}," +
+            $"\"peak_working_set_mb\":{peakWsMb:F1}," +
+            $"\"trimmed_working_set_mb\":{trimmedWsMb:F1}," +
+            $"\"private_mb\":{privateMb:F1}," +
             $"\"managed_mb\":{GC.GetTotalMemory(false) / 1024.0 / 1024.0:F1}" +
             "}";
 
