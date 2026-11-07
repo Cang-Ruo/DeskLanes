@@ -40,6 +40,39 @@ OUT = os.path.join(REPO, "docs", "ui-acrylic-final")
 WALL_DIR = os.path.join(OUT, "wallpapers")
 
 u = ctypes.windll.user32
+
+# --dynamic：额外读应用写出的"每块文字实际用了什么颜色 / 对比度多少"，
+# 而不是继续假设所有文字都是固定浅色。诊断开关只在本脚本启动的进程里打开。
+DYNAMIC = False
+DIAG_JSON = os.path.join(CFG, "diagnostics", "dynamic-text.json")
+
+
+def read_dynamic_metrics():
+    """等待应用写出决策 JSON，按真实文字色算对比度分布。"""
+    for _ in range(20):
+        if os.path.exists(DIAG_JSON):
+            break
+        time.sleep(0.2)
+    if not os.path.exists(DIAG_JSON):
+        return {"error": "应用没有写出 dynamic-text.json"}
+    try:
+        d = json.load(open(DIAG_JSON, encoding="utf-8"))
+    except Exception as ex:
+        return {"error": "诊断 JSON 解析失败：%s" % ex}
+    vals = sorted(x["contrast"] for x in d["decisions"] if x["contrast"] > 0)
+    if not vals:
+        return {"error": "诊断里没有有效决策"}
+    q = lambda p: round(vals[min(len(vals) - 1, int(len(vals) * p))], 2)
+    return {
+        "controls": d["controls"],
+        "dark_scheme": d["dark_scheme"],
+        "total_flips": d["total_flips"],
+        "contrast_p50": q(0.50),
+        "contrast_worst_p05": q(0.05),   # 最差的 5%
+        "contrast_min": round(vals[0], 2),
+        "grid_cells": d["grid_cells"],
+    }
+
 SPI_SETDESKWALLPAPER = 20
 SPIF_UPDATEINIFILE, SPIF_SENDCHANGE = 0x01, 0x02
 SW_MINIMIZE, SW_RESTORE = 6, 9
@@ -260,7 +293,12 @@ CASES = [
 def capture(case_name, mode, layout, title, pos, wall_tag, tag="", clear=False):
     cfg = json.load(open(SETTINGS, encoding="utf-8"))
     cfg.update({"WindowMode": mode, "LayoutMode": layout, "WindowMaximized": (mode == 1),
-                "SidebarExpanded": (mode == 2), "WindowLeft": 120, "WindowTop": 80})
+                "SidebarExpanded": (mode == 2), "WindowLeft": 120, "WindowTop": 80,
+                # 端到端 Round D 会把"悬浮窗在竖屏收缩后的尺寸/位置"持久化进配置。
+                # 不归一化的话，可读性用例会拿 712 DIP 的窗口和阶段 9 的 780 DIP 比，
+                # 尺寸与采样区域都变了，数字没有可比性（阶段 10 踩过）。
+                "FloatingWindowWidth": 780, "FloatingWindowHeight": 540,
+                "FloatingWindowLeft": None, "FloatingWindowTop": None})
     # --clear 会最小化其它窗口，等于制造一次失焦：侧边栏会自动收起成 55px 窄条、
     # 悬浮窗可能直接隐藏，拍到就不是要验的展开态了。测试期间关掉这两个行为
     #（与 tools/phase5-windows.py 对 FloatingHideOnDeactivate 的处理同理）。
@@ -269,10 +307,25 @@ def capture(case_name, mode, layout, title, pos, wall_tag, tag="", clear=False):
         cfg["FloatingHideOnDeactivate"] = False
     json.dump(cfg, open(SETTINGS, "w", encoding="utf-8"), ensure_ascii=False, indent=2)
 
+    if DYNAMIC:
+        try:
+            os.remove(DIAG_JSON)
+        except OSError:
+            pass
+    env = dict(os.environ)
+    if DYNAMIC:
+        env["DESKLANES_DIAG_TEXT"] = "1"
     subprocess.run(["taskkill", "/IM", "DeskLanes.exe", "/F"],
                    stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
     time.sleep(1.2)
-    proc = subprocess.Popen([EXE], cwd=os.path.dirname(EXE),
+    # 动态文字色是在**应用启动时**抓一帧纯桌面。原来的 --clear 在启动之后才清场，
+    # 那一帧里可能还盖着别的应用窗口，亮度网格就被污染了（各例数字会对不上）。
+    # 所以动态口径下必须先把其它窗口最小化，再启动 DeskLanes。
+    pre_hidden = []
+    if DYNAMIC and clear:
+        pre_hidden = set_aside(0)
+        time.sleep(1.5)
+    proc = subprocess.Popen([EXE], cwd=os.path.dirname(EXE), env=env,
                             stdout=subprocess.DEVNULL, stderr=subprocess.STDOUT)
     hidden = []
     try:
@@ -310,7 +363,13 @@ def capture(case_name, mode, layout, title, pos, wall_tag, tag="", clear=False):
         res = analyse(rgb, cw, ch)
         res.update({"mode": case_name, "wallpaper": wall_tag, "active": active,
                     "size": [cw, ch], "file": name, "cleared": clear,
-                    "cleared_windows": len(hidden)})
+                    "cleared_windows": len(hidden),
+                    # 动态口径下启动前已清过一次场，这一项才是那次的数量；
+                    # 只看 cleared_windows 会误以为清场没生效。
+                    "pre_cleared_windows": len(pre_hidden)})
+        if DYNAMIC:
+            # 固定浅色口径仍然保留（历史对照），但真实文字色以这一组为准。
+            res["dynamic_text"] = read_dynamic_metrics()
         # 悬浮窗：顺手取左上角 26px 方块，看圆角外圈有没有"未染色"的亮边
         if case_name == "floating":
             corner = []
@@ -333,11 +392,14 @@ def capture(case_name, mode, layout, title, pos, wall_tag, tag="", clear=False):
                 proc.wait(timeout=6)
             except Exception:
                 pass
-        restore_windows(hidden)   # --clear 最小化的窗口必须逐个还原
+        restore_windows(hidden)        # --clear 最小化的窗口必须逐个还原
+        restore_windows(pre_hidden)    # 启动前为干净桌面帧最小化的窗口
         time.sleep(1.0)
 
 
 def main():
+    global DYNAMIC
+    DYNAMIC = "--dynamic" in sys.argv[1:]
     screenshot._set_dpi_aware()
     os.makedirs(OUT, exist_ok=True)
 
