@@ -102,6 +102,41 @@ def _write_png(path, width, height, rgb):
         f.write(png)
 
 
+def read_png(path):
+    """读回 _write_png 写的 RGB8 PNG，返回 (width, height, rgb)。
+
+    取证时经常要「改前 / 改后对同一块区域算亮度」，总不能每次重新截屏。
+    本模块写出的 PNG 都是 filter type 0、非隔行，所以这里只需反转 zlib。
+    其它来源的 PNG（filter 1~4 / 调色板 / RGBA）不支持，直接抛错，避免算错证据。
+    """
+    data = open(path, "rb").read()
+    if data[:8] != b"\x89PNG\r\n\x1a\n":
+        raise ValueError("不是 PNG：%s" % path)
+    pos, idat, width, height, depth, color, interlace = 8, bytearray(), None, None, None, None, None
+    while pos + 8 <= len(data):
+        ln = struct.unpack(">I", data[pos:pos + 4])[0]
+        typ = data[pos + 4:pos + 8]
+        payload = data[pos + 8:pos + 8 + ln]
+        if typ == b"IHDR":
+            width, height, depth, color, _, _, interlace = struct.unpack(">IIBBBBB", payload)
+        elif typ == b"IDAT":
+            idat += payload
+        elif typ == b"IEND":
+            break
+        pos += 12 + ln
+    if (depth, color, interlace) != (8, 2, 0):
+        raise ValueError("只支持 RGB8 非隔行 PNG：%s" % path)
+    raw = zlib.decompress(bytes(idat))
+    stride, out, pos = width * 3, bytearray(), 0
+    for _ in range(height):
+        if raw[pos] != 0:
+            raise ValueError("只支持 filter 0 的 PNG：%s" % path)
+        pos += 1
+        out += raw[pos:pos + stride]
+        pos += stride
+    return width, height, bytes(out)
+
+
 EnumWindowsProc = ctypes.WINFUNCTYPE(ctypes.c_bool, ctypes.c_void_p, ctypes.c_void_p)
 
 

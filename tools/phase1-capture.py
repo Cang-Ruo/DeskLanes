@@ -59,6 +59,8 @@ _u32.IsIconic.argtypes = [ctypes.c_void_p]
 _u32.GetWindowTextLengthW.argtypes = [ctypes.c_void_p]
 _u32.ShowWindow.argtypes = [ctypes.c_void_p, ctypes.c_int]
 _u32.GetClassNameW.argtypes = [ctypes.c_void_p, ctypes.c_wchar_p, ctypes.c_int]
+_u32.GetWindowThreadProcessId.argtypes = [ctypes.c_void_p, ctypes.POINTER(ctypes.c_ulong)]
+_u32.GetWindowThreadProcessId.restype = ctypes.c_ulong
 
 
 def window_class(h):
@@ -67,13 +69,27 @@ def window_class(h):
     return buf.value
 
 
-def set_aside(keep):
+def window_pid(h):
+    pid = ctypes.c_ulong()
+    _u32.GetWindowThreadProcessId(ctypes.c_void_p(h), ctypes.byref(pid))
+    return pid.value
+
+
+def set_aside(keep, own_pid=0):
+    """最小化其它应用窗口，让 Acrylic 背后只剩壁纸。
+
+    注意：属于 own_pid 的窗口一律不动。设置窗口是主窗口的 owned window，
+    最小化 owner 会把它一起藏起来（清场修好后第一次重拍就踩到，settings.png
+    拍成了纯壁纸）。
+    """
     hidden = []
     CB = ctypes.WINFUNCTYPE(ctypes.c_bool, ctypes.c_void_p, ctypes.c_void_p)
 
     def cb(h, _):
         try:
-            if h == keep or not _u32.IsWindowVisible(h) or _u32.IsIconic(h):
+            if h == keep or (own_pid and window_pid(h) == own_pid):
+                return True
+            if not _u32.IsWindowVisible(h) or _u32.IsIconic(h):
                 return True
             if _u32.GetWindowTextLengthW(h) <= 0:
                 return True
@@ -223,6 +239,9 @@ def capture_one(name, mode, layout, title, out_dir):
             s["WindowTop"] = 80
         s["SidebarExpanded"] = (mode == 2)
         s["FloatingHideOnDeactivate"] = False
+        # 清场会最小化其它窗口＝制造一次失焦；不临时关掉自动收起，
+        # 侧边栏会被拍成 55px 收起态（阶段 8 踩过）。
+        s["SidebarAutoCollapse"] = False
 
     kill_existing()
     patch_json(SETTINGS, mutate)
@@ -266,11 +285,24 @@ def capture_one(name, mode, layout, title, out_dir):
                 time.sleep(1.5)
                 u.GetWindowRect(hwnd, ctypes.byref(r))
 
-        hidden = set_aside(hwnd)
-        # 点一下窗口内部空白处，把它变成活动窗口（Acrylic 只对活动窗口渲染）
-        click_at(r.Left + 60, r.Bottom - 14)  # 状态栏空白处，点了不触发任何操作
+        hidden = set_aside(hwnd, proc.pid)
+        time.sleep(2.0)  # 等 DWM 把 Acrylic 背后的新画面重算完
+        # 点一下窗口内部空白处，把它变成活动窗口（Acrylic 只对活动窗口渲染）。
+        # 设置窗口底部一排是「保存 / 取消」按钮，改点标题栏中央，别误关窗口。
+        if name == "settings":
+            click_at(r.Left + (r.Right - r.Left) / 2, r.Top + 12)
+        else:
+            click_at(r.Left + 60, r.Bottom - 14)  # 状态栏空白处，点了不触发任何操作
         time.sleep(0.8)
         active = u.GetForegroundWindow() == hwnd
+        if not active:
+            # 前台锁可能让第一次点击没生效，重试一次并显式请求前台
+            u.ShowWindow(hwnd, SW_RESTORE)
+            u.BringWindowToTop(hwnd)
+            u.SetForegroundWindow(hwnd)
+            click_at(r.Left + (r.Right - r.Left) / 2, r.Top + 12)
+            time.sleep(0.8)
+            active = u.GetForegroundWindow() == hwnd
 
         # 置顶，避免被别的窗口压住导致抓到别人
         u.SetWindowPos(hwnd, -1, 0, 0, 0, 0, 0x0001 | 0x0002 | 0x0010)
@@ -297,6 +329,9 @@ def capture_one(name, mode, layout, title, out_dir):
             "window_mode": mode,
             "layout_mode": layout,
             "active": active,
+            "visible": bool(_u32.IsWindowVisible(ctypes.c_void_p(hwnd))),
+            "cleared": True,
+            "cleared_windows": len(hidden),
             "rect": [r.Left, r.Top, r.Right, r.Bottom],
             "size": [cw, ch],
             "dwm": attrs,

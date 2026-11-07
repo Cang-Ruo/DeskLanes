@@ -580,6 +580,17 @@ try:
         hwnd_h = find_window(MAIN_TITLE, timeout=30)
         say("app starts with an off-screen saved position", hwnd_h is not None)
         if hwnd_h is not None:
+            # 窗口刚出现时可能正处在「恢复旧位置 → 钳位 → 最大化」的中间态。
+            # 曾经在枚举到句柄的瞬间读到 543,215 2550x1370，把瞬时状态误判成
+            # "窗口跑到屏幕外"；下一轮同样配置读到的是 -9,-9 2578x1398。
+            # 这里只等矩形连续两次相同再量，**断言和判据一个字不改**。
+            last = None
+            for _ in range(12):
+                cur = get_rect(hwnd_h)
+                if cur == last:
+                    break
+                last = cur
+                time.sleep(0.4)
             hx, hy, hw, hh = get_rect(hwnd_h)
             vx = u.GetSystemMetrics(SM_XVIRTUALSCREEN)
             vy = u.GetSystemMetrics(SM_YVIRTUALSCREEN)

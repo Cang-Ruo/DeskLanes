@@ -40,8 +40,16 @@
          叠三层就已经把 DWM 给的透光吃掉了大半 —— 实测（tools/glass-proof.py）
          只贴材质、零 tint 时能保留背景起伏的 ~33%，叠到三层只剩 ~19%。
          所以这里的 α 全部按「够读出层次就行」压到最低，别再往上加：
-         再厚一点，眼前的"玻璃"就会退化成"深灰块"。 -->
-    <SolidColorBrush x:Key="BrushWindowBaseGlass" Color="#2E20334A" />
+         再厚一点，眼前的"玻璃"就会退化成"深灰块"。
+
+         例外：窗口基底 BrushWindowBaseGlass 从 18% 提到 29%（阶段 9）。
+         不是拍脑袋调透明度，而是清场后的亮壁纸可读性 A/B 实测：
+         18% 时悬浮窗/侧边栏正文对比度 p50 只有 4.09（WCAG 正文 4.5 不达标）；
+         29% 时 4.73，侧边栏最坏分位 4.52。代价也量过：
+         空玻璃格相对桌面的相关 0.704 → 0.664（判据 ≥0.5，仍远高于
+         不透明对照 -0.108），空白区均值 83.9 → 82.0，明暗起伏 std 没变小
+         —— 壁纸的明暗变化仍然透得出来。再往上加就回到"深灰块"了，别动。 -->
+    <SolidColorBrush x:Key="BrushWindowBaseGlass" Color="#4A20334A" />
     <SolidColorBrush x:Key="BrushNavGlass" Color="#4D17283B" />
     <SolidColorBrush x:Key="BrushPanelGlass" Color="#3320334A" />
     <SolidColorBrush x:Key="BrushCardGlass" Color="#4020334A" />

@@ -1,0 +1,66 @@
+[
+  {
+    "bg_p05": 80.0,
+    "bg_p50": 109.71428571428571,
+    "bg_p95": 150.64285714285714,
+    "bg_max": 213.77551020408163,
+    "primary": {
+      "p50": 4.73,
+      "p95_worst": 2.7,
+      "max_worst": 1.34
+    },
+    "secondary": {
+      "p50": 2.98,
+      "p95_worst": 1.7,
+      "max_worst": 1.18
+    },
+    "tertiary": {
+      "p50": 1.93,
+      "p95_worst": 1.1,
+      "max_worst": 1.83
+    },
+    "mode": "floating",
+    "wallpaper": "light",
+    "active": true,
+    "size": [
+      975,
+      675
+    ],
+    "file": "readability-light-floating-phase9-tint29.png",
+    "cleared": true,
+    "cleared_windows": 6,
+    "corner_mean": 112.0,
+    "inner_mean": 96.9
+  },
+  {
+    "bg_p05": 107.0,
+    "bg_p50": 109.0,
+    "bg_p95": 112.81818181818181,
+    "bg_max": 128.5909090909091,
+    "primary": {
+      "p50": 4.73,
+      "p95_worst": 4.52,
+      "max_worst": 3.61
+    },
+    "secondary": {
+      "p50": 2.98,
+      "p95_worst": 2.85,
+      "max_worst": 2.27
+    },
+    "tertiary": {
+      "p50": 1.93,
+      "p95_worst": 1.85,
+      "max_worst": 1.47
+    },
+    "mode": "sidebar",
+    "wallpaper": "light",
+    "active": true,
+    "size": [
+      350,
+      950
+    ],
+    "file": "readability-light-sidebar-phase9-tint29.png",
+    "cleared": true,
+    "cleared_windows": 6
+  }
+]
