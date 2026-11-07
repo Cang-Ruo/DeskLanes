@@ -54,7 +54,7 @@ public static class Program
 {
     private static readonly string[] Modes =
         { "category", "panels", "floating", "sidebar", "settings", "dialog", "perf", "reference",
-          "perf200", "mem", "memtoggle" };
+          "perf200", "mem", "memtoggle", "toggle" };
 
     /// <summary>进程启动时刻：用来量"从双击到首屏可用"的端到端时间。</summary>
     private static readonly System.Diagnostics.Stopwatch ProgramClock =
@@ -162,7 +162,7 @@ public static class Program
                 int bulk = mode switch
                 {
                     "perf" or "perf200" => 205,
-                    "mem" or "memtoggle" => ParseMemItemCount(),
+                    "mem" or "memtoggle" or "toggle" => ParseMemItemCount(),
                     _ => 0,
                 };
                 SeedDemoItems(workspace, tempDir, bulk);
@@ -173,7 +173,7 @@ public static class Program
                 workspace.SetLayoutMode(LayoutMode.FreePanels);
                 SeedPanels(workspace);
             }
-            else if (mode is "perf200" or "mem" or "memtoggle")
+            else if (mode is "perf200" or "mem" or "memtoggle" or "toggle")
             {
                 // 分区先建好但不切过去：切换耗时要在测量里现算
                 SeedPanels(workspace);
@@ -353,6 +353,22 @@ public static class Program
                     if (mode == "memtoggle")
                     {
                         await MeasureMemoryToggleAsync(window, mainViewModel, output, ParseMemItemCount());
+                        return;
+                    }
+
+                    if (mode == "toggle")
+                    {
+                        // 与 perf200 一样先切到项目最多的分类，否则默认分类只有十来项。
+                        var largest = mainViewModel.CategoryNav.Categories
+                            .OrderByDescending(c => c.ItemCount)
+                            .FirstOrDefault();
+                        if (largest is not null)
+                        {
+                            mainViewModel.CategoryNav.SelectedCategory = largest;
+                        }
+                        await window.Dispatcher.InvokeAsync(
+                            () => { }, System.Windows.Threading.DispatcherPriority.ContextIdle);
+                        await MeasureLayoutToggleAsync(window, mainViewModel, demo);
                         return;
                     }
 
