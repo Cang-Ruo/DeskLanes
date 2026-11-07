@@ -219,3 +219,8 @@ python tools/phase3-readability.py --walls=light --cases=category
 
 原始指标：`readability-glass-before.json` / `readability-glass.json`；
 完整方法与会话事件审查、切换耗时归因见 `phase8-report.md`。
+
+> **阶段 9 续（2026-11-08）**：本节的 4.09 是 18% 基底 tint 下的值。
+> 把基底提到 29% 后，同一脚本清场重测得亮/悬浮 **4.73**、亮/侧栏 **4.73**、
+> 亮/分类 5.66，正文 p50 过 WCAG 4.5；p95 最坏分位 2.70 仍不达标。
+> A/B、透光代价与回归见 `phase9-report.md`。

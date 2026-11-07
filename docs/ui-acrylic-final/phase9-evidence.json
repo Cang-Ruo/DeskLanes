@@ -1,0 +1,300 @@
+{
+  "purpose": "阶段 9：清场证据重拍 + 亮壁纸可读性最小改动 A/B + 最终回归",
+  "build": {
+    "portable_md5": "313b42053ad84a871e33c55b9226c2a5",
+    "portable_bytes": 549981,
+    "selfcontained_md5": "649a3e4051a98fd9aa276b0121a792a4",
+    "selfcontained_bytes": 65081905,
+    "installed_matches_published": true
+  },
+  "env": {
+    "dpi": 120,
+    "scale": 1.25,
+    "windows_build": "10.0.26300",
+    "primary": {
+      "w": 2560,
+      "h": 1440
+    },
+    "virtual": {
+      "x": 0,
+      "y": 0,
+      "w": 2560,
+      "h": 1440
+    },
+    "monitor_count": 1,
+    "wallpaper": "C:\\Users\\TTjustTT\\Pictures\\Camera Roll\\爱上紫禁城.jpg"
+  },
+  "phase1_clean_shots": [
+    {
+      "name": "fullscreen-category",
+      "active": true,
+      "visible": true,
+      "cleared": true,
+      "cleared_windows": 7,
+      "size": [
+        2578,
+        1398
+      ],
+      "dwm": {
+        "dark_mode(20)": {
+          "hr": 0,
+          "value": 1
+        },
+        "system_backdrop(38)": {
+          "hr": 0,
+          "value": 3
+        },
+        "corner(33)": {
+          "hr": 0,
+          "value": 2
+        }
+      }
+    },
+    {
+      "name": "fullscreen-panels",
+      "active": true,
+      "visible": true,
+      "cleared": true,
+      "cleared_windows": 7,
+      "size": [
+        2578,
+        1398
+      ],
+      "dwm": {
+        "dark_mode(20)": {
+          "hr": 0,
+          "value": 1
+        },
+        "system_backdrop(38)": {
+          "hr": 0,
+          "value": 3
+        },
+        "corner(33)": {
+          "hr": 0,
+          "value": 2
+        }
+      }
+    },
+    {
+      "name": "floating",
+      "active": true,
+      "visible": true,
+      "cleared": true,
+      "cleared_windows": 7,
+      "size": [
+        975,
+        675
+      ],
+      "dwm": {
+        "dark_mode(20)": {
+          "hr": 0,
+          "value": 1
+        },
+        "system_backdrop(38)": {
+          "hr": 0,
+          "value": 3
+        },
+        "corner(33)": {
+          "hr": 0,
+          "value": 2
+        }
+      }
+    },
+    {
+      "name": "sidebar",
+      "active": true,
+      "visible": true,
+      "cleared": true,
+      "cleared_windows": 7,
+      "size": [
+        350,
+        950
+      ],
+      "dwm": {
+        "dark_mode(20)": {
+          "hr": 0,
+          "value": 1
+        },
+        "system_backdrop(38)": {
+          "hr": 0,
+          "value": 3
+        },
+        "corner(33)": {
+          "hr": 0,
+          "value": 1
+        }
+      }
+    },
+    {
+      "name": "settings",
+      "active": true,
+      "visible": true,
+      "cleared": true,
+      "cleared_windows": 7,
+      "size": [
+        575,
+        650
+      ],
+      "dwm": {
+        "dark_mode(20)": {
+          "hr": 0,
+          "value": 1
+        },
+        "system_backdrop(38)": {
+          "hr": 0,
+          "value": 3
+        },
+        "corner(33)": {
+          "hr": 0,
+          "value": 2
+        }
+      }
+    }
+  ],
+  "readability": {
+    "phase9_base_18pct": {
+      "dark/category": {
+        "bg_p50": 61.29,
+        "primary_p50": 9.92,
+        "primary_p95_worst": 5.83,
+        "cleared_windows": 6,
+        "active": true
+      },
+      "dark/floating": {
+        "bg_p50": 62.83,
+        "primary_p50": 9.77,
+        "primary_p95_worst": 3.81,
+        "cleared_windows": 6,
+        "active": true
+      },
+      "dark/sidebar": {
+        "bg_p50": 66.0,
+        "primary_p50": 9.18,
+        "primary_p95_worst": 8.22,
+        "cleared_windows": 6,
+        "active": true
+      },
+      "light/category": {
+        "bg_p50": 104.71,
+        "primary_p50": 5.09,
+        "primary_p95_worst": 3.92,
+        "cleared_windows": 6,
+        "active": true
+      },
+      "light/floating": {
+        "bg_p50": 119.0,
+        "primary_p50": 4.09,
+        "primary_p95_worst": 2.57,
+        "cleared_windows": 6,
+        "active": true
+      },
+      "light/sidebar": {
+        "bg_p50": 119.0,
+        "primary_p50": 4.09,
+        "primary_p95_worst": 3.98,
+        "cleared_windows": 6,
+        "active": true
+      }
+    },
+    "phase9_final_29pct": {
+      "dark/category": {
+        "bg_p50": 60.0,
+        "primary_p50": 10.08,
+        "primary_p95_worst": 5.92,
+        "cleared_windows": 5,
+        "active": true
+      },
+      "dark/floating": {
+        "bg_p50": 60.86,
+        "primary_p50": 10.08,
+        "primary_p95_worst": 3.87,
+        "cleared_windows": 5,
+        "active": true
+      },
+      "dark/sidebar": {
+        "bg_p50": 63.0,
+        "primary_p50": 9.62,
+        "primary_p95_worst": 8.49,
+        "cleared_windows": 5,
+        "active": true
+      },
+      "light/category": {
+        "bg_p50": 97.0,
+        "primary_p50": 5.66,
+        "primary_p95_worst": 4.21,
+        "cleared_windows": 5,
+        "active": true
+      },
+      "light/floating": {
+        "bg_p50": 109.55,
+        "primary_p50": 4.73,
+        "primary_p95_worst": 2.7,
+        "cleared_windows": 5,
+        "active": true
+      },
+      "light/sidebar": {
+        "bg_p50": 109.0,
+        "primary_p50": 4.73,
+        "primary_p95_worst": 4.52,
+        "cleared_windows": 5,
+        "active": true
+      }
+    },
+    "intermediate_26pct_light": {
+      "light/floating": {
+        "bg_p50": 112.52,
+        "primary_p50": 4.52,
+        "primary_p95_worst": 2.7,
+        "cleared_windows": 6,
+        "active": true
+      },
+      "light/sidebar": {
+        "bg_p50": 112.0,
+        "primary_p50": 4.52,
+        "primary_p95_worst": 4.33,
+        "cleared_windows": 6,
+        "active": true
+      }
+    }
+  },
+  "transparency": {
+    "glassproof_floating_18pct": {
+      "flat_cell_corr_glass": 0.704,
+      "flat_cell_corr_opaque": -0.106,
+      "whole_window_corr": 0.26
+    },
+    "glassproof_floating_26pct": {
+      "flat_cell_corr_glass": 0.687,
+      "flat_cell_corr_opaque": -0.108
+    },
+    "glassproof_floating_29pct": {
+      "flat_cell_corr_glass": 0.664,
+      "flat_cell_corr_opaque": -0.108,
+      "whole_window_corr": 0.227
+    },
+    "glassproof_reference_clean": {
+      "flat_cell_corr_glass": 0.903,
+      "flat_cell_corr_opaque": -0.092,
+      "whole_window_corr": 0.806,
+      "blur_hf_window": 0.71,
+      "blur_hf_behind": 3.85
+    },
+    "blank_region_luma": {
+      "pct18": 83.94,
+      "pct26": 82.4,
+      "pct29": 81.95,
+      "std": {
+        "pct18": 47.53,
+        "pct26": 48.04,
+        "pct29": 48.19
+      }
+    }
+  },
+  "regression": {
+    "release_build": "0 warning / 0 error",
+    "smoke": "460/460",
+    "e2e": "29/36 (7 multi-monitor assertions unverified: secondary monitor no longer in topology)",
+    "e2e_flake": "first run 28/36 because Round H rect was read mid-restore; fixed by waiting for a stable rect, no assertion changed; repeat 29/36",
+    "startup": "7/7, cold 1.14 s, warm median 1.04 s"
+  }
+}

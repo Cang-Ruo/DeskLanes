@@ -39,3 +39,10 @@ docs/ui-acrylic-final/phase2-*.png
 docs/ui-acrylic-final/readability-*.png
 # 测试壁纸由脚本生成，不入库
 docs/ui-acrylic-final/wallpapers/
+
+# 阶段 9 的清场 / tint 对照截图与整屏原始帧：含真实桌面项目名，只留本地；
+# 指标统一收在 phase9-evidence.json 与 readability-phase9-*.json
+docs/ui-acrylic-final/phase9-clean/
+docs/ui-acrylic-final/phase9-tint26/
+docs/ui-acrylic-final/phase9-tint29/
+docs/ui-acrylic-final/phase9-glassproof/
