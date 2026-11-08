@@ -133,6 +133,8 @@ public sealed class DynamicTextService
     private string _luminanceSource = "none";
     private string? _lastSignature;
     private int _desktopRefreshes;
+    private int _forcedRefreshCount;
+    private bool _pendingForce;
     private DispatcherTimer? _pendingRefresh;
 
     private sealed class State
@@ -169,13 +171,15 @@ public sealed class DynamicTextService
         RequestRefresh();
     }
 
-    /// <summary>壁纸 / 显示器拓扑变化：延迟 1.5 秒合并连续消息后重建亮度网格。</summary>
-    public void OnEnvironmentChanged()
+    /// <summary>壁纸 / 显示器拓扑 / 电源恢复：延迟 1.5 秒合并连续消息后重建亮度网格。</summary>
+    /// <param name="force">跳过签名去重（睡眠恢复、显示器变化时壁纸路径可能没变，但桌面合成已变）。</param>
+    public void OnEnvironmentChanged(bool force = false)
     {
         if (!_enabled)
         {
             return;
         }
+        _pendingForce |= force;
         if (_pendingRefresh is null)
         {
             _pendingRefresh = new DispatcherTimer(DispatcherPriority.Background)
@@ -185,7 +189,9 @@ public sealed class DynamicTextService
             _pendingRefresh.Tick += (_, _) =>
             {
                 _pendingRefresh.Stop();
-                RefreshFromWallpaper();
+                bool shouldForce = _pendingForce;
+                _pendingForce = false;
+                RefreshFromWallpaper(shouldForce);
             };
         }
         _pendingRefresh.Stop();
@@ -198,7 +204,7 @@ public sealed class DynamicTextService
         return (DesktopLuminance.CurrentWallpaperPath() ?? "") + "|" + _luminance.CellCount;
     }
 
-    private void RefreshFromWallpaper()
+    private void RefreshFromWallpaper(bool force)
     {
         string? path = DesktopLuminance.CurrentWallpaperPath();
         if (path is null)
@@ -206,7 +212,7 @@ public sealed class DynamicTextService
             return;
         }
         string signature = EnvironmentSignature();
-        if (signature == _lastSignature)
+        if (!force && signature == _lastSignature)
         {
             return; // 不是壁纸/拓扑变化，别白解码一次
         }
@@ -217,6 +223,10 @@ public sealed class DynamicTextService
         _lastSignature = signature;
         _luminanceSource = "wallpaper_bitmap";
         _desktopRefreshes++;
+        if (force)
+        {
+            _forcedRefreshCount++;
+        }
         RequestRefresh();
     }
 
@@ -500,6 +510,7 @@ public sealed class DynamicTextService
                 grid_cells = _luminance.CellCount,
                 luminance_source = _luminanceSource,
                 desktop_refreshes = _desktopRefreshes,
+                forced_refreshes = _forcedRefreshCount,
                 controls = decisions.Count,
                 unusable_controls = unusable,
                 total_flips = _totalFlips,
