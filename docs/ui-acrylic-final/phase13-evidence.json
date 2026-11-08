@@ -1,0 +1,251 @@
+{
+  "purpose": "阶段 13：全文字块可读性结案、布局切换性能复核、人工配合项验证工具",
+  "all_text_audit": {
+    "method": "应用在诊断模式导出全部可见文字块的矩形与真实前景色；脚本用截图测得背景中位数，逐块算 WCAG",
+    "before_fix": {
+      "light_below_4_5": 3,
+      "dark_below_4_5": 2,
+      "examples": {
+        "搜索提示": 3.01,
+        "分类计数": 1.77,
+        "状态栏就绪": 1.87,
+        "暗壁纸状态栏": 4.12
+      }
+    },
+    "fix": [
+      "BrushInputGlass 30%->45% 深底",
+      "搜索提示/关闭按钮改主文字色",
+      "分类计数与状态栏接入成对局部底（dt:DynamicText.Scrim）",
+      "PanelView 固定深标题栏保持静态主文字色，不接入动态色"
+    ],
+    "after_light": {
+      "measured": 22,
+      "adaptive": {
+        "n": 18,
+        "p50": 7.25,
+        "min": 5.21
+      },
+      "fixed": {
+        "n": 4,
+        "p50": 12.76,
+        "min": 9.04,
+        "below_4_5": 0
+      },
+      "verdict": true
+    },
+    "after_dark": {
+      "measured": 22,
+      "adaptive": {
+        "n": 18,
+        "p50": 11.88,
+        "min": 6.82
+      },
+      "fixed": {
+        "n": 4,
+        "p50": 14.53,
+        "min": 12.23,
+        "below_4_5": 0
+      },
+      "verdict": true
+    },
+    "scroll": {
+      "note": "滚动态逐块像素因导出矩形与裁切布局错位不可采信，以应用决策记录覆盖",
+      "light": {
+        "controls": 28,
+        "min": 11.69,
+        "p50": 12.67,
+        "all_ge_4_5": true
+      },
+      "dark": {
+        "controls": 28,
+        "min": 8.9,
+        "p50": 15.73,
+        "all_ge_4_5": true
+      }
+    }
+  },
+  "layout_toggle": {
+    "final_build_ms": {
+      "15": 41.5,
+      "65": 127.3,
+      "220": 336.4,
+      "515": 499.6
+    },
+    "dynamic_disabled_ms": {
+      "15": 53.5,
+      "65": 117.2,
+      "220": 332.9,
+      "515": 484.4
+    },
+    "phase8_baseline_ms": {
+      "15": 42,
+      "65": 107,
+      "220": 300,
+      "515": 440
+    },
+    "conclusion": "开/关动态文字差值在噪声内（最大 +15ms），无系统性回退；全部 PASS(<1s)，阶段 8 不改代码结论成立"
+  },
+  "manual_probes": {
+    "tool": "tools/phase13-manual-probes.py",
+    "subcommands": [
+      "plan",
+      "capture",
+      "compare",
+      "rdp"
+    ],
+    "selftest": "应用运行时采集到 3 个窗口、辅助窗口已排除误报、compare issues=[]",
+    "soak_24h": "tools/soak-8h.py --exe publish/win-x64-selfcontained/DeskLanes.exe --out docs/stage13-soak/soak-24h.csv --hours 24 --interval-min 5 --errorlog \"%LOCALAPPDATA%/DeskLanes/logs/errors.log\"",
+    "still_unverified": [
+      "真实锁屏/睡眠恢复",
+      "跨天 24h+ 驻留",
+      "运行中真实硬件热插拔/改分辨率",
+      "远程桌面会话"
+    ]
+  },
+  "glass_proof": {
+    "floating_runs": [
+      0.45,
+      0.505,
+      0.505
+    ],
+    "opaque_control": -0.123,
+    "reference": 0.901,
+    "reference_opaque": -0.092,
+    "note": "控件底色加深后空白玻璃格减少，带 UI 悬浮窗相关从阶段 12 的 0.616 降到约 0.505；材质本身未变（参考窗 0.901），仍过 >=0.5 判据但余量很薄。首次 0.450 为单次波动。"
+  },
+  "regression": {
+    "release": "0 warning / 0 error",
+    "smoke": "460/460",
+    "e2e_three_monitors": "36/36",
+    "startup": "7/7, warm median 1.45 s",
+    "nameplate_pixel": "p50 6.90 / min 5.11 / idle flips 0",
+    "resume_events": "6/6 verdict true",
+    "phase1_shots": [
+      {
+        "name": "fullscreen-category",
+        "active": true,
+        "visible": true,
+        "cleared_windows": 6,
+        "size": [
+          2578,
+          1398
+        ],
+        "dwm": {
+          "dark_mode(20)": {
+            "hr": 0,
+            "value": 1
+          },
+          "system_backdrop(38)": {
+            "hr": 0,
+            "value": 3
+          },
+          "corner(33)": {
+            "hr": 0,
+            "value": 2
+          }
+        }
+      },
+      {
+        "name": "fullscreen-panels",
+        "active": true,
+        "visible": true,
+        "cleared_windows": 6,
+        "size": [
+          2578,
+          1398
+        ],
+        "dwm": {
+          "dark_mode(20)": {
+            "hr": 0,
+            "value": 1
+          },
+          "system_backdrop(38)": {
+            "hr": 0,
+            "value": 3
+          },
+          "corner(33)": {
+            "hr": 0,
+            "value": 2
+          }
+        }
+      },
+      {
+        "name": "floating",
+        "active": true,
+        "visible": true,
+        "cleared_windows": 6,
+        "size": [
+          975,
+          675
+        ],
+        "dwm": {
+          "dark_mode(20)": {
+            "hr": 0,
+            "value": 1
+          },
+          "system_backdrop(38)": {
+            "hr": 0,
+            "value": 3
+          },
+          "corner(33)": {
+            "hr": 0,
+            "value": 2
+          }
+        }
+      },
+      {
+        "name": "sidebar",
+        "active": true,
+        "visible": true,
+        "cleared_windows": 6,
+        "size": [
+          420,
+          1140
+        ],
+        "dwm": {
+          "dark_mode(20)": {
+            "hr": 0,
+            "value": 1
+          },
+          "system_backdrop(38)": {
+            "hr": 0,
+            "value": 3
+          },
+          "corner(33)": {
+            "hr": 0,
+            "value": 1
+          }
+        }
+      },
+      {
+        "name": "settings",
+        "active": true,
+        "visible": true,
+        "cleared_windows": 6,
+        "size": [
+          575,
+          650
+        ],
+        "dwm": {
+          "dark_mode(20)": {
+            "hr": 0,
+            "value": 1
+          },
+          "system_backdrop(38)": {
+            "hr": 0,
+            "value": 3
+          },
+          "corner(33)": {
+            "hr": 0,
+            "value": 2
+          }
+        }
+      }
+    ]
+  },
+  "build": {
+    "portable_md5": "91c6ac20f511b0c34fe7126378d1e19c",
+    "selfcontained_md5": "ec53018c14ba9f46c3461c678ca8d44d",
+    "installed_matches": true
+  }
+}

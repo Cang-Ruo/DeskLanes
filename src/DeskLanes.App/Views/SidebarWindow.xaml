@@ -70,7 +70,7 @@
                         ToolTip="切换到悬浮窗（数据共用）"
                         Command="{Binding ToggleFloatingModeCommand}" />
                 <Button Content="✕" Width="26" Height="24" Padding="0" Background="Transparent"
-                        BorderThickness="0" Foreground="{StaticResource BrushTextSecondary}" HorizontalAlignment="Right"
+                        BorderThickness="0" Foreground="{StaticResource BrushTextPrimary}" HorizontalAlignment="Right"
                         ToolTip="隐藏侧边栏（不退出应用）"
                         Command="{Binding HideWindowCommand}" />
             </StackPanel>
@@ -99,9 +99,11 @@
                                         CornerRadius="3" Padding="3,0" HorizontalAlignment="Left">
                                     <TextBlock Text="{Binding Name}" FontSize="12" TextTrimming="CharacterEllipsis" />
                                 </Border>
-                                <TextBlock Text="{Binding ItemCount}" FontSize="10"
-                                           Foreground="{StaticResource BrushTextTertiary}"
-                                           HorizontalAlignment="Right" />
+                                <Border Background="{StaticResource BrushLabelScrim}" dt:DynamicText.Scrim="True"
+                                        CornerRadius="3" Padding="3,0" HorizontalAlignment="Right">
+                                    <TextBlock Text="{Binding ItemCount}" FontSize="10"
+                                               Foreground="{StaticResource BrushTextPrimary}" />
+                                </Border>
                             </Grid>
                         </DataTemplate>
                     </ListBox.ItemTemplate>
@@ -142,9 +144,11 @@
                            TextWrapping="Wrap"
                            Visibility="{Binding HasNoItems, Converter={StaticResource BoolToVis}}" />
 
-                <TextBlock Grid.Row="3" Text="{Binding StatusText}" FontSize="10"
-                           Foreground="{StaticResource BrushTextTertiary}"
-                           Margin="0,6,0,0" TextTrimming="CharacterEllipsis" />
+                <Border Grid.Row="3" Style="{StaticResource StatusBarScrim}" dt:DynamicText.Scrim="True"
+                        HorizontalAlignment="Left" Margin="0,6,0,0">
+                    <TextBlock Text="{Binding StatusText}" FontSize="10"
+                               Foreground="{StaticResource BrushTextPrimary}" TextTrimming="CharacterEllipsis" />
+                </Border>
             </Grid>
 
             <!-- 收起状态：只留一个展开按钮的窄条 -->

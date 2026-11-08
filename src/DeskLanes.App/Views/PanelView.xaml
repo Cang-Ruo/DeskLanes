@@ -27,7 +27,9 @@
                             <Grid>
                                 <TextBlock Text="{Binding Title}" FontSize="13" FontWeight="SemiBold"
                                            Foreground="{StaticResource BrushTextPrimary}" TextTrimming="CharacterEllipsis" />
-                                <TextBlock Text="{Binding ItemCount}" FontSize="11" Foreground="{StaticResource BrushTextTertiary}"
+                                <!-- 标题栏本身是固定深底 #2E17283B，用静态主文字色即可，
+                                     不接入动态色（否则亮壁纸下会误判成深字压深底）。 -->
+                                <TextBlock Text="{Binding ItemCount}" FontSize="11" Foreground="{StaticResource BrushTextPrimary}"
                                            HorizontalAlignment="Right" VerticalAlignment="Center" />
                             </Grid>
                         </Border>
