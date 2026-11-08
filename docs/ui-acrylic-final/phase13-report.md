@@ -193,32 +193,66 @@
 证据：`phase13-display-{left,primary}-probe.json` 及各自的
 `phase13-probe-display-{left,primary}-compare.json`。
 
-### 物理热插拔：工具已就绪，动作需你手动
+### 物理热插拔：用户实测 **FAIL**，查出真缺陷（已修复，待复测）
 
-`python tools/phase13-display-probe.py --unplug`（默认左侧竖屏，
-可加 `--target=primary` 走主屏）是交互式的：
-采「拔线前」→ 提示你拔下**外接屏**视频线并按回车 → 采「已拔下」→
-提示插回并按回车 → 采「已插回」→ 自动做两次比对并给 PASS/FAIL。
-工具不会自己拔线（物理动作），也不会改任何显示设置；
-`--target=laptop` 会提示「笔记本内置屏通常没有可拔视频线，请改用 left / primary」。
+用户 02:24–02:26 跑了 `--unplug`，拔下左侧竖屏并按两次回车，三份快照齐全。
+**首版工具报 PASS 是误判**：`compare` 跳过了 `minimized` 窗口的几何检查。
+严格判据重算后改判 **FAIL**：
+
+| 阶段 | 显示器 | 虚拟屏 | 悬浮窗 | 判定 |
+|---|---|---|---|---|
+| 拔前 | 3 台 | `(-1080,0) 6200×1920` | `[-1036,240,-41,1403]` 995×1163 可见 | 正常 |
+| 拔下 | **1 台** | `(0,0) 2560×1440` | `[-1043,200,-214,1169]` **完全在屏幕外**、被最小化 | ❌ |
+| 插回 | 3 台（用户手动改回竖屏，Windows 重排） | `(-1080,-154) 6200×2439` | `[-172,1639,168,1687]` **340×48 细横条**、仍最小化 | ❌ |
+
+截图里红框那个灰色小条就是被压扁的悬浮窗。`errors.log` 全程 3634 不变。
+
+**根因**（两处产品缺陷 + 一处取证缺陷）：
+
+1. `AppController.ClampWindowsToScreen()` 读 WPF 缓存的 `SystemParameters.VirtualScreen*`，
+   `WM_DISPLAYCHANGE` 到达时常常还是旧的三屏矩形，于是 `-1043` 被判为"在范围内"不移动；
+   且 Windows 会连发数次该消息、用户随后还会手动改回竖屏，单次钳位会踩空。
+2. `MonitorService.FitIntoWorkArea()` 在热插拔中间态拿到极小的"工作区"时仍照常收缩，
+   把窗口压成 340×48 细条。
+3. `phase13-manual-probes.py` 的 `compare` 跳过 `minimized` 窗口，也不检查尺寸退化，
+   于是把明显异常的状态报成 `issues=[]` / PASS。
+
+**修复**：
+
+- `WM_DISPLAYCHANGE` 立即钳位 + 300 ms / 1200 ms 两次延迟重钳；拓扑事件下
+  `restoreMinimized=true` 恢复被系统最小化的窗口（日常呼出不打断用户主动最小化）
+- `ClampWindow` 增加最小尺寸保护（非有限 / 小于 `MinWidth/MinHeight` 时恢复）与非有限位置兜底
+- `FitIntoWorkArea` 遇到异常小工作区直接跳过收缩
+- 钳位计算抽成 `MonitorService.ClampToVirtualScreen()`、异常判定抽成 `IsWorkAreaSane()`，
+  冒烟新增 6 条可重复回归断言（**466 / 466**）
+- `compare` 不再跳过 minimized 窗口，新增「完全在虚拟屏外」与「尺寸退化成细条」两类 issue
+
+**取证工具的二次修正**：首版 `compare` 用 `dynamic-text.json` 判恢复（只在诊断模式写）、
+第二版跳过 minimized 窗口，两次都容易误报。现在几何检查覆盖所有可见业务窗口。
+
+**当前状态**：用户那个细条窗口已用 Win32 `ShowWindow(SW_RESTORE)` + `MoveWindow`
+恢复成 `1250×875` 位于主屏可见区（不写配置、不动 soak 进程）。
+但**修复要等重启软件才生效**——当前运行的仍是 01:50 启动的旧实例（同时是 24h soak 进程），
+不能杀。真实拔插复测需用户下次方便时再拔一次，工具判据已修，不会再误报 PASS。
 
 **仍未实测**：真实睡眠 / 休眠唤醒（合成 `WM_POWERBROADCAST` 只算消息级证据）、
-跨天 24h+ 驻留、物理热插拔。远程桌面会话用户明确暂缓。
-已完成并从「未实测」移出的：锁屏 / 解锁、运行中改分辨率。
+跨天 24h+ 驻留（正在跑）、热插拔**修复后复测**。远程桌面会话用户明确暂缓。
+已完成并从「未实测」移出的：锁屏 / 解锁、运行中改分辨率（三次）。
 
 ## 六、回归与交付
 
 | 项目 | 结果 |
 |---|---|
 | Release 构建 | **0 警告 0 错误** |
-| 冒烟 | **460 / 460** |
+| 冒烟 | **466 / 466**（新增 6 条热插拔钳位回归） |
 | 三屏端到端 | **36 / 36** |
 | 启动 | **7 / 7**，热中位 1.45 s，`errors.log` 未增长 |
 | 名字牌像素 | p50 **6.90 / 最低 5.11**，静置 0 翻转 |
 | 恢复事件 | 6 / 6 判据 true |
 | 五张基线截图 | 最终构建重拍，5/5 活动可见、`BACKDROP=3`、侧栏 `CORNER=1` |
-| 发布 | portable `91c6ac20…`（582,749 B）、selfcontained `ec53018c…`（65,099,504 B） |
-| 安装同步 | `install.ps1 -Force` 覆盖安装，安装副本与发布副本 **MD5 一致**；开机自启与桌面图标隐藏未改动 |
+| 发布（热插拔修复后） | portable `f1aaceb1…`（586,845 B）；selfcontained 新版 `2a5b17d9…`（65,100,216 B）**在 `publish/win-x64-selfcontained-next/`** |
+| 安装同步 | **本轮暂未覆盖安装**：`publish/win-x64-selfcontained/DeskLanes.exe` 正被 24h soak 进程（PID 286804，01:50 启动）占用，`GenerateBundle` 报 `UnauthorizedAccessException`；`install.ps1` 也会结束该进程。等 soak 跑完再把 `next` 覆盖到正式目录并 `install.ps1 -Force`。开机自启与桌面图标隐藏全程未改动 |
+| 未跑的回归 | 三屏端到端 / 启动探针会启动新实例，与单实例互斥及 soak 冲突，本轮未跑；冒烟 466、改分辨率 left 回归 PASS、`errors.log` 零增长已覆盖 |
 
 新增 `phase13-report.md`、`phase13-evidence.json`、`tools/phase13-all-text-audit.py`、
 `tools/phase13-manual-probes.py`；同步 `phase10/11/12-report.md` 与 `acceptance-report.md`

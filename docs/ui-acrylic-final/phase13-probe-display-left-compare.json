@@ -1,6 +1,6 @@
 {
-  "before": "2026-11-09 02:13:55.690",
-  "after": "2026-11-09 02:13:59.239",
+  "before": "2026-11-09 02:36:36.703",
+  "after": "2026-11-09 02:36:40.320",
   "app_running": [
     true,
     true
@@ -16,26 +16,26 @@
   "virtual_screen": [
     [
       -1080,
-      0,
+      -154,
       6200,
-      1920
+      2439
     ],
     [
       -1050,
-      0,
+      -154,
       6170,
-      1680
+      2199
     ]
   ],
-  "windows_before": 9,
-  "windows_after": 9,
+  "windows_before": 11,
+  "windows_after": 11,
   "errors_log": [
     3634,
     3634
   ],
   "sync_log": [
-    343810,
-    343810
+    344674,
+    344674
   ],
   "resume_log_count": 0,
   "rescan_done_count": 0,

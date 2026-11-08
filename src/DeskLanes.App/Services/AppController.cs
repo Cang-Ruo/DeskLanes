@@ -3,6 +3,7 @@ using System.IO;
 using System.Runtime.InteropServices;
 using System.Windows;
 using System.Windows.Interop;
+using System.Windows.Threading;
 using DeskLanes.App.ViewModels;
 using DeskLanes.App.Views;
 using DeskLanes.Core;
@@ -466,8 +467,11 @@ public sealed class AppController : IDisposable
         }
         else if (msg == WmDisplayChange)
         {
-            // 显示器配置变化：重新摆放侧边栏与悬浮窗，避免跑到屏幕外
-            ClampWindowsToScreen();
+            // 显示器配置变化：重新摆放侧边栏与悬浮窗，避免跑到屏幕外。
+            // SystemParameters.VirtualScreen* 是 WPF 缓存，这条消息到达时常常还是旧拓扑
+            // （实测拔下显示器后窗口留在负 x 坐标没被拉回），所以补两次延迟重钳。
+            ClampWindowsToScreen(restoreMinimized: true);
+            ScheduleDeferredClamp();
             // 壁纸/拓扑变了，文字底下透出来的亮度也变了，重建自适应网格
             DynamicTextService.Instance.OnEnvironmentChanged(force: true);
             handled = true;
@@ -752,32 +756,80 @@ public sealed class AppController : IDisposable
             SystemParameters.VirtualScreenLeft,
             SystemParameters.VirtualScreenTop,
             SystemParameters.VirtualScreenWidth,
-            SystemParameters.VirtualScreenHeight);
+            SystemParameters.VirtualScreenHeight,
+            restoreMinimized: false);
+    }
+
+    /// <summary>
+    /// 等 WPF 的虚拟屏缓存刷新后再钳两次。显示器热插拔时 Windows 会连发数次
+    /// WM_DISPLAYCHANGE，且用户可能随后手动改回竖屏 / 分辨率，单次钳位会踩空。
+    /// </summary>
+    private void ScheduleDeferredClamp()
+    {
+        foreach (int delayMs in new[] { 300, 1200 })
+        {
+            var timer = new DispatcherTimer(DispatcherPriority.Background)
+            {
+                Interval = TimeSpan.FromMilliseconds(delayMs),
+            };
+            // lambda 捕获 timer 自身，保证它在触发前不会被回收
+            timer.Tick += (_, _) =>
+            {
+                timer.Stop();
+                if (!_disposed)
+                {
+                    ClampWindowsToScreen(restoreMinimized: true);
+                }
+            };
+            timer.Start();
+        }
     }
 
     /// <summary>把可见窗口拉回当前虚拟桌面范围内（显示器配置变化后调用）。</summary>
-    private void ClampWindowsToScreen()
+    /// <param name="restoreMinimized">
+    /// 显示器被拔掉时窗口会被系统最小化并留在已不存在的坐标上；
+    /// 这种拓扑事件下才恢复它，日常呼出/停靠不打断用户主动最小化。
+    /// </param>
+    private void ClampWindowsToScreen(bool restoreMinimized = false)
     {
         double left = SystemParameters.VirtualScreenLeft;
         double top = SystemParameters.VirtualScreenTop;
         double width = SystemParameters.VirtualScreenWidth;
         double height = SystemParameters.VirtualScreenHeight;
 
-        ClampWindow(_floatingWindow, left, top, width, height);
-        ClampWindow(_sidebarWindow, left, top, width, height);
+        ClampWindow(_floatingWindow, left, top, width, height, restoreMinimized);
+        ClampWindow(_sidebarWindow, left, top, width, height, restoreMinimized);
     }
 
-    private static void ClampWindow(Window? window, double left, double top, double width, double height)
+    private static void ClampWindow(Window? window, double left, double top,
+                                    double width, double height, bool restoreMinimized)
     {
         if (window is null || !window.IsVisible)
         {
             return;
         }
 
-        double windowWidth = window.Width;
-        double windowHeight = window.Height;
-        double newLeft = Math.Clamp(window.Left, left, Math.Max(left, left + width - windowWidth));
-        double newTop = Math.Clamp(window.Top, top, Math.Max(top, top + height - windowHeight));
+        // 热插拔中间态会把窗口尺寸压成细横条（实测 340×48）或留下非有限值。
+        // 先恢复到自己的最小尺寸，再做位置钳制。
+        double minW = Math.Max(window.MinWidth, 320);
+        double minH = Math.Max(window.MinHeight, 240);
+        if (!double.IsFinite(window.Width) || window.Width < minW)
+        {
+            window.Width = minW;
+        }
+        if (!double.IsFinite(window.Height) || window.Height < minH)
+        {
+            window.Height = minH;
+        }
+
+        if (restoreMinimized && window.WindowState == WindowState.Minimized)
+        {
+            window.WindowState = WindowState.Normal;
+        }
+
+        (double newLeft, double newTop) = MonitorService.ClampToVirtualScreen(
+            window.Left, window.Top, window.Width, window.Height,
+            left, top, width, height);
 
         if (!window.Left.Equals(newLeft) || !window.Top.Equals(newTop))
         {
