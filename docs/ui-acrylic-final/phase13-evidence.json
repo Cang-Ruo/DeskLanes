@@ -100,7 +100,23 @@
       "跨天 24h+ 驻留",
       "运行中真实硬件热插拔/改分辨率",
       "远程桌面会话"
-    ]
+    ],
+    "tool_fix_2026_11_09": {
+      "trigger": "用户按说明在 Windows 终端首次实跑",
+      "problems": [
+        "Bash 反斜杠续行在该终端不认（unrecognized arguments: backslash）",
+        "按标题匹配把「DeskLanes - 文件资源管理器」误判为应用窗口，软件没运行却显示 windows=1",
+        "两次采集时间戳相同（同一秒），中间锁屏没真的执行"
+      ],
+      "fixes": [
+        "plan 全部单行命令；compare 不带参数自动读 before/after",
+        "按 PID + QueryFullProcessImageNameW 精确识别 DeskLanes.exe；新增 app_running 字段与无效警告",
+        "captured_at 带毫秒；compare 检测前后时间戳相同并告警"
+      ],
+      "selftest": "app_running=true 两次、10 个同进程窗口、forced_refreshes_delta=1、resume_event_observed=true、issues=[]",
+      "selftest_evidence": "docs/ui-acrylic-final/phase13-probe-selftest-compare.json",
+      "invalid_first_attempt": "已删除，不算证据"
+    }
   },
   "glass_proof": {
     "floating_runs": [
