@@ -97,8 +97,8 @@
     "soak_24h": "tools/soak-8h.py --exe publish/win-x64-selfcontained/DeskLanes.exe --out docs/stage13-soak/soak-24h.csv --hours 24 --interval-min 5 --errorlog \"%LOCALAPPDATA%/DeskLanes/logs/errors.log\"",
     "still_unverified": [
       "真实睡眠/休眠唤醒",
-      "跨天 24h+ 驻留",
-      "物理热插拔显示器"
+      "跨天 24h+ 驻留（正在跑）",
+      "热插拔修复后复测"
     ],
     "tool_fix_2026_11_09": {
       "trigger": "用户按说明在 Windows 终端首次实跑",
@@ -168,7 +168,7 @@
   },
   "regression": {
     "release": "0 warning / 0 error",
-    "smoke": "460/460",
+    "smoke": "466/466",
     "e2e_three_monitors": "36/36",
     "startup": "7/7, warm median 1.45 s",
     "nameplate_pixel": "p50 6.90 / min 5.11 / idle flips 0",
@@ -294,12 +294,16 @@
           }
         }
       }
-    ]
+    ],
+    "display_left_after_fix": "PASS, issues=[]",
+    "e2e_startup": "本轮未跑（与单实例互斥及 24h soak 冲突）"
   },
   "build": {
-    "portable_md5": "91c6ac20f511b0c34fe7126378d1e19c",
-    "selfcontained_md5": "ec53018c14ba9f46c3461c678ca8d44d",
-    "installed_matches": true
+    "portable_md5": "f1aaceb172ef8bc7c158fa890c0c422c",
+    "selfcontained_formal_md5_OLD": "ec53018c14ba9f46c3461c678ca8d44d",
+    "selfcontained_next_md5": "2a5b17d980534b9f37f6c95214232d65",
+    "installed_matches": false,
+    "install_note": "正式 selfcontained exe 被 24h soak 进程占用，GenerateBundle UnauthorizedAccessException；install.ps1 会结束该进程，故本轮不覆盖安装，等 soak 跑完再替换"
   },
   "display_change_real_test_2026_11_09": {
     "status": "PASS",
@@ -542,5 +546,92 @@
         1440
       ]
     }
+  },
+  "physical_unplug_real_test_2026_11_09": {
+    "status": "FAIL",
+    "finding": "真实热插拔缺陷：拔下左屏后悬浮窗仍留在负 x 坐标（完全在仅存的 2560x1440 虚拟屏外）且被最小化；插回并被用户手动改回竖屏后，窗口退化成 340x48 的细横条。首版判据跳过 minimized 窗口导致误报 PASS。",
+    "snapshots": {
+      "before": {
+        "monitors": 3,
+        "virtual": [
+          -1080,
+          0,
+          6200,
+          1920
+        ],
+        "floating_rect": [
+          -1036,
+          240,
+          -41,
+          1403
+        ]
+      },
+      "detached": {
+        "monitors": 1,
+        "virtual": [
+          0,
+          0,
+          2560,
+          1440
+        ],
+        "floating_rect": [
+          -1043,
+          200,
+          -214,
+          1169
+        ],
+        "minimized": true
+      },
+      "reattached": {
+        "monitors": 3,
+        "virtual": [
+          -1080,
+          -154,
+          6200,
+          2439
+        ],
+        "floating_rect": [
+          -172,
+          1639,
+          168,
+          1687
+        ],
+        "minimized": true
+      }
+    },
+    "issues": [
+      "业务窗口完全落在虚拟屏外：DeskLanes 快速启动 [-1043, 200, -214, 1169]（虚拟屏 [0, 0, 2560, 1440]）",
+      "业务窗口尺寸异常（疑似被压成细条）：DeskLanes 快速启动 340x48 [-172, 1639, 168, 1687]"
+    ],
+    "first_verdict_was_wrong": "compare 跳过 minimized 窗口 -> 误报 PASS；严格判据重算改判 FAIL",
+    "root_causes": [
+      "ClampWindowsToScreen 用 WPF 缓存的 SystemParameters.VirtualScreen*，WM_DISPLAYCHANGE 时仍是旧拓扑",
+      "FitIntoWorkArea 在热插拔中间态拿到极小工作区仍照常收缩，把窗口压成 340x48",
+      "compare 跳过 minimized 窗口、不检查尺寸退化"
+    ],
+    "fixes": [
+      "WM_DISPLAYCHANGE 立即钳位 + 300ms/1200ms 两次延迟重钳，拓扑事件恢复最小化窗口",
+      "ClampWindow 最小尺寸保护与非有限位置兜底",
+      "FitIntoWorkArea 异常工作区跳过收缩（IsWorkAreaSane）",
+      "抽出 MonitorService.ClampToVirtualScreen / IsWorkAreaSane，冒烟新增 6 条断言（466/466）",
+      "compare 覆盖可见业务窗口（含 minimized），新增屏外与尺寸退化两类 issue"
+    ],
+    "current_window_repaired": {
+      "rect": [
+        325,
+        225,
+        1575,
+        1100
+      ],
+      "method": "ShowWindow(SW_RESTORE)+MoveWindow，不写配置、不动 soak 进程"
+    },
+    "pending": "修复需重启软件生效；真实拔插复测待用户下次配合",
+    "evidence": [
+      "docs/ui-acrylic-final/phase13-unplug-left-probe.json",
+      "docs/ui-acrylic-final/phase13-probe-unplug-left-before.json",
+      "docs/ui-acrylic-final/phase13-probe-unplug-left-detached.json",
+      "docs/ui-acrylic-final/phase13-probe-unplug-left-reattached.json",
+      "docs/ui-acrylic-final/phase13-probe-after-repair.json"
+    ]
   }
 }

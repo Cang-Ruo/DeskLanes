@@ -1,0 +1,53 @@
+{
+  "before": "2026-11-09 02:24:52.699",
+  "after": "2026-11-09 02:26:07.343",
+  "app_running": [
+    true,
+    true
+  ],
+  "remote_session": [
+    false,
+    false
+  ],
+  "monitor_count": [
+    1,
+    3
+  ],
+  "virtual_screen": [
+    [
+      0,
+      0,
+      2560,
+      1440
+    ],
+    [
+      -1080,
+      -154,
+      6200,
+      2439
+    ]
+  ],
+  "windows_before": 11,
+  "windows_after": 11,
+  "errors_log": [
+    3634,
+    3634
+  ],
+  "sync_log": [
+    344314,
+    344434
+  ],
+  "resume_log_count": 0,
+  "rescan_done_count": 0,
+  "resume_log_lines": [],
+  "rescan_done_lines": [],
+  "forced_refreshes_delta": 0,
+  "forced_refreshes_note": "仅 DESKLANES_DIAG_TEXT=1 启动时会更新，正常启动恒为 0，不作主判据",
+  "resume_event_observed": false,
+  "notices": [
+    "显示器拓扑变了（预期事件；窗口已被检查是否仍在可见区）"
+  ],
+  "issues": [
+    "业务窗口尺寸异常（疑似被压成细条）：DeskLanes 快速启动 340x48 [-172, 1639, 168, 1687]"
+  ]
+}

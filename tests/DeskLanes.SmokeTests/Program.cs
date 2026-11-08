@@ -2928,6 +2928,39 @@ Console.WriteLine("== 26. 大桌面：项目数超过图标缓存上限时的表
     }
 }
 
+// ---------------------------------------------------------------- 27. 显示器热插拔后的窗口钳位
+// 阶段 13 物理热插拔实测：拔下左侧竖屏后显示器只剩 1 台、虚拟屏缩成 2560x1440，
+// 悬浮窗却仍停在 (-1043,200) 这种已不存在的负坐标上；插回后被收缩成 340x48 细横条。
+// 这两条修复都抽成纯函数，在这里做可重复的回归断言，不必每次真的去拔线。
+{
+    // 27.1 正常三屏：窗口在虚拟屏内，不应被挪动
+    var ok = MonitorService.ClampToVirtualScreen(-1036, 240, 995, 1163, -1080, 0, 6200, 1920);
+    Check(ok.Left == -1036 && ok.Top == 240, "正常三屏下窗口位置不被误改",
+        $"{ok.Left},{ok.Top}");
+
+    // 27.2 拔掉显示器：虚拟屏变单屏，负 x 坐标必须被拉回来
+    var detached = MonitorService.ClampToVirtualScreen(-1043, 200, 829, 969, 0, 0, 2560, 1440);
+    Check(detached.Left == 0 && detached.Top == 200, "显示器消失后窗口被拉回可见区",
+        $"{detached.Left},{detached.Top}");
+
+    // 27.3 窗口比剩余屏幕还宽：上界退化成左边界，不能算出负数或 NaN
+    var oversized = MonitorService.ClampToVirtualScreen(100, 100, 3000, 800, 0, 0, 2560, 1440);
+    Check(oversized.Left == 0 && double.IsFinite(oversized.Top), "窗口宽于屏幕时钳位不产生非法值",
+        $"{oversized.Left},{oversized.Top}");
+
+    // 27.4 非有限位置（WPF 的 Auto 默认值 NaN）要有兜底
+    var nanPos = MonitorService.ClampToVirtualScreen(double.NaN, double.PositiveInfinity, 800, 600, 0, 0, 2560, 1440);
+    Check(double.IsFinite(nanPos.Left) && double.IsFinite(nanPos.Top)
+          && nanPos.Left >= 0 && nanPos.Top >= 0, "NaN/Infinity 位置钳位后仍是有限合法值",
+        $"{nanPos.Left},{nanPos.Top}");
+
+    // 27.5 异常小的工作区（热插拔中间态）必须跳过收缩，否则窗口被压成细条
+    Check(!MonitorService.IsWorkAreaSane(new System.Windows.Size(340, 48), 620, 420),
+        "340x48 的异常工作区被识别为不可收缩", "");
+    Check(MonitorService.IsWorkAreaSane(new System.Windows.Size(2560, 1440), 620, 420),
+        "正常显示器工作区允许收缩", "");
+}
+
 // ---------------------------------------------------------------- 汇总
 Console.WriteLine();
 Console.WriteLine($"===== 冒烟测试结果：通过 {passed} 项，失败 {failed} 项 =====");
