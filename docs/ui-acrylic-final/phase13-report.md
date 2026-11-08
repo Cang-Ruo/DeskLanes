@@ -143,9 +143,45 @@
 > 诊断计数降级为辅助并在结果里注明「正常启动恒为 0，不作主判据」。
 > 真实用户数据重跑后 `resume_event_observed=true`。
 
-**仍未实测的三项**：真实睡眠 / 休眠唤醒（合成 `WM_POWERBROADCAST` 只算消息级证据）、
-跨天 24h+ 驻留、运行中真实硬件热插拔 / 改分辨率、远程桌面会话。
-锁屏 / 解锁这一项从「未实测」移出，其余保持不标通过。
+### 运行中改分辨率：已实测 PASS（右副屏，自动还原）
+
+用户授权用右侧副屏测试。新增 `tools/phase13-display-probe.py`：
+
+- 默认 `--dry` 只打印计划；`--apply` 才真的改；`try/finally` 无条件还原；
+  `--restore-only` 兜底；原始 DEVMODE 以 hex 写进证据 JSON
+- 只挑「非主屏且 `dmPosition.x > 0`」的显示器（本例 `\\.\DISPLAY1`），
+  **绝不动主屏与左竖屏**
+- 以当前完整 DEVMODE 为基底只改宽/高/刷新率，保留位置
+
+实测（复用用户正在运行的实例，`started_app_here=false`，是真正的「运行中」）：
+
+| 项 | 结果 |
+|---|---|
+| 改动 | `2560×1600@180Hz → 1920×1200@60Hz`，`rc=0` |
+| 虚拟屏 | `(-1080,0) 6200×1920 → (-1080,0) 5560×1920` |
+| 应用 | `app_running=true` 前后，窗口 9 → 9 |
+| `errors.log` | 3634 → 3634 零增长 |
+| 还原 | `rc=0`，回到 `2560×1600@180Hz @ (2560,0)`，`restored_ok=true` |
+| 判据 | `virtual_screen_changed=true`、`errors_log_unchanged=true`、`unexpected_issues=[]` → **PASS** |
+
+> 判据口径修正：`compare` 原本把「显示器拓扑变了」记进 `issues`，
+> 但那正是本测试要制造的事件 → 改放 `notices`，`issues` 只留真问题。
+> 另外改分辨率走 `WM_DISPLAYCHANGE` 分支（钳位 + 亮度重算），**不写**
+> 「电源/会话恢复」日志，所以 `resume_log_count=0` 属正常，不能拿它判失败。
+
+证据：`phase13-display-probe.json`、三份 `phase13-probe-disp-*.json`、
+`phase13-probe-display-compare.json`。
+
+### 物理热插拔：工具已就绪，动作需你手动
+
+`python tools/phase13-display-probe.py --unplug` 是交互式的：
+采「拔线前」→ 提示你拔下右副屏视频线并按回车 → 采「已拔下」→
+提示插回并按回车 → 采「已插回」→ 自动做两次比对并给 PASS/FAIL。
+工具不会自己拔线（物理动作），也不会改任何显示设置。
+
+**仍未实测**：真实睡眠 / 休眠唤醒（合成 `WM_POWERBROADCAST` 只算消息级证据）、
+跨天 24h+ 驻留、物理热插拔。远程桌面会话用户明确暂缓。
+已完成并从「未实测」移出的：锁屏 / 解锁、运行中改分辨率。
 
 ## 六、回归与交付
 
