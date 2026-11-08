@@ -1,0 +1,109 @@
+{
+  "method": "synthetic messages posted to the app's hidden message host",
+  "not_a_real_sleep_test": true,
+  "baseline": {
+    "diag": {
+      "luminance_source": "screen_capture",
+      "desktop_refreshes": 0,
+      "forced_refreshes": 0,
+      "controls": 16,
+      "dark_scheme": 0,
+      "total_flips": 2,
+      "unusable_controls": 0
+    },
+    "logs": {
+      "sync.log": 311534,
+      "errors.log": 3634,
+      "resume_lines": [
+        "[2026-11-08 14:55:08.574] [信息] 电源/会话恢复（WM_POWERBROADCAST/resume）：触发全量重扫、亮度重算与窗口钳位",
+        "[2026-11-08 14:55:12.076] [信息] 电源/会话恢复（WM_WTSSESSION_CHANGE/unlock）：触发全量重扫、亮度重算与窗口钳位"
+      ],
+      "resync_lines": [
+        "[2026-11-08 08:21:56.685] [信息] 自动同步已启动：监听 2/2 个目录，兜底重扫间隔 5 分钟",
+        "[2026-11-08 08:22:12.384] [信息] 自动同步已启动：监听 2/2 个目录，兜底重扫间隔 5 分钟",
+        "[2026-11-08 14:55:03.034] [信息] 自动同步已启动：监听 2/2 个目录，兜底重扫间隔 5 分钟",
+        "[2026-11-08 14:55:08.574] [信息] 电源/会话恢复（WM_POWERBROADCAST/resume）：触发全量重扫、亮度重算与窗口钳位",
+        "[2026-11-08 14:55:12.076] [信息] 电源/会话恢复（WM_WTSSESSION_CHANGE/unlock）：触发全量重扫、亮度重算与窗口钳位",
+        "[2026-11-08 14:56:20.895] [信息] 自动同步已启动：监听 2/2 个目录，兜底重扫间隔 5 分钟"
+      ],
+      "rescan_done_lines": []
+    }
+  },
+  "steps": [
+    {
+      "name": "power_resume",
+      "message": "0x218",
+      "wparam": 7,
+      "posted": true,
+      "forced_before": 0,
+      "forced_after": 1,
+      "desktop_refreshes_after": 1,
+      "source_after": "wallpaper_bitmap",
+      "ok": true
+    },
+    {
+      "name": "session_unlock",
+      "message": "0x2b1",
+      "wparam": 8,
+      "posted": true,
+      "forced_before": 1,
+      "forced_after": 2,
+      "desktop_refreshes_after": 2,
+      "source_after": "wallpaper_bitmap",
+      "ok": true
+    },
+    {
+      "name": "display_change",
+      "message": "0x7e",
+      "wparam": 0,
+      "posted": true,
+      "forced_before": 2,
+      "forced_after": 3,
+      "desktop_refreshes_after": 3,
+      "source_after": "wallpaper_bitmap",
+      "ok": true
+    }
+  ],
+  "final": {
+    "diag": {
+      "luminance_source": "wallpaper_bitmap",
+      "desktop_refreshes": 3,
+      "forced_refreshes": 3,
+      "controls": 16,
+      "dark_scheme": 0,
+      "total_flips": 2,
+      "unusable_controls": 0
+    },
+    "logs": {
+      "sync.log": 312313,
+      "errors.log": 3634,
+      "resume_lines": [
+        "[2026-11-08 14:55:08.574] [信息] 电源/会话恢复（WM_POWERBROADCAST/resume）：触发全量重扫、亮度重算与窗口钳位",
+        "[2026-11-08 14:55:12.076] [信息] 电源/会话恢复（WM_WTSSESSION_CHANGE/unlock）：触发全量重扫、亮度重算与窗口钳位",
+        "[2026-11-08 14:56:26.596] [信息] 电源/会话恢复（WM_POWERBROADCAST/resume）：触发全量重扫、亮度重算与窗口钳位",
+        "[2026-11-08 14:56:30.098] [信息] 电源/会话恢复（WM_WTSSESSION_CHANGE/unlock）：触发全量重扫、亮度重算与窗口钳位"
+      ],
+      "resync_lines": [
+        "[2026-11-08 14:55:12.076] [信息] 电源/会话恢复（WM_WTSSESSION_CHANGE/unlock）：触发全量重扫、亮度重算与窗口钳位",
+        "[2026-11-08 14:56:20.895] [信息] 自动同步已启动：监听 2/2 个目录，兜底重扫间隔 5 分钟",
+        "[2026-11-08 14:56:26.596] [信息] 电源/会话恢复（WM_POWERBROADCAST/resume）：触发全量重扫、亮度重算与窗口钳位",
+        "[2026-11-08 14:56:26.864] [信息] 恢复后全量重扫完成：新增 0 / 失效 0 / 重命名 0 / 跳过 False，耗时 111 ms",
+        "[2026-11-08 14:56:30.098] [信息] 电源/会话恢复（WM_WTSSESSION_CHANGE/unlock）：触发全量重扫、亮度重算与窗口钳位",
+        "[2026-11-08 14:56:30.351] [信息] 恢复后全量重扫完成：新增 0 / 失效 0 / 重命名 0 / 跳过 False，耗时 141 ms"
+      ],
+      "rescan_done_lines": [
+        "[2026-11-08 14:56:26.864] [信息] 恢复后全量重扫完成：新增 0 / 失效 0 / 重命名 0 / 跳过 False，耗时 111 ms",
+        "[2026-11-08 14:56:30.351] [信息] 恢复后全量重扫完成：新增 0 / 失效 0 / 重命名 0 / 跳过 False，耗时 141 ms"
+      ]
+    },
+    "process_alive": true
+  },
+  "verdict": {
+    "all_steps_triggered": true,
+    "luminance_source_wallpaper_bitmap": true,
+    "resume_logged": true,
+    "full_rescan_completed": true,
+    "errors_log_unchanged": true,
+    "no_crash": true
+  }
+}

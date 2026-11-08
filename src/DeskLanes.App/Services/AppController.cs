@@ -1,5 +1,6 @@
 using System.ComponentModel;
 using System.IO;
+using System.Runtime.InteropServices;
 using System.Windows;
 using System.Windows.Interop;
 using DeskLanes.App.ViewModels;
@@ -26,6 +27,21 @@ public sealed class AppController : IDisposable
 
     private const int WmDisplayChange = 0x007E;
     private const int WmSettingChange = 0x001A;
+    private const int WmPowerBroadcast = 0x0218;
+    private const int WmWtsSessionChange = 0x02B1;
+    private const int PbtApmResumeSuspend = 0x0007;
+    private const int PbtApmResumeAutomatic = 0x0012;
+    private const int WtsSessionUnlock = 0x0008;
+    private const int WtsConsoleConnect = 0x0001;
+    private const uint NotifyForThisSession = 0;
+
+    [DllImport("wtsapi32.dll", SetLastError = true)]
+    [return: MarshalAs(UnmanagedType.Bool)]
+    private static extern bool WTSRegisterSessionNotification(IntPtr hWnd, uint dwFlags);
+
+    [DllImport("wtsapi32.dll", SetLastError = true)]
+    [return: MarshalAs(UnmanagedType.Bool)]
+    private static extern bool WTSUnRegisterSessionNotification(IntPtr hWnd);
 
     // 托盘菜单命令 Id（>0 且避开系统菜单范围）
     private const int TrayIdOpen = 2001;
@@ -304,6 +320,15 @@ public sealed class AppController : IDisposable
         {
             try
             {
+                WTSUnRegisterSessionNotification(_messageHostHandle);
+            }
+            catch
+            {
+                // 忽略
+            }
+
+            try
+            {
                 _messageHost.Close();
             }
             catch
@@ -393,6 +418,17 @@ public sealed class AppController : IDisposable
         _showInstanceMessageId = WindowInterop.RegisterMessage(ShowInstanceMessageName);
         _taskbarCreatedMessageId = WindowInterop.RegisterMessage(TaskbarCreatedMessageName);
 
+        // 锁屏 / 解锁、远程会话连接都会发 WM_WTSSESSION_CHANGE；必须显式注册才收得到。
+        // 失败不阻断启动（例如服务未运行），只是收不到解锁通知。
+        try
+        {
+            WTSRegisterSessionNotification(handle, NotifyForThisSession);
+        }
+        catch
+        {
+            // 忽略
+        }
+
         HwndSource source = (HwndSource)PresentationSource.FromVisual(_messageHost)!;
         source.AddHook(OnHostMessage);
     }
@@ -433,7 +469,7 @@ public sealed class AppController : IDisposable
             // 显示器配置变化：重新摆放侧边栏与悬浮窗，避免跑到屏幕外
             ClampWindowsToScreen();
             // 壁纸/拓扑变了，文字底下透出来的亮度也变了，重建自适应网格
-            DynamicTextService.Instance.OnEnvironmentChanged();
+            DynamicTextService.Instance.OnEnvironmentChanged(force: true);
             handled = true;
         }
         else if (msg == WmSettingChange)
@@ -442,8 +478,58 @@ public sealed class AppController : IDisposable
             // 服务内部有 1.5 秒合并 + 签名去重，不会每条设置变化都去解码壁纸。
             DynamicTextService.Instance.OnEnvironmentChanged();
         }
+        else if (msg == WmPowerBroadcast &&
+                 (wParam.ToInt32() == PbtApmResumeSuspend || wParam.ToInt32() == PbtApmResumeAutomatic))
+        {
+            // 从睡眠 / 休眠恢复：睡眠期间丢失的 FileSystemWatcher 事件要补回来
+            OnSystemResume("WM_POWERBROADCAST/resume");
+        }
+        else if (msg == WmWtsSessionChange &&
+                 (wParam.ToInt32() == WtsSessionUnlock || wParam.ToInt32() == WtsConsoleConnect))
+        {
+            // 锁屏解锁 / 控制台连接：同上
+            OnSystemResume("WM_WTSSESSION_CHANGE/unlock");
+        }
 
         return IntPtr.Zero;
+    }
+
+    /// <summary>
+    /// 睡眠恢复 / 解锁后的统一校正：补一次全量重扫、重算文字亮度、把窗口钳回可见区域。
+    /// 不重启应用、不改配置，也不碰任何桌面文件。
+    /// </summary>
+    private void OnSystemResume(string reason)
+    {
+        if (_disposed)
+        {
+            return;
+        }
+
+        _logger?.Log(SyncLogLevel.Info,
+            $"电源/会话恢复（{reason}）：触发全量重扫、亮度重算与窗口钳位");
+
+        // 亮度来源强制刷新：壁纸没变时签名去重会跳过，但恢复后壁纸/DWM 合成可能已变
+        DynamicTextService.Instance.OnEnvironmentChanged(force: true);
+
+        Application.Current?.Dispatcher.BeginInvoke(new Action(async () =>
+        {
+            try
+            {
+                ClampWindowsToScreen();
+                if (_syncService?.IsRunning == true)
+                {
+                    var summary = await _syncService.SyncNowAsync();
+                    // 留一条可核验的完成记录：光有"触发了重扫"的日志不足以证明重扫真的跑完
+                    _logger?.Log(SyncLogLevel.Info,
+                        $"恢复后全量重扫完成：新增 {summary.Added} / 失效 {summary.UnavailableMarked} / " +
+                        $"重命名 {summary.Renamed} / 跳过 {summary.Skipped}，耗时 {summary.Duration.TotalMilliseconds:F0} ms");
+                }
+            }
+            catch (Exception ex)
+            {
+                _logger?.Log(SyncLogLevel.Warning, $"恢复后重扫失败：{ex.Message}");
+            }
+        }));
     }
 
     /// <summary>托盘菜单命令分发。</summary>

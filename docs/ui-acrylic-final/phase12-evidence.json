@@ -1,0 +1,240 @@
+{
+  "purpose": "阶段 12：电源/会话恢复与显示器变化的处理路径（消息级证据）",
+  "caveat": "合成消息发给隐藏消息宿主窗口；不是真实锁屏/睡眠/24h+/硬件热插拔实测，这些仍未验证",
+  "topology": {
+    "dpi": 120,
+    "scale": 1.25,
+    "windows_build": "10.0.26300",
+    "primary": {
+      "w": 2560,
+      "h": 1440
+    },
+    "virtual": {
+      "x": -1080,
+      "y": 0,
+      "w": 6200,
+      "h": 1920
+    },
+    "monitor_count": 3,
+    "wallpaper": "C:\\Users\\TTjustTT\\Pictures\\Camera Roll\\爱上紫禁城.jpg"
+  },
+  "phase1_shots": [
+    {
+      "name": "fullscreen-category",
+      "active": true,
+      "visible": true,
+      "cleared_windows": 8,
+      "size": [
+        2578,
+        1398
+      ],
+      "dwm": {
+        "dark_mode(20)": {
+          "hr": 0,
+          "value": 1
+        },
+        "system_backdrop(38)": {
+          "hr": 0,
+          "value": 3
+        },
+        "corner(33)": {
+          "hr": 0,
+          "value": 2
+        }
+      }
+    },
+    {
+      "name": "fullscreen-panels",
+      "active": true,
+      "visible": true,
+      "cleared_windows": 8,
+      "size": [
+        2578,
+        1398
+      ],
+      "dwm": {
+        "dark_mode(20)": {
+          "hr": 0,
+          "value": 1
+        },
+        "system_backdrop(38)": {
+          "hr": 0,
+          "value": 3
+        },
+        "corner(33)": {
+          "hr": 0,
+          "value": 2
+        }
+      }
+    },
+    {
+      "name": "floating",
+      "active": true,
+      "visible": true,
+      "cleared_windows": 8,
+      "size": [
+        975,
+        675
+      ],
+      "dwm": {
+        "dark_mode(20)": {
+          "hr": 0,
+          "value": 1
+        },
+        "system_backdrop(38)": {
+          "hr": 0,
+          "value": 3
+        },
+        "corner(33)": {
+          "hr": 0,
+          "value": 2
+        }
+      }
+    },
+    {
+      "name": "sidebar",
+      "active": true,
+      "visible": true,
+      "cleared_windows": 8,
+      "size": [
+        420,
+        1140
+      ],
+      "dwm": {
+        "dark_mode(20)": {
+          "hr": 0,
+          "value": 1
+        },
+        "system_backdrop(38)": {
+          "hr": 0,
+          "value": 3
+        },
+        "corner(33)": {
+          "hr": 0,
+          "value": 1
+        }
+      }
+    },
+    {
+      "name": "settings",
+      "active": true,
+      "visible": true,
+      "cleared_windows": 8,
+      "size": [
+        575,
+        650
+      ],
+      "dwm": {
+        "dark_mode(20)": {
+          "hr": 0,
+          "value": 1
+        },
+        "system_backdrop(38)": {
+          "hr": 0,
+          "value": 3
+        },
+        "corner(33)": {
+          "hr": 0,
+          "value": 2
+        }
+      }
+    }
+  ],
+  "implementation": {
+    "messages": [
+      "WM_POWERBROADCAST/PBT_APMRESUMESUSPEND",
+      "WM_POWERBROADCAST/PBT_APMRESUMEAUTOMATIC",
+      "WM_WTSSESSION_CHANGE/WTS_SESSION_UNLOCK",
+      "WM_WTSSESSION_CHANGE/WTS_CONSOLE_CONNECT",
+      "WM_DISPLAYCHANGE"
+    ],
+    "actions": [
+      "全量重扫 SyncNowAsync()",
+      "强制重算壁纸亮度网格（跳过签名去重）",
+      "ClampWindowsToScreen()",
+      "写可核验的 sync.log 完成记录"
+    ],
+    "registration": "WTSRegisterSessionNotification(handle, NOTIFY_FOR_THIS_SESSION)，Dispose 时反注册"
+  },
+  "synthetic_test": {
+    "host_window_found": true,
+    "baseline": {
+      "luminance_source": "screen_capture",
+      "desktop_refreshes": 0,
+      "forced_refreshes": 0,
+      "controls": 16,
+      "dark_scheme": 0,
+      "total_flips": 2,
+      "unusable_controls": 0
+    },
+    "final": {
+      "luminance_source": "wallpaper_bitmap",
+      "desktop_refreshes": 3,
+      "forced_refreshes": 3,
+      "controls": 16,
+      "dark_scheme": 0,
+      "total_flips": 2,
+      "unusable_controls": 0
+    },
+    "steps": [
+      {
+        "name": "power_resume",
+        "message": "0x218",
+        "wparam": 7,
+        "posted": true,
+        "forced_before": 0,
+        "forced_after": 1,
+        "ok": true
+      },
+      {
+        "name": "session_unlock",
+        "message": "0x2b1",
+        "wparam": 8,
+        "posted": true,
+        "forced_before": 1,
+        "forced_after": 2,
+        "ok": true
+      },
+      {
+        "name": "display_change",
+        "message": "0x7e",
+        "wparam": 0,
+        "posted": true,
+        "forced_before": 2,
+        "forced_after": 3,
+        "ok": true
+      }
+    ],
+    "resume_log_tail": [
+      "[2026-11-08 14:55:12.076] [信息] 电源/会话恢复（WM_WTSSESSION_CHANGE/unlock）：触发全量重扫、亮度重算与窗口钳位",
+      "[2026-11-08 14:56:26.596] [信息] 电源/会话恢复（WM_POWERBROADCAST/resume）：触发全量重扫、亮度重算与窗口钳位",
+      "[2026-11-08 14:56:30.098] [信息] 电源/会话恢复（WM_WTSSESSION_CHANGE/unlock）：触发全量重扫、亮度重算与窗口钳位"
+    ],
+    "rescan_done_tail": [
+      "[2026-11-08 14:56:26.864] [信息] 恢复后全量重扫完成：新增 0 / 失效 0 / 重命名 0 / 跳过 False，耗时 111 ms",
+      "[2026-11-08 14:56:30.351] [信息] 恢复后全量重扫完成：新增 0 / 失效 0 / 重命名 0 / 跳过 False，耗时 141 ms"
+    ],
+    "verdict": {
+      "all_steps_triggered": true,
+      "luminance_source_wallpaper_bitmap": true,
+      "resume_logged": true,
+      "full_rescan_completed": true,
+      "errors_log_unchanged": true,
+      "no_crash": true
+    }
+  },
+  "regression": {
+    "release": "0 warning / 0 error",
+    "smoke": "460/460",
+    "e2e_three_monitors": "36/36",
+    "startup": "7/7, warm median 1.35 s, errors.log 未增长",
+    "glass_proof_floating": "flat cell corr 0.616 vs opaque -0.001 -> PASS",
+    "wallpaper_refresh": "5/5 verdict true (phase11 tool rerun)",
+    "dynamic_text_pixel": "p50 6.77 / min 5.11 / idle flips 0"
+  },
+  "build": {
+    "portable_md5": "c06f229d4f006d0aa0a0cb5ab8d861bf",
+    "selfcontained_md5": "ad624cd3ea948413d46ab511271c3440",
+    "installed_matches": true
+  }
+}
