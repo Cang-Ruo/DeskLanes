@@ -1,0 +1,217 @@
+{
+  "purpose": "阶段 11：三屏端到端 36/36 + 运行中换壁纸自动重算局部亮度",
+  "topology": {
+    "dpi": 120,
+    "scale": 1.25,
+    "windows_build": "10.0.26300",
+    "primary": {
+      "w": 2560,
+      "h": 1440
+    },
+    "virtual": {
+      "x": -1080,
+      "y": 0,
+      "w": 6200,
+      "h": 1920
+    },
+    "monitor_count": 3,
+    "wallpaper": "C:\\Users\\TTjustTT\\Pictures\\Camera Roll\\爱上紫禁城.jpg"
+  },
+  "phase1_shots": [
+    {
+      "name": "fullscreen-category",
+      "active": true,
+      "visible": true,
+      "cleared_windows": 6,
+      "size": [
+        2578,
+        1398
+      ],
+      "dwm": {
+        "dark_mode(20)": {
+          "hr": 0,
+          "value": 1
+        },
+        "system_backdrop(38)": {
+          "hr": 0,
+          "value": 3
+        },
+        "corner(33)": {
+          "hr": 0,
+          "value": 2
+        }
+      }
+    },
+    {
+      "name": "fullscreen-panels",
+      "active": true,
+      "visible": true,
+      "cleared_windows": 6,
+      "size": [
+        2578,
+        1398
+      ],
+      "dwm": {
+        "dark_mode(20)": {
+          "hr": 0,
+          "value": 1
+        },
+        "system_backdrop(38)": {
+          "hr": 0,
+          "value": 3
+        },
+        "corner(33)": {
+          "hr": 0,
+          "value": 2
+        }
+      }
+    },
+    {
+      "name": "floating",
+      "active": true,
+      "visible": true,
+      "cleared_windows": 6,
+      "size": [
+        975,
+        675
+      ],
+      "dwm": {
+        "dark_mode(20)": {
+          "hr": 0,
+          "value": 1
+        },
+        "system_backdrop(38)": {
+          "hr": 0,
+          "value": 3
+        },
+        "corner(33)": {
+          "hr": 0,
+          "value": 2
+        }
+      }
+    },
+    {
+      "name": "sidebar",
+      "active": true,
+      "visible": true,
+      "cleared_windows": 6,
+      "size": [
+        420,
+        1140
+      ],
+      "dwm": {
+        "dark_mode(20)": {
+          "hr": 0,
+          "value": 1
+        },
+        "system_backdrop(38)": {
+          "hr": 0,
+          "value": 3
+        },
+        "corner(33)": {
+          "hr": 0,
+          "value": 1
+        }
+      }
+    },
+    {
+      "name": "settings",
+      "active": true,
+      "visible": true,
+      "cleared_windows": 6,
+      "size": [
+        575,
+        650
+      ],
+      "dwm": {
+        "dark_mode(20)": {
+          "hr": 0,
+          "value": 1
+        },
+        "system_backdrop(38)": {
+          "hr": 0,
+          "value": 3
+        },
+        "corner(33)": {
+          "hr": 0,
+          "value": 2
+        }
+      }
+    }
+  ],
+  "e2e_fix": {
+    "before": "32/36",
+    "after": "36/36",
+    "root_cause": "测试前置状态污染：settings.json 的 WindowWidth 被之前轮次写成 2062.4 DIP，而 Round C/F 断言硬编码 1180。窗口变宽后中心点落到主屏，WPF 最大化到主屏而非左竖屏。",
+    "ab_evidence": {
+      "2062.4 DIP": "rect (-9,-9) 2578x1398, showCmd 3, monitor (0,0,2560,1440)",
+      "1180 DIP": "rect (-1091,-11) 1102x1870, showCmd 3, monitor (-1080,0,0,1920)"
+    },
+    "fix": "verify-floating-interaction.py 开头归一化主窗/悬浮窗几何基线，末尾整体还原用户原 settings.json；产品定位逻辑零改动"
+  },
+  "wallpaper_refresh": {
+    "implementation": "WM_SETTINGCHANGE / WM_DISPLAYCHANGE -> 1.5s debounce + signature dedup -> decode current wallpaper bitmap -> per-monitor Fill mapping -> rebuild 32px luma grid -> refresh text colors",
+    "dark_to_light": {
+      "source_before": "screen_capture",
+      "source_after": "wallpaper_bitmap",
+      "refreshes": [
+        0,
+        1
+      ],
+      "dark_scheme": [
+        1,
+        16
+      ],
+      "pixel_contrast_p50": [
+        10.67,
+        6.77
+      ],
+      "pixel_contrast_min": [
+        7.66,
+        5.11
+      ],
+      "verdict": {
+        "source_switched_to_wallpaper_bitmap": true,
+        "refreshes_increased": true,
+        "dark_scheme_changed": true,
+        "pixel_min_ge_4_5": true,
+        "no_flicker_after_settle": true
+      }
+    },
+    "light_to_dark": {
+      "dark_scheme": [
+        16,
+        4
+      ],
+      "pixel_contrast_p50": [
+        6.77,
+        10.67
+      ],
+      "pixel_contrast_min": [
+        5.11,
+        5.03
+      ],
+      "verdict": {
+        "source_switched_to_wallpaper_bitmap": true,
+        "refreshes_increased": true,
+        "dark_scheme_changed": true,
+        "pixel_min_ge_4_5": true,
+        "no_flicker_after_settle": true
+      }
+    },
+    "note": "切换瞬间每块文字翻转一次是预期；静置后 0 次翻转。亮壁纸结果与阶段 10 启动抓屏的 6.77/5.11 完全一致。"
+  },
+  "regression": {
+    "release": "0 warning / 0 error",
+    "smoke": "460/460",
+    "e2e_three_monitors": "36/36",
+    "startup": "7/7, warm median 1.45 s, errors.log 未增长",
+    "glass_proof_floating": "flat cell corr 0.616 vs opaque -0.001 -> PASS",
+    "dynamic_text_pixel_regression": "p50 6.77 / min 5.11, fixed light 2.11 / 1.93, idle flips 0"
+  },
+  "build": {
+    "portable_md5": "89235dcad9706bd5b704ca1b9c9ee662",
+    "selfcontained_md5": "8efec54dab12633b5d42a13ec851ba63",
+    "installed_matches": true
+  }
+}

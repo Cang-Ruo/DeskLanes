@@ -25,6 +25,7 @@ public sealed class AppController : IDisposable
     private const string TaskbarCreatedMessageName = "TaskbarCreated";
 
     private const int WmDisplayChange = 0x007E;
+    private const int WmSettingChange = 0x001A;
 
     // 托盘菜单命令 Id（>0 且避开系统菜单范围）
     private const int TrayIdOpen = 2001;
@@ -431,7 +432,15 @@ public sealed class AppController : IDisposable
         {
             // 显示器配置变化：重新摆放侧边栏与悬浮窗，避免跑到屏幕外
             ClampWindowsToScreen();
+            // 壁纸/拓扑变了，文字底下透出来的亮度也变了，重建自适应网格
+            DynamicTextService.Instance.OnEnvironmentChanged();
             handled = true;
+        }
+        else if (msg == WmSettingChange)
+        {
+            // SPI_SETDESKWALLPAPER 会广播这条消息。不设 handled：别的监听者也要收。
+            // 服务内部有 1.5 秒合并 + 签名去重，不会每条设置变化都去解码壁纸。
+            DynamicTextService.Instance.OnEnvironmentChanged();
         }
 
         return IntPtr.Zero;

@@ -129,6 +129,11 @@ public sealed class DynamicTextService
     private bool _diagnostics;
     private int _totalFlips;
     private int _lastGoodCount;
+    private bool _enabled;
+    private string _luminanceSource = "none";
+    private string? _lastSignature;
+    private int _desktopRefreshes;
+    private DispatcherTimer? _pendingRefresh;
 
     private sealed class State
     {
@@ -146,14 +151,72 @@ public sealed class DynamicTextService
         // 用来把"启动时那一次抓屏"的成本与其它因素分开量。
         if (Environment.GetEnvironmentVariable("DESKLANES_NO_DYNAMIC_TEXT") == "1")
         {
+            _luminanceSource = "disabled";
             return;
         }
         // 原生材质被诊断开关强制关掉时，窗口是实心底色，不需要也不应该动态变色。
         if (!string.IsNullOrEmpty(Environment.GetEnvironmentVariable("DESKLANES_BACKDROP")))
         {
+            _luminanceSource = "disabled";
             return;
         }
-        _luminance.Capture();
+        _enabled = true;
+        if (_luminance.Capture())
+        {
+            _luminanceSource = "screen_capture";
+        }
+        _lastSignature = EnvironmentSignature();
+        RequestRefresh();
+    }
+
+    /// <summary>壁纸 / 显示器拓扑变化：延迟 1.5 秒合并连续消息后重建亮度网格。</summary>
+    public void OnEnvironmentChanged()
+    {
+        if (!_enabled)
+        {
+            return;
+        }
+        if (_pendingRefresh is null)
+        {
+            _pendingRefresh = new DispatcherTimer(DispatcherPriority.Background)
+            {
+                Interval = TimeSpan.FromSeconds(1.5),
+            };
+            _pendingRefresh.Tick += (_, _) =>
+            {
+                _pendingRefresh.Stop();
+                RefreshFromWallpaper();
+            };
+        }
+        _pendingRefresh.Stop();
+        _pendingRefresh.Start();
+    }
+
+    private string EnvironmentSignature()
+    {
+        // 网格数会随显示器拓扑变化，把它一起算进签名，换分辨率但壁纸没变也能重算
+        return (DesktopLuminance.CurrentWallpaperPath() ?? "") + "|" + _luminance.CellCount;
+    }
+
+    private void RefreshFromWallpaper()
+    {
+        string? path = DesktopLuminance.CurrentWallpaperPath();
+        if (path is null)
+        {
+            return;
+        }
+        string signature = EnvironmentSignature();
+        if (signature == _lastSignature)
+        {
+            return; // 不是壁纸/拓扑变化，别白解码一次
+        }
+        if (!_luminance.SetFromWallpaper(path))
+        {
+            return; // 解码失败：保留启动时的网格，不假装更新过
+        }
+        _lastSignature = signature;
+        _luminanceSource = "wallpaper_bitmap";
+        _desktopRefreshes++;
         RequestRefresh();
     }
 
@@ -435,6 +498,8 @@ public sealed class DynamicTextService
             {
                 captured_at = DateTime.Now.ToString("yyyy-MM-dd HH:mm:ss.fff"),
                 grid_cells = _luminance.CellCount,
+                luminance_source = _luminanceSource,
+                desktop_refreshes = _desktopRefreshes,
                 controls = decisions.Count,
                 unusable_controls = unusable,
                 total_flips = _totalFlips,

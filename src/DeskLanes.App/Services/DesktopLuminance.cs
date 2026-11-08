@@ -1,4 +1,8 @@
+using System.IO;
 using System.Runtime.InteropServices;
+using System.Windows.Media;
+using System.Windows.Media.Imaging;
+using Microsoft.Win32;
 
 namespace DeskLanes.App.Services;
 
@@ -34,6 +38,35 @@ internal sealed class DesktopLuminance
 
     public bool IsAvailable => _grid is not null;
     public int CellCount => _cols * _rows;
+
+    /// <summary>当前桌面壁纸文件路径（从 HKCU 读，SPI_SETDESKWALLPAPER 会更新它）。</summary>
+    public static string? CurrentWallpaperPath()
+    {
+        try
+        {
+            using var key = Registry.CurrentUser.OpenSubKey(@"Control Panel\Desktop");
+            string? path = key?.GetValue("WallPaper") as string;
+            return !string.IsNullOrEmpty(path) && File.Exists(path) ? path : null;
+        }
+        catch
+        {
+            return null;
+        }
+    }
+
+    [StructLayout(LayoutKind.Sequential)]
+    private struct MonitorRect
+    {
+        public int Left;
+        public int Top;
+        public int Right;
+        public int Bottom;
+    }
+
+    private delegate bool MonitorEnumProc(IntPtr monitor, IntPtr dc, IntPtr rect, IntPtr data);
+
+    [DllImport("user32.dll")]
+    private static extern bool EnumDisplayMonitors(IntPtr dc, IntPtr clip, MonitorEnumProc callback, IntPtr data);
 
     [DllImport("user32.dll")]
     private static extern int GetSystemMetrics(int index);
@@ -209,6 +242,142 @@ internal sealed class DesktopLuminance
 
         _grid = blurred;
         return true;
+    }
+
+    /// <summary>
+    /// 从当前壁纸位图重建亮度网格，**不需要屏幕上没有窗口**。
+    ///
+    /// 启动时抓屏最准，但运行中换壁纸时窗口是可见的，再抓屏就会把自己的 UI
+    /// 一起采进去。壁纸文件本身是干净的来源：按每台显示器的 Fill（等比裁剪居中）
+    /// 映射，再把每个网格中心落到的壁纸像素亮度填进去，最后做同样的 3×3 模糊。
+    /// 分辨率 / 显示器拓扑变化也走这条路。
+    /// </summary>
+    public bool SetFromWallpaper(string? path = null)
+    {
+        path ??= CurrentWallpaperPath();
+        if (path is null)
+        {
+            return false;
+        }
+
+        byte[] pixels;
+        int imageWidth, imageHeight;
+        try
+        {
+            var decoder = BitmapDecoder.Create(
+                new Uri(path, UriKind.Absolute),
+                BitmapCreateOptions.IgnoreColorProfile, BitmapCacheOption.OnLoad);
+            BitmapFrame frame = decoder.Frames[0];
+            var bgr = new FormatConvertedBitmap(frame, PixelFormats.Bgr32, null, 0);
+            imageWidth = bgr.PixelWidth;
+            imageHeight = bgr.PixelHeight;
+            if (imageWidth <= 0 || imageHeight <= 0)
+            {
+                return false;
+            }
+            pixels = new byte[checked(imageWidth * imageHeight * 4)];
+            bgr.CopyPixels(pixels, imageWidth * 4, 0);
+        }
+        catch
+        {
+            return false;
+        }
+
+        var monitors = new List<MonitorRect>();
+        try
+        {
+            EnumDisplayMonitors(IntPtr.Zero, IntPtr.Zero, (_, _, rect, _) =>
+            {
+                if (rect != IntPtr.Zero)
+                {
+                    monitors.Add(Marshal.PtrToStructure<MonitorRect>(rect));
+                }
+                return true;
+            }, IntPtr.Zero);
+        }
+        catch
+        {
+            return false;
+        }
+        if (monitors.Count == 0)
+        {
+            return false;
+        }
+
+        _left = GetSystemMetrics(SmXVirtualScreen);
+        _top = GetSystemMetrics(SmYVirtualScreen);
+        int vw = GetSystemMetrics(SmCxVirtualScreen);
+        int vh = GetSystemMetrics(SmCyVirtualScreen);
+        _cols = Math.Max(1, (vw + CellPx - 1) / CellPx);
+        _rows = Math.Max(1, (vh + CellPx - 1) / CellPx);
+
+        double[,] raw = new double[_cols, _rows];
+        for (int gy = 0; gy < _rows; gy++)
+        {
+            for (int gx = 0; gx < _cols; gx++)
+            {
+                double sx = _left + gx * CellPx + CellPx / 2.0;
+                double sy = _top + gy * CellPx + CellPx / 2.0;
+                raw[gx, gy] = SampleWallpaper(monitors, pixels, imageWidth, imageHeight, sx, sy);
+            }
+        }
+
+        _grid = Blur(raw);
+        return true;
+    }
+
+    private static double SampleWallpaper(List<MonitorRect> monitors, byte[] pixels,
+                                          int imageWidth, int imageHeight, double sx, double sy)
+    {
+        foreach (var m in monitors)
+        {
+            double mw = m.Right - m.Left;
+            double mh = m.Bottom - m.Top;
+            if (sx < m.Left || sx >= m.Right || sy < m.Top || sy >= m.Bottom)
+            {
+                continue;
+            }
+
+            // Fill：等比放大到铺满整块屏，超出部分居中裁掉
+            double scale = Math.Max(mw / imageWidth, mh / imageHeight);
+            double sw = imageWidth * scale;
+            double sh = imageHeight * scale;
+            double px = (sx - m.Left - (mw - sw) / 2) / scale;
+            double py = (sy - m.Top - (mh - sh) / 2) / scale;
+            int ix = Math.Clamp((int)px, 0, imageWidth - 1);
+            int iy = Math.Clamp((int)py, 0, imageHeight - 1);
+            int i = (iy * imageWidth + ix) * 4; // Bgr32
+            return (pixels[i + 2] * 299 + pixels[i + 1] * 587 + pixels[i] * 114) / 1000.0;
+        }
+        return 0; // 虚拟屏里没有显示器的空隙，与抓屏帧一致
+    }
+
+    private double[,] Blur(double[,] raw)
+    {
+        var blurred = new double[_cols, _rows];
+        for (int gy = 0; gy < _rows; gy++)
+        {
+            for (int gx = 0; gx < _cols; gx++)
+            {
+                double sum = 0;
+                int n = 0;
+                for (int dy = -1; dy <= 1; dy++)
+                {
+                    for (int dx = -1; dx <= 1; dx++)
+                    {
+                        int nx = gx + dx;
+                        int ny = gy + dy;
+                        if (nx >= 0 && nx < _cols && ny >= 0 && ny < _rows)
+                        {
+                            sum += raw[nx, ny];
+                            n++;
+                        }
+                    }
+                }
+                blurred[gx, gy] = sum / Math.Max(1, n);
+            }
+        }
+        return blurred;
     }
 
     /// <summary>返回该屏幕物理坐标处的桌面亮度（0~255）；无数据或越界返回 -1。</summary>

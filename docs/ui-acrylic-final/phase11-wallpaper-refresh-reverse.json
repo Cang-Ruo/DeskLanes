@@ -1,0 +1,36 @@
+{
+  "before": {
+    "source": "screen_capture",
+    "refreshes": 0,
+    "controls": 16,
+    "dark_scheme": 16,
+    "flips": 0,
+    "grid_cells": 9050,
+    "file": "phase11-wallpaper-reverse-before.png",
+    "plates": 16,
+    "contrast_p50": 6.77,
+    "contrast_min": 5.11,
+    "active": true
+  },
+  "after": {
+    "source": "wallpaper_bitmap",
+    "refreshes": 1,
+    "controls": 16,
+    "dark_scheme": 4,
+    "flips": 12,
+    "grid_cells": 9050,
+    "file": "phase11-wallpaper-reverse-after.png",
+    "plates": 16,
+    "contrast_p50": 10.67,
+    "contrast_min": 5.03,
+    "active": true,
+    "flips_after_settle": 12
+  },
+  "verdict": {
+    "source_switched_to_wallpaper_bitmap": true,
+    "refreshes_increased": true,
+    "dark_scheme_changed": true,
+    "pixel_min_ge_4_5": true,
+    "no_flicker_after_settle": true
+  }
+}
