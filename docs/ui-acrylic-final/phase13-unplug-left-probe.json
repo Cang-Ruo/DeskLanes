@@ -1,0 +1,122 @@
+{
+  "mode": "physical_unplug_left",
+  "target": "left",
+  "target_label": "左侧竖屏（外接）",
+  "detach": {
+    "before": "2026-11-09 02:24:41.540",
+    "after": "2026-11-09 02:24:52.699",
+    "app_running": [
+      true,
+      true
+    ],
+    "remote_session": [
+      false,
+      false
+    ],
+    "monitor_count": [
+      3,
+      1
+    ],
+    "virtual_screen": [
+      [
+        -1080,
+        0,
+        6200,
+        1920
+      ],
+      [
+        0,
+        0,
+        2560,
+        1440
+      ]
+    ],
+    "windows_before": 11,
+    "windows_after": 11,
+    "errors_log": [
+      3634,
+      3634
+    ],
+    "sync_log": [
+      344314,
+      344314
+    ],
+    "resume_log_count": 0,
+    "rescan_done_count": 0,
+    "resume_log_lines": [],
+    "rescan_done_lines": [],
+    "forced_refreshes_delta": 0,
+    "forced_refreshes_note": "仅 DESKLANES_DIAG_TEXT=1 启动时会更新，正常启动恒为 0，不作主判据",
+    "resume_event_observed": false,
+    "notices": [
+      "显示器拓扑变了（预期事件；窗口已被检查是否仍在可见区）"
+    ],
+    "issues": [
+      "业务窗口完全落在虚拟屏外：DeskLanes 快速启动 [-1043, 200, -214, 1169]（虚拟屏 [0, 0, 2560, 1440]）"
+    ]
+  },
+  "reattach": {
+    "before": "2026-11-09 02:24:52.699",
+    "after": "2026-11-09 02:26:07.343",
+    "app_running": [
+      true,
+      true
+    ],
+    "remote_session": [
+      false,
+      false
+    ],
+    "monitor_count": [
+      1,
+      3
+    ],
+    "virtual_screen": [
+      [
+        0,
+        0,
+        2560,
+        1440
+      ],
+      [
+        -1080,
+        -154,
+        6200,
+        2439
+      ]
+    ],
+    "windows_before": 11,
+    "windows_after": 11,
+    "errors_log": [
+      3634,
+      3634
+    ],
+    "sync_log": [
+      344314,
+      344434
+    ],
+    "resume_log_count": 0,
+    "rescan_done_count": 0,
+    "resume_log_lines": [],
+    "rescan_done_lines": [],
+    "forced_refreshes_delta": 0,
+    "forced_refreshes_note": "仅 DESKLANES_DIAG_TEXT=1 启动时会更新，正常启动恒为 0，不作主判据",
+    "resume_event_observed": false,
+    "notices": [
+      "显示器拓扑变了（预期事件；窗口已被检查是否仍在可见区）"
+    ],
+    "issues": [
+      "业务窗口尺寸异常（疑似被压成细条）：DeskLanes 快速启动 340x48 [-172, 1639, 168, 1687]"
+    ]
+  },
+  "judgement": {
+    "topology_changed_on_detach": true,
+    "topology_restored_on_reattach": true,
+    "errors_log_unchanged": true,
+    "issues": [
+      "业务窗口完全落在虚拟屏外：DeskLanes 快速启动 [-1043, 200, -214, 1169]（虚拟屏 [0, 0, 2560, 1440]）",
+      "业务窗口尺寸异常（疑似被压成细条）：DeskLanes 快速启动 340x48 [-172, 1639, 168, 1687]"
+    ]
+  },
+  "verdict": "FAIL",
+  "finding": "真实热插拔缺陷：拔下左屏后悬浮窗仍留在负 x 坐标（完全在仅存的 2560x1440 虚拟屏外）且被最小化；插回并被用户手动改回竖屏后，窗口退化成 340x48 的细横条。首版判据跳过 minimized 窗口导致误报 PASS。"
+}

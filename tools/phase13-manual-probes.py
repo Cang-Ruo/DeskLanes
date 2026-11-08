@@ -214,12 +214,23 @@ def compare(before, after):
         # 改分辨率 / 热插拔本来就预期拓扑变化，放 notices 而不是 issues
         notices.append("显示器拓扑变了（预期事件；窗口已被检查是否仍在可见区）")
     for wa in after["windows"]:
-        if wa.get("helper") or not wa["visible"] or wa["minimized"]:
+        # 不跳过 minimized：显示器被拔掉时窗口会被系统最小化，
+        # 但它仍可能留在屏幕外 / 被压成一条细横条（阶段 13 物理热插拔实测缺陷）。
+        if wa.get("helper") or not wa["visible"]:
             continue
         vx, vy, vw, vh = after["virtual_screen"]
         r = wa["rect"]
-        if r[0] < vx - 24 or r[1] < vy - 24 or r[2] > vx + vw + 24 or r[3] > vy + vh + 24:
-            issues.append("窗口跑到虚拟屏外：%s %s" % (wa["title"], r))
+        ww, wh = r[2] - r[0], r[3] - r[1]
+        if ww < 100 or wh < 100:
+            issues.append("业务窗口尺寸异常（疑似被压成细条）：%s %dx%d %s"
+                          % (wa["title"], ww, wh, r))
+        ox = min(r[2], vx + vw) - max(r[0], vx)
+        oy = min(r[3], vy + vh) - max(r[1], vy)
+        if ox <= 0 or oy <= 0:
+            issues.append("业务窗口完全落在虚拟屏外：%s %s（虚拟屏 %s）"
+                          % (wa["title"], r, after["virtual_screen"]))
+        elif r[0] < vx - 24 or r[1] < vy - 24 or r[2] > vx + vw + 24 or r[3] > vy + vh + 24:
+            issues.append("窗口部分越出虚拟屏：%s %s" % (wa["title"], r))
         if wa["dwm"].get("system_backdrop") not in (0, 3, 2, None):
             issues.append("DWM 背景属性异常：%s %s" % (wa["title"], wa["dwm"]))
     if (after["logs"].get("errors.log") or 0) > (before["logs"].get("errors.log") or 0):

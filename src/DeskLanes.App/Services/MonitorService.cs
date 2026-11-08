@@ -21,6 +21,27 @@ namespace DeskLanes.App.Services;
 /// </summary>
 public static class MonitorService
 {
+    /// <summary>
+    /// 纯计算：把窗口左上角钳回虚拟屏范围内。抽成公开函数是为了能对它做回归测试
+    /// （阶段 13 物理热插拔缺陷：显示器拔掉后窗口留在已不存在的负 x 坐标上）。
+    /// </summary>
+    /// <summary>热插拔中间态会给出明显不是真实显示器的极小工作区，此时不该收缩窗口。</summary>
+    public static bool IsWorkAreaSane(Size work, double minWidth, double minHeight)
+        => !work.IsEmpty && work.Width >= minWidth * 0.5 && work.Height >= minHeight * 0.5;
+
+    public static (double Left, double Top) ClampToVirtualScreen(
+        double left, double top, double windowWidth, double windowHeight,
+        double virtualLeft, double virtualTop, double virtualWidth, double virtualHeight)
+    {
+        double maxLeft = Math.Max(virtualLeft, virtualLeft + virtualWidth - windowWidth);
+        double maxTop = Math.Max(virtualTop, virtualTop + virtualHeight - windowHeight);
+        double newLeft = double.IsFinite(left)
+            ? Math.Clamp(left, virtualLeft, maxLeft) : virtualLeft + 8;
+        double newTop = double.IsFinite(top)
+            ? Math.Clamp(top, virtualTop, maxTop) : virtualTop + 8;
+        return (newLeft, newTop);
+    }
+
     /// <summary>窗口所在显示器的工作区尺寸（DIP）。取不到时返回 <see cref="Size.Empty"/>。</summary>
     public static Size GetWorkAreaSize(Window window)
     {
@@ -51,6 +72,14 @@ public static class MonitorService
     {
         Size work = GetWorkAreaSize(window);
         if (work.IsEmpty)
+        {
+            return false;
+        }
+
+        // 显示器热插拔的中间态可能让 MonitorFromWindow 返回一个极小的"工作区"
+        // （实测拔下左侧竖屏再插回后，悬浮窗被收缩成 340×48 的细横条）。
+        // 这种值明显不是真实显示器，直接跳过收缩，别把窗口压扁。
+        if (!IsWorkAreaSane(work, minWidth, minHeight))
         {
             return false;
         }
