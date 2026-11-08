@@ -146,7 +146,7 @@
       ]
     },
     "judgement_fix": "首版以 dynamic-text.json 的 forced_refreshes_delta 判恢复，但该文件只在 DESKLANES_DIAG_TEXT=1 启动时写，正常启动恒为 0 -> 误报 false。改为以 sync.log 两次采集之间的恢复日志为主判据；真实用户数据重跑 resume_event_observed=true。",
-    "unplug_tool": "tools/phase13-display-probe.py --unplug（交互式三次采集+两次比对，物理拔插由用户完成）",
+    "unplug_tool": "tools/phase13-display-probe.py --unplug [--target=left|primary]（交互式三次采集+两次比对，默认左侧竖屏；physical action by user）",
     "deferred_by_user": [
       "远程桌面会话（用户 2026-11-09 明确暂缓）"
     ],
@@ -387,5 +387,160 @@
       "docs/ui-acrylic-final/phase13-probe-disp-before.json",
       "docs/ui-acrylic-final/phase13-probe-disp-after.json"
     ]
+  },
+  "display_topology_correction_2026_11_09": {
+    "note": "此前把 DISPLAY1 误称右侧副屏；用户澄清它是笔记本内置屏，软件当时显示在上面",
+    "devices": {
+      "DISPLAY2": {
+        "rect": [
+          -1080,
+          0,
+          1080,
+          1920
+        ],
+        "label": "左侧竖屏（外接）"
+      },
+      "DISPLAY15": {
+        "rect": [
+          0,
+          0,
+          2560,
+          1440
+        ],
+        "label": "主屏（外接，NVIDIA RTX 5060）",
+        "primary": true
+      },
+      "DISPLAY1": {
+        "rect": [
+          2560,
+          0,
+          2560,
+          1600
+        ],
+        "label": "右侧笔记本内置屏（Intel 核显）"
+      }
+    },
+    "user_preference": "后续测试走左侧与主屏，避开笔记本屏"
+  },
+  "display_change_tests": {
+    "left": {
+      "status": "PASS",
+      "device": "\\\\.\\DISPLAY2",
+      "target_label": "左侧竖屏（外接）",
+      "from": {
+        "x": -1080,
+        "y": 0,
+        "w": 1080,
+        "h": 1920,
+        "freq": 60
+      },
+      "to": {
+        "w": 1050,
+        "h": 1680,
+        "freq": 60
+      },
+      "virtual_screen": [
+        [
+          -1080,
+          0,
+          6200,
+          1920
+        ],
+        [
+          -1050,
+          0,
+          6170,
+          1680
+        ]
+      ],
+      "app_running": [
+        true,
+        true
+      ],
+      "errors_log": [
+        3634,
+        3634
+      ],
+      "issues": [],
+      "restored": {
+        "x": -1080,
+        "y": 0,
+        "w": 1080,
+        "h": 1920,
+        "freq": 60
+      },
+      "restored_ok": true,
+      "evidence": "docs/ui-acrylic-final/phase13-display-left-probe.json"
+    },
+    "primary": {
+      "status": "PASS",
+      "device": "\\\\.\\DISPLAY15",
+      "target_label": "主屏（外接）",
+      "from": {
+        "x": 0,
+        "y": 0,
+        "w": 2560,
+        "h": 1440,
+        "freq": 60
+      },
+      "to": {
+        "w": 1920,
+        "h": 1200,
+        "freq": 60
+      },
+      "virtual_screen": [
+        [
+          -1080,
+          0,
+          6200,
+          1920
+        ],
+        [
+          -1080,
+          0,
+          5560,
+          1920
+        ]
+      ],
+      "app_running": [
+        true,
+        true
+      ],
+      "errors_log": [
+        3634,
+        3634
+      ],
+      "issues": [],
+      "restored": {
+        "x": 0,
+        "y": 0,
+        "w": 2560,
+        "h": 1440,
+        "freq": 60
+      },
+      "restored_ok": true,
+      "evidence": "docs/ui-acrylic-final/phase13-display-primary-probe.json"
+    },
+    "laptop_historical": "docs/ui-acrylic-final/phase13-display-probe.json（保留为历史结果，未删除）",
+    "post_test_topology": {
+      "DISPLAY1": [
+        2560,
+        0,
+        2560,
+        1600
+      ],
+      "DISPLAY2": [
+        -1080,
+        0,
+        1080,
+        1920
+      ],
+      "DISPLAY15": [
+        0,
+        0,
+        2560,
+        1440
+      ]
+    }
   }
 }

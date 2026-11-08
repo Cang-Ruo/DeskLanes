@@ -1,0 +1,99 @@
+{
+  "plan": {
+    "device": "\\\\.\\DISPLAY2",
+    "target": "left",
+    "target_label": "左侧竖屏（外接）",
+    "primary": false,
+    "current": {
+      "x": -1080,
+      "y": 0,
+      "w": 1080,
+      "h": 1920,
+      "freq": 60
+    },
+    "new_mode": {
+      "w": 1050,
+      "h": 1680,
+      "freq": 60
+    },
+    "original_devmode_hex": "4300440044000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000001040104bc000000a0007c20c8fbffff00000000010000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000009000200000003804000080070000000000003c0000000000000000000000000000000000000000000000000000000000000000000000",
+    "hold_seconds": 3.0
+  },
+  "started_app_here": false,
+  "apply_rc": 0,
+  "after_devmode": {
+    "x": -1050,
+    "y": 0,
+    "w": 1050,
+    "h": 1680,
+    "freq": 60
+  },
+  "compare": {
+    "before": "2026-11-09 02:13:55.690",
+    "after": "2026-11-09 02:13:59.239",
+    "app_running": [
+      true,
+      true
+    ],
+    "remote_session": [
+      false,
+      false
+    ],
+    "monitor_count": [
+      3,
+      3
+    ],
+    "virtual_screen": [
+      [
+        -1080,
+        0,
+        6200,
+        1920
+      ],
+      [
+        -1050,
+        0,
+        6170,
+        1680
+      ]
+    ],
+    "windows_before": 9,
+    "windows_after": 9,
+    "errors_log": [
+      3634,
+      3634
+    ],
+    "sync_log": [
+      343810,
+      343810
+    ],
+    "resume_log_count": 0,
+    "rescan_done_count": 0,
+    "resume_log_lines": [],
+    "rescan_done_lines": [],
+    "forced_refreshes_delta": 0,
+    "forced_refreshes_note": "仅 DESKLANES_DIAG_TEXT=1 启动时会更新，正常启动恒为 0，不作主判据",
+    "resume_event_observed": false,
+    "notices": [
+      "显示器拓扑变了（预期事件；窗口已被检查是否仍在可见区）"
+    ],
+    "issues": []
+  },
+  "judgement": {
+    "virtual_screen_changed": true,
+    "errors_log_unchanged": true,
+    "expected_topology_notice": 0,
+    "unexpected_issues": [],
+    "resume_event_observed_note": "改分辨率走 WM_DISPLAYCHANGE 分支（钳位 + 亮度重算），不写『电源/会话恢复』日志，故 resume_log_count=0 属正常"
+  },
+  "restore_rc": 0,
+  "restored_devmode": {
+    "x": -1080,
+    "y": 0,
+    "w": 1080,
+    "h": 1920,
+    "freq": 60
+  },
+  "restored_ok": true,
+  "verdict": "PASS"
+}
