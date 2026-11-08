@@ -94,6 +94,32 @@
 跨天 24h+ 用现成的 `tools/soak-8h.py --hours 24`（脚本会拷私有副本跑，不占安装版）。
 具体四条命令见 `python tools/phase13-manual-probes.py plan`。
 
+### 第一次实跑暴露的三个工具缺陷（已修）
+
+用户按说明在 **PowerShell** 里跑时踩到：
+
+1. 说明里用了 Bash 的反斜杠 `\` 续行，PowerShell 不认，报
+   `unrecognized arguments: \` 与「一元运算符 -- 后面缺少表达式」。
+   → 现在 `plan` 里**全部改成单行命令**；`compare` 不带参数时自动读
+   `phase13-probe-before.json` / `phase13-probe-after.json`，不用再敲长参数。
+2. 窗口过滤按标题含 `DeskLanes` 匹配，把**「DeskLanes - 文件资源管理器」**
+   当成应用窗口 —— 软件其实没运行，却采到 `windows: 1`，看起来像成功。
+   → 改为按 `GetWindowThreadProcessId` + `QueryFullProcessImageNameW` 精确识别
+   `DeskLanes.exe`；非业务窗口一律标 `helper`；快照新增 `app_running` 字段，
+   为 false 时直接打印「这份快照无效」警告，`compare` 也会把结果判为无效。
+3. 两次采集时间戳都是 `01:21:45`（同一秒），说明中间那步锁屏没真的执行。
+   → 时间戳改带毫秒；`compare` 发现前后时间戳相同会明确提示
+   「中间那步操作很可能没有真正执行」。
+
+修完做了端到端自测：应用运行时 `app_running=true`、采到 10 个同进程窗口
+（4 个业务窗口 + 辅助窗口）、投递合成恢复消息后
+`forced_refreshes_delta=1`、`resume_event_observed=true`、`issues=[]`，
+见 `phase13-probe-selftest-compare.json`。首轮那份无效采集已删除，不算证据。
+
+> 给用户的正确姿势（PowerShell，全部单行）：
+> `capture --label=before` → **真的按 Win+L 锁屏并解锁、等 3 秒** →
+> `capture --label=after` → `compare`。前提是软件正在运行。
+
 **这四项仍不标通过**：真实锁屏 / 睡眠恢复、跨天 24h+、运行中真实硬件热插拔 / 改分辨率、
 远程桌面会话。合成消息与 6 小时驻留只是部分证据。
 
