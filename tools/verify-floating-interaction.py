@@ -214,6 +214,27 @@ def close_app(proc):
     time.sleep(2.0)
 
 
+# ---- 测试基线：把所有几何归一化，跑完整体还原用户真实配置 --------------------
+# Round C/F 的断言硬编码 WindowWidth == 1180，Round E/F 还要求最大化落在竖屏。
+# 若上一次运行（或用户自己）把 WindowWidth 改成了 2062.4，窗口中心点会落到主屏，
+# WPF 就最大化到主屏，4 条竖屏断言会一起假失败 —— 实测 A/B：
+#   2062.4 DIP -> (0,0,2560,1440) 主屏, rect -9,-9 2578x1398
+#   1180   DIP -> (-1080,0,0,1920) 竖屏, rect -1091,-11 1102x1870
+# 所以这是测试的前置状态污染，不是产品定位缺陷。只归一化、不迁就任何断言，
+# 末尾把原始 settings.json 原封不动写回，用户偏好不受影响。
+_base_path = os.path.join(CFGDIR, "settings.json")
+_original_settings = open(_base_path, "rb").read() if os.path.exists(_base_path) else None
+_base = read_settings()
+_base.update({
+    "WindowWidth": 1180.0, "WindowHeight": 760.0,
+    "WindowLeft": None, "WindowTop": None, "WindowMaximized": False,
+    "FloatingWindowWidth": 780.0, "FloatingWindowHeight": 540.0,
+    "FloatingWindowLeft": None, "FloatingWindowTop": None,
+})
+with open(_base_path, "w", encoding="utf-8") as f:
+    json.dump(_base, f, ensure_ascii=False, indent=2)
+print("测试几何已归一化（主窗 1180x760 / 悬浮 780x540），跑完还原原配置")
+
 # ================= Round A: full mode maximizes =================
 
 print("== Round A: entering Full workspace mode ==")
@@ -620,6 +641,14 @@ finally:
     if original_settings_h is not None:
         with open(settings_path_h, "w", encoding="utf-8") as f:
             f.write(original_settings_h)
+
+# ---- 还原用户真实配置（所有断言都已读完 settings.json）--------------------
+# 不还原的话，Round D 会把"竖屏收缩后的 712 DIP"永久写进用户的配置里，
+# 下次打开悬浮窗就变成小窗口；阶段 10 已经踩过一次。
+if _original_settings is not None:
+    with open(_base_path, "wb") as f:
+        f.write(_original_settings)
+    print("已还原运行前的 settings.json")
 
 # ================= summary =================
 
