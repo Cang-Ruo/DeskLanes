@@ -58,3 +58,6 @@ docs/ui-acrylic-final/phase13-all-text-*.png
 docs/ui-acrylic-final/phase13-glassproof/
 docs/ui-acrylic-final/phase13-glassproof-r*/
 docs/ui-acrylic-final/phase13-glassproof-ref/
+
+# 24h 长时驻留采集中，跑完并出报告后再决定是否入库
+docs/stage13-soak/

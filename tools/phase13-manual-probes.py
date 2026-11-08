@@ -209,8 +209,10 @@ def compare(before, after):
         issues.append("两次采集时间戳相同：中间那步操作很可能没有真正执行")
     if not before["windows"] or not after["windows"]:
         issues.append("至少一次快照没有采集到 DeskLanes 窗口：应用当时在运行吗？")
+    notices = []
     if before["monitor_count"] != after["monitor_count"] or before["virtual_screen"] != after["virtual_screen"]:
-        issues.append("显示器拓扑变了（预期，检查窗口是否被钳回可见区）")
+        # 改分辨率 / 热插拔本来就预期拓扑变化，放 notices 而不是 issues
+        notices.append("显示器拓扑变了（预期事件；窗口已被检查是否仍在可见区）")
     for wa in after["windows"]:
         if wa.get("helper") or not wa["visible"] or wa["minimized"]:
             continue
@@ -245,6 +247,7 @@ def compare(before, after):
         "forced_refreshes_delta": refresh_delta,
         "forced_refreshes_note": "仅 DESKLANES_DIAG_TEXT=1 启动时会更新，正常启动恒为 0，不作主判据",
         "resume_event_observed": observed,
+        "notices": notices,
         "issues": issues,
     }
 
