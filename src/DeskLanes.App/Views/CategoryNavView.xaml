@@ -41,9 +41,11 @@
                             <Grid Margin="2,1">
                                 <TextBlock Text="{Binding Name}" Style="{StaticResource ItemNameTextTight}"
                                            dt:DynamicText.Tone="Primary" VerticalAlignment="Center" />
-                                <TextBlock Text="{Binding ItemCount}" Foreground="{StaticResource BrushTextTertiary}"
-                                           FontSize="11" HorizontalAlignment="Right"
-                                           VerticalAlignment="Center" />
+                                <Border Background="{StaticResource BrushLabelScrim}" dt:DynamicText.Scrim="True"
+                                        CornerRadius="3" Padding="3,0" HorizontalAlignment="Right" VerticalAlignment="Center">
+                                    <TextBlock Text="{Binding ItemCount}" Foreground="{StaticResource BrushTextPrimary}"
+                                               FontSize="11" />
+                                </Border>
                             </Grid>
                         </DataTemplate>
                     </ListBox.ItemTemplate>

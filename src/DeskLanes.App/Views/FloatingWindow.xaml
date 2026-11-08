@@ -65,7 +65,7 @@
                          FontSize="15" Padding="12,10"
                          VerticalContentAlignment="Center" />
                 <TextBlock Text="搜索桌面项目（不区分大小写）…"
-                           Foreground="{StaticResource BrushTextTertiary}" FontSize="14" Margin="17,0,0,0"
+                           Foreground="{StaticResource BrushTextPrimary}" FontSize="14" Margin="17,0,0,0"
                            VerticalAlignment="Center" IsHitTestVisible="False"
                            Visibility="{Binding IsSearchEmpty, Converter={StaticResource BoolToVis}}" />
                 <StackPanel Orientation="Horizontal" HorizontalAlignment="Right" VerticalAlignment="Center">
@@ -76,7 +76,7 @@
                             ToolTip="切换到侧边栏模式（数据共用）"
                             Command="{Binding ToggleSidebarModeCommand}" />
                     <Button Content="✕" Width="28" Height="24" Padding="0" Background="Transparent"
-                            BorderThickness="0" Foreground="{StaticResource BrushTextSecondary}" ToolTip="隐藏窗口（Esc）"
+                            BorderThickness="0" Foreground="{StaticResource BrushTextPrimary}" ToolTip="隐藏窗口（Esc）"
                             Command="{Binding HideWindowCommand}" />
                 </StackPanel>
             </Grid>
@@ -123,8 +123,13 @@
                                     CornerRadius="3" Padding="4,0" VerticalAlignment="Center">
                                 <TextBlock Text="{Binding Name}" FontSize="13" VerticalAlignment="Center" />
                             </Border>
-                            <TextBlock Text="{Binding ItemCount}" FontSize="11" Foreground="{StaticResource BrushTextTertiary}"
-                                       Margin="6,0,0,0" VerticalAlignment="Center" />
+                            <!-- 中间灰玻璃上深浅两色都到不了 4.5，必须和名字一样垫局部底，
+                                 且底与字成对切换（阶段 13 全文字块审计）。 -->
+                            <Border Background="{StaticResource BrushLabelScrim}" dt:DynamicText.Scrim="True"
+                                    CornerRadius="3" Padding="4,0" Margin="6,0,0,0" VerticalAlignment="Center">
+                                <TextBlock Text="{Binding ItemCount}" FontSize="11"
+                                           Foreground="{StaticResource BrushTextPrimary}" />
+                            </Border>
                         </StackPanel>
                     </DataTemplate>
                 </ListBox.ItemTemplate>
@@ -167,9 +172,12 @@
                        TextWrapping="Wrap"
                        Visibility="{Binding HasNoItems, Converter={StaticResource BoolToVis}}" />
 
-            <!-- 底部状态栏 -->
-            <TextBlock Grid.Row="3" Text="{Binding StatusText}" FontSize="11" Foreground="{StaticResource BrushTextTertiary}"
-                       Margin="0,8,0,0" TextTrimming="CharacterEllipsis" />
+            <!-- 底部状态栏：主窗口早就有 StatusBarScrim，这里补齐一致性 -->
+            <Border Grid.Row="3" Style="{StaticResource StatusBarScrim}" dt:DynamicText.Scrim="True"
+                    HorizontalAlignment="Left" Margin="0,8,0,0">
+                <TextBlock Text="{Binding StatusText}" FontSize="11"
+                           Foreground="{StaticResource BrushTextPrimary}" TextTrimming="CharacterEllipsis" />
+            </Border>
 
             <!-- ============ 拖动 / 缩放热区 ============ -->
             <!-- 悬浮窗是分层窗口（WindowStyle=None + AllowsTransparency=True），系统不给标题栏
