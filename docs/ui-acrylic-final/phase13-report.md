@@ -120,8 +120,32 @@
 > `capture --label=before` → **真的按 Win+L 锁屏并解锁、等 3 秒** →
 > `capture --label=after` → `compare`。前提是软件正在运行。
 
-**这四项仍不标通过**：真实锁屏 / 睡眠恢复、跨天 24h+、运行中真实硬件热插拔 / 改分辨率、
-远程桌面会话。合成消息与 6 小时驻留只是部分证据。
+### 第 1 项已由用户实测通过（2026-11-09 01:38 → 01:40）
+
+用户手动 `Win+L` 锁屏解锁，前后各采一次：
+
+| 判据 | 结果 |
+|---|---|
+| `app_running` | true → true |
+| `sync.log` 恢复事件 | **2 条** `WM_WTSSESSION_CHANGE/unlock`（01:39:55.278/.280） |
+| 全量重扫 | **2 次完成**（一次因「已有同步在进行」正常跳过，一次 310 ms） |
+| `errors.log` | 3634 → 3634 零增长 |
+| 窗口 / 拓扑 | 11 → 11，三屏 `(-1080,0) 6200×1920` 不变 |
+| `issues` | `[]` |
+
+证据：`phase13-probe-before.json` / `phase13-probe-after.json` / `phase13-probe-compare.json`。
+
+> **又一次判据修正**：首版 `compare` 用 `dynamic-text.json` 的 `forced_refreshes_delta`
+> 判断「有没有恢复」，但那份 JSON 只在 `DESKLANES_DIAG_TEXT=1` 启动时写；
+> 用户从开始菜单正常启动，它停在 01:26 自测的旧值，于是误报
+> `resume_event_observed=false`。现在改为**以 `sync.log` 里两次采集之间的恢复日志为主判据**
+> （`OnSystemResume` 走常开的 FileDiagnosticLogger，与诊断开关无关），
+> 诊断计数降级为辅助并在结果里注明「正常启动恒为 0，不作主判据」。
+> 真实用户数据重跑后 `resume_event_observed=true`。
+
+**仍未实测的三项**：真实睡眠 / 休眠唤醒（合成 `WM_POWERBROADCAST` 只算消息级证据）、
+跨天 24h+ 驻留、运行中真实硬件热插拔 / 改分辨率、远程桌面会话。
+锁屏 / 解锁这一项从「未实测」移出，其余保持不标通过。
 
 ## 六、回归与交付
 

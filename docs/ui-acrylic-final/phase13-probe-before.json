@@ -1,0 +1,254 @@
+{
+  "captured_at": "2026-11-09 01:38:32.179",
+  "app_running": true,
+  "remote_session": false,
+  "monitor_count": 3,
+  "virtual_screen": [
+    -1080,
+    0,
+    6200,
+    1920
+  ],
+  "monitors": [
+    {
+      "rect": [
+        2560,
+        0,
+        5120,
+        1600
+      ],
+      "primary": false
+    },
+    {
+      "rect": [
+        -1080,
+        0,
+        0,
+        1920
+      ],
+      "primary": false
+    },
+    {
+      "rect": [
+        0,
+        0,
+        2560,
+        1440
+      ],
+      "primary": true
+    }
+  ],
+  "windows": [
+    {
+      "title": "DeskLanes 快速启动",
+      "pid": 262292,
+      "helper": false,
+      "visible": false,
+      "minimized": false,
+      "rect": [
+        801,
+        188,
+        1691,
+        863
+      ],
+      "dwm": {
+        "dark_mode": 1,
+        "system_backdrop": 3,
+        "corner": 2
+      }
+    },
+    {
+      "title": "Hidden Window",
+      "pid": 262292,
+      "helper": true,
+      "visible": false,
+      "minimized": false,
+      "rect": [
+        264,
+        264,
+        2184,
+        1269
+      ],
+      "dwm": {
+        "dark_mode": 0,
+        "system_backdrop": 0,
+        "corner": 0
+      }
+    },
+    {
+      "title": "DeskLanesMessageHost",
+      "pid": 262292,
+      "helper": true,
+      "visible": false,
+      "minimized": false,
+      "rect": [
+        -2784,
+        -3000,
+        -2765,
+        -2981
+      ],
+      "dwm": {
+        "dark_mode": 0,
+        "system_backdrop": 0,
+        "corner": 0
+      }
+    },
+    {
+      "title": "Hidden Window",
+      "pid": 262292,
+      "helper": true,
+      "visible": false,
+      "minimized": false,
+      "rect": [
+        198,
+        198,
+        2118,
+        1203
+      ],
+      "dwm": {
+        "dark_mode": 0,
+        "system_backdrop": 0,
+        "corner": 0
+      }
+    },
+    {
+      "title": "SystemResourceNotifyWindow",
+      "pid": 262292,
+      "helper": true,
+      "visible": false,
+      "minimized": false,
+      "rect": [
+        0,
+        0,
+        0,
+        0
+      ],
+      "dwm": {
+        "dark_mode": 0,
+        "system_backdrop": 0,
+        "corner": 0
+      }
+    },
+    {
+      "title": "MediaContextNotificationWindow",
+      "pid": 262292,
+      "helper": true,
+      "visible": false,
+      "minimized": false,
+      "rect": [
+        0,
+        0,
+        0,
+        0
+      ],
+      "dwm": {
+        "dark_mode": 0,
+        "system_backdrop": 0,
+        "corner": 0
+      }
+    },
+    {
+      "title": "DeskLanes",
+      "pid": 262292,
+      "helper": false,
+      "visible": true,
+      "minimized": true,
+      "rect": [
+        -32000,
+        -32000,
+        -31717,
+        -31960
+      ],
+      "dwm": {
+        "dark_mode": 1,
+        "system_backdrop": 3,
+        "corner": 2
+      }
+    },
+    {
+      "title": "CiceroUIWndFrame",
+      "pid": 262292,
+      "helper": true,
+      "visible": false,
+      "minimized": false,
+      "rect": [
+        200,
+        200,
+        400,
+        400
+      ],
+      "dwm": {
+        "dark_mode": 0,
+        "system_backdrop": 0,
+        "corner": 0
+      }
+    },
+    {
+      "title": "CiceroUIWndFrame",
+      "pid": 262292,
+      "helper": true,
+      "visible": false,
+      "minimized": false,
+      "rect": [
+        0,
+        0,
+        0,
+        0
+      ],
+      "dwm": {
+        "dark_mode": 0,
+        "system_backdrop": 0,
+        "corner": 0
+      }
+    },
+    {
+      "title": "MSCTFIME UI",
+      "pid": 262292,
+      "helper": true,
+      "visible": false,
+      "minimized": false,
+      "rect": [
+        0,
+        0,
+        0,
+        0
+      ],
+      "dwm": {
+        "dark_mode": 0,
+        "system_backdrop": 0,
+        "corner": 0
+      }
+    },
+    {
+      "title": "Default IME",
+      "pid": 262292,
+      "helper": true,
+      "visible": false,
+      "minimized": false,
+      "rect": [
+        0,
+        0,
+        0,
+        0
+      ],
+      "dwm": {
+        "dark_mode": 0,
+        "system_backdrop": 0,
+        "corner": 0
+      }
+    }
+  ],
+  "logs": {
+    "sync.log": 341618,
+    "errors.log": 3634
+  },
+  "dynamic_text": {
+    "captured_at": "2026-11-09 01:26:12.950",
+    "luminance_source": "wallpaper_bitmap",
+    "desktop_refreshes": 1,
+    "forced_refreshes": 1,
+    "controls": 18,
+    "dark_scheme": 0,
+    "total_flips": 12
+  }
+}

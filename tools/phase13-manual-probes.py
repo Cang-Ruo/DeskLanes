@@ -26,6 +26,7 @@ import argparse
 import ctypes
 import json
 import os
+import re
 import sys
 import time
 from ctypes import wintypes
@@ -175,6 +176,31 @@ def snapshot():
     }
 
 
+def resume_logs_between(before_ts, after_ts):
+    """从 sync.log 里数出两次采集之间新增的恢复事件记录。
+
+    这是主判据：OnSystemResume 走的是常开的 FileDiagnosticLogger，
+    **不需要** DESKLANES_DIAG_TEXT=1。诊断 JSON 只在诊断模式写，
+    用户从开始菜单正常启动时不会更新，拿它当判据会误判成"没恢复"。
+    """
+    path = os.path.join(CFG, "logs", "sync.log")
+    try:
+        lines = open(path, encoding="utf-8", errors="replace").read().splitlines()
+    except Exception:
+        return {"resume": [], "rescan_done": [], "error": "sync.log 读不到"}
+    pat = re.compile(r"^\[(\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}\.\d{3})\]")
+    resume, done = [], []
+    for line in lines:
+        m = pat.match(line)
+        if not m or not (before_ts <= m.group(1) <= after_ts):
+            continue
+        if "电源/会话恢复" in line:
+            resume.append(line)
+        elif "恢复后全量重扫完成" in line:
+            done.append(line)
+    return {"resume": resume, "rescan_done": done, "error": None}
+
+
 def compare(before, after):
     issues = []
     if not before.get("app_running", bool(before["windows"])) or not after.get("app_running", bool(after["windows"])):
@@ -198,6 +224,11 @@ def compare(before, after):
         issues.append("errors.log 变大了（恢复期间有异常）")
     bd, ad = before.get("dynamic_text") or {}, after.get("dynamic_text") or {}
     refresh_delta = (ad.get("forced_refreshes") or 0) - (bd.get("forced_refreshes") or 0)
+    logs = resume_logs_between(before["captured_at"], after["captured_at"])
+    if logs["error"]:
+        issues.append(logs["error"])
+    # 主判据：sync.log；诊断 JSON 的计数只作辅助（仅诊断模式可用）
+    observed = len(logs["resume"]) > 0 or refresh_delta > 0
     return {
         "before": before["captured_at"], "after": after["captured_at"],
         "app_running": [before.get("app_running"), after.get("app_running")],
@@ -206,8 +237,14 @@ def compare(before, after):
         "virtual_screen": [before["virtual_screen"], after["virtual_screen"]],
         "windows_before": len(before["windows"]), "windows_after": len(after["windows"]),
         "errors_log": [before["logs"].get("errors.log"), after["logs"].get("errors.log")],
+        "sync_log": [before["logs"].get("sync.log"), after["logs"].get("sync.log")],
+        "resume_log_count": len(logs["resume"]),
+        "rescan_done_count": len(logs["rescan_done"]),
+        "resume_log_lines": logs["resume"][-4:],
+        "rescan_done_lines": logs["rescan_done"][-4:],
         "forced_refreshes_delta": refresh_delta,
-        "resume_event_observed": refresh_delta > 0,
+        "forced_refreshes_note": "仅 DESKLANES_DIAG_TEXT=1 启动时会更新，正常启动恒为 0，不作主判据",
+        "resume_event_observed": observed,
         "issues": issues,
     }
 
@@ -225,7 +262,10 @@ PLAN = """\
    >>> 现在真的按 Win+L 锁屏，输入密码解锁回到桌面，等 3 秒 <<<
    python tools/phase13-manual-probes.py capture --label=after
    python tools/phase13-manual-probes.py compare
-   判据：resume_event_observed=true、errors_log 不增长、issues=[]。
+   判据：resume_event_observed=true（看 sync.log 里的恢复日志，不需要诊断开关）、
+         errors_log 不增长、issues=[]。
+   注意：forced_refreshes_delta 只有在带 DESKLANES_DIAG_TEXT=1 启动时才会变，
+         正常启动恒为 0，不要拿它判断"有没有恢复"。
 
 2) 跨天 24h+ 长时驻留（新开一个终端挂着别关）
    mkdir docs\\stage13-soak
