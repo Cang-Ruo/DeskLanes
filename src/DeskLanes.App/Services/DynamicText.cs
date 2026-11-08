@@ -407,6 +407,88 @@ public sealed class DynamicTextService
             // 已经拍好的完整证据；只保留控件数最多的那次。
             _lastGoodCount = Math.Max(_lastGoodCount, decisions.Count);
             WriteDiagnostics(decisions, darkSchemeCount, unusable);
+            WriteAllTextDiagnostics();
+        }
+    }
+
+    /// <summary>
+    /// 诊断模式下把**所有**可见文字块（含没接入自适应的按钮 / 输入框 / 状态栏）
+    /// 的屏幕矩形与前景色导出，供外部脚本逐块做像素级对比度审计。
+    /// 只在 DESKLANES_DIAG_TEXT=1 时运行，正常启动完全不执行。
+    /// </summary>
+    private void WriteAllTextDiagnostics()
+    {
+        var items = new List<object>();
+        try
+        {
+            foreach (Window window in Application.Current.Windows)
+            {
+                if (window.IsVisible)
+                {
+                    WalkTextBlocks(window, items);
+                }
+            }
+
+            string directory = Path.Combine(
+                Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),
+                "DeskLanes", "diagnostics");
+            Directory.CreateDirectory(directory);
+            var payload = new
+            {
+                captured_at = DateTime.Now.ToString("yyyy-MM-dd HH:mm:ss.fff"),
+                text_blocks = items.Count,
+                items,
+            };
+            File.WriteAllText(Path.Combine(directory, "all-text-blocks.json"),
+                System.Text.Json.JsonSerializer.Serialize(payload,
+                    new System.Text.Json.JsonSerializerOptions { WriteIndented = true }));
+        }
+        catch
+        {
+            // 诊断输出不能影响界面
+        }
+    }
+
+    private static void WalkTextBlocks(DependencyObject node, List<object> items)
+    {
+        if (node is TextBlock text && text.IsVisible &&
+            !string.IsNullOrEmpty(text.Text) && text.ActualWidth > 0 && text.ActualHeight > 0)
+        {
+            try
+            {
+                Point tl = text.PointToScreen(new Point(0, 0));
+                Point br = text.PointToScreen(new Point(text.ActualWidth, text.ActualHeight));
+                var brush = text.Foreground as SolidColorBrush;
+                string fg = brush is null ? "" : brush.Color.ToString();
+                bool managed = DynamicText.GetScrim(text) || DynamicText.GetTone(text) != DynamicTextTone.None;
+                DependencyObject? ancestor = VisualTreeHelper.GetParent(text);
+                while (ancestor is not null && !managed)
+                {
+                    if (DynamicText.GetScrim(ancestor))
+                    {
+                        managed = true;
+                        break;
+                    }
+                    ancestor = VisualTreeHelper.GetParent(ancestor);
+                }
+                items.Add(new
+                {
+                    label = text.Text.Length > 40 ? text.Text[..40] : text.Text,
+                    x = Math.Round(tl.X, 1), y = Math.Round(tl.Y, 1),
+                    w = Math.Round(br.X - tl.X, 1), h = Math.Round(br.Y - tl.Y, 1),
+                    fg, font_size = text.FontSize, managed,
+                });
+            }
+            catch
+            {
+                // 单个控件定位失败不影响其它块
+            }
+        }
+
+        int count = VisualTreeHelper.GetChildrenCount(node);
+        for (int i = 0; i < count; i++)
+        {
+            WalkTextBlocks(VisualTreeHelper.GetChild(node, i), items);
         }
     }
 

@@ -1,0 +1,33 @@
+{
+  "wallpaper": "dark",
+  "scroll": 6,
+  "active": true,
+  "size": [
+    975,
+    675
+  ],
+  "app_reported_decisions": {
+    "controls": 28,
+    "min": 8.9,
+    "p50": 15.73,
+    "all_ge_4_5": true
+  },
+  "exported_blocks": 87,
+  "measured": 20,
+  "skipped_out_of_view": 67,
+  "adaptive_blocks": {
+    "n": 20,
+    "p50": 10.71,
+    "min": 5.0
+  },
+  "fixed_background_blocks": {
+    "n": 0,
+    "p50": null,
+    "min": null,
+    "below_4_5": 0
+  },
+  "all_below_4_5": [],
+  "verdict_fixed_blocks_all_pass": "not_applicable_no_fixed_blocks_in_view",
+  "pixel_audit_valid": false,
+  "pixel_audit_note": "滚动后导出矩形与被裁掉的布局位置错位，此组逐块像素值不可采信；滚动态覆盖以 app_reported_decisions 为准。"
+}

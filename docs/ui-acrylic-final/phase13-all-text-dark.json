@@ -1,0 +1,33 @@
+{
+  "wallpaper": "dark",
+  "scroll": 0,
+  "active": true,
+  "size": [
+    975,
+    675
+  ],
+  "app_reported_decisions": {
+    "controls": 18,
+    "min": 8.09,
+    "p50": 15.9,
+    "all_ge_4_5": true
+  },
+  "exported_blocks": 87,
+  "measured": 22,
+  "skipped_out_of_view": 65,
+  "adaptive_blocks": {
+    "n": 18,
+    "p50": 11.88,
+    "min": 6.82
+  },
+  "fixed_background_blocks": {
+    "n": 4,
+    "p50": 14.53,
+    "min": 12.23,
+    "below_4_5": 0
+  },
+  "all_below_4_5": [],
+  "verdict_fixed_blocks_all_pass": true,
+  "pixel_audit_valid": true,
+  "pixel_audit_note": ""
+}
