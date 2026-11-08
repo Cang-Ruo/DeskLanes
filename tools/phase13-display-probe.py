@@ -83,7 +83,8 @@ def list_modes(name):
         if not u.EnumDisplaySettingsW(name, j, b):
             break
         m = devmode_info(b)
-        if m["w"] >= 1280 and m["h"] >= 720:
+        # 竖屏模式宽度本来就小（左侧屏 1080×1920），阈值不能再按横屏设
+        if m["w"] >= 640 and m["h"] >= 480:
             out.append((m["w"], m["h"], m["freq"]))
         j += 1
         if j > 512:
@@ -108,12 +109,27 @@ def attached_devices():
     return out
 
 
-def pick_target():
-    """只选右侧副屏：非主屏、x>0。"""
-    for d in attached_devices():
-        if not d["primary"] and d["info"] and d["info"]["x"] > 0:
-            return d
-    return None
+def pick_target(which="left"):
+    """按用户指定挑显示器，绝不误动别处。
+
+    用户 2026-11-09 澄清：右侧 `DISPLAY1` 是**笔记本内置屏**（软件就显示在那儿），
+    `DISPLAY15` 是主屏，`DISPLAY2` 是左侧竖屏。测试应走左侧与主屏，
+    默认 left；碰笔记本屏必须显式 --target=laptop。
+    """
+    devs = [d for d in attached_devices() if d["info"]]
+    if which == "left":
+        cands = [d for d in devs if not d["primary"] and d["info"]["x"] < 0]
+    elif which == "primary":
+        cands = [d for d in devs if d["primary"]]
+    elif which == "laptop":
+        cands = [d for d in devs if not d["primary"] and d["info"]["x"] > 0]
+    else:
+        return None
+    return cands[0] if cands else None
+
+
+TARGET_LABEL = {"left": "左侧竖屏（外接）", "primary": "主屏（外接）",
+                "laptop": "右侧笔记本内置屏"}
 
 
 def apply_devmode(name, buf, flags=0):
@@ -141,42 +157,46 @@ def app_running():
     return bool(snap and snap.get("app_running"))
 
 
-def unplug_flow():
+def unplug_flow(label, target):
     """物理热插拔：三次快照（拔前 / 拔下 / 插回），两次比对。
 
     只有「把线拔下来再插回去」这件事需要人手；采集与比对全部自动。
-    在你自己的终端里运行（需要能按回车）。
+    在用户自己的终端里运行（需要能按回车）。
     """
-    out = {"mode": "physical_unplug_right_secondary"}
-    print("=== 物理热插拔测试（右副屏）===")
-    print("请确认 DeskLanes 正在运行，然后按提示操作。\n")
+    tag = "unplug-%s" % target
+    out = {"mode": "physical_unplug_%s" % target, "target": target,
+           "target_label": label}
+    print("=== 物理热插拔测试（%s）===" % label)
+    print("请确认 DeskLanes 正在运行，然后按提示操作。")
+    if target == "laptop":
+        print("注意：笔记本内置屏通常没有可拔的视频线，请改用 --target=left 或 primary。\n")
     print("--- 采集 1/3：拔线前 ---")
-    print(tool("capture", "--label=unplug-before"))
-    p_before = os.path.join(OUT, "phase13-probe-unplug-before.json")
+    print(tool("capture", "--label=%s-before" % tag))
+    p_before = os.path.join(OUT, "phase13-probe-%s-before.json" % tag)
 
     try:
-        input("\n>>> 现在拔下右侧副屏的视频线（HDMI/DP），拔完按回车...")
+        input("\n>>> 现在拔下【%s】的视频线（HDMI/DP），拔完按回车..." % label)
     except EOFError:
-        print("非交互环境，无法等待。请手动依次跑 capture --label=unplug-before/detached/reattached 再 compare。")
+        print("非交互环境，无法等待。请手动依次跑 capture 再 compare。")
         return 2
     print("等待 3 秒让系统稳定...")
     time.sleep(3.0)
-    print("--- 采集 2/3：副屏已拔下 ---")
-    print(tool("capture", "--label=unplug-detached"))
-    p_detached = os.path.join(OUT, "phase13-probe-unplug-detached.json")
+    print("--- 采集 2/3：已拔下 ---")
+    print(tool("capture", "--label=%s-detached" % tag))
+    p_detached = os.path.join(OUT, "phase13-probe-%s-detached.json" % tag)
 
     try:
-        input("\n>>> 现在把视频线插回去，等副屏亮起后按回车...")
+        input("\n>>> 现在把视频线插回去，等屏幕亮起后按回车...")
     except EOFError:
         return 2
     print("等待 4 秒让系统稳定...")
     time.sleep(4.0)
-    print("--- 采集 3/3：副屏已插回 ---")
-    print(tool("capture", "--label=unplug-reattached"))
-    p_back = os.path.join(OUT, "phase13-probe-unplug-reattached.json")
+    print("--- 采集 3/3：已插回 ---")
+    print(tool("capture", "--label=%s-reattached" % tag))
+    p_back = os.path.join(OUT, "phase13-probe-%s-reattached.json" % tag)
 
-    cmp1 = os.path.join(OUT, "phase13-probe-unplug-detach-compare.json")
-    cmp2 = os.path.join(OUT, "phase13-probe-unplug-reattach-compare.json")
+    cmp1 = os.path.join(OUT, "phase13-probe-%s-detach-compare.json" % tag)
+    cmp2 = os.path.join(OUT, "phase13-probe-%s-reattach-compare.json" % tag)
     print("\n--- 比对：拔前 -> 拔下 ---")
     print(tool("compare", "--before=%s" % p_before, "--after=%s" % p_detached, "--out=%s" % cmp1))
     print("\n--- 比对：拔下 -> 插回 ---")
@@ -198,7 +218,7 @@ def unplug_flow():
                                 and out["judgement"]["topology_restored_on_reattach"]
                                 and out["judgement"]["errors_log_unchanged"]
                                 and not issues) else "FAIL"
-    path = os.path.join(OUT, "phase13-unplug-probe.json")
+    path = os.path.join(OUT, "phase13-unplug-%s-probe.json" % target)
     json.dump(out, open(path, "w", encoding="utf-8"), ensure_ascii=False, indent=2)
     print("\n判据：%s" % json.dumps(out["judgement"], ensure_ascii=False, indent=2))
     print("结论：%s" % out["verdict"])
@@ -212,15 +232,17 @@ def main():
     ap.add_argument("--restore-only", action="store_true")
     ap.add_argument("--hold", type=float, default=3.0)
     ap.add_argument("--unplug", action="store_true",
-                    help="交互式物理拔插副屏：采集三次快照并比对")
+                    help="交互式物理拔插：采集三次快照并比对")
+    ap.add_argument("--target", choices=("left", "primary", "laptop"), default="left",
+                    help="改哪块屏：left=左侧竖屏(默认) / primary=主屏 / laptop=右侧笔记本屏")
     args = ap.parse_args()
 
     if args.unplug:
-        return unplug_flow()
+        return unplug_flow(TARGET_LABEL[args.target], args.target)
 
-    target = pick_target()
+    target = pick_target(args.target)
     if target is None:
-        print("FAIL 找不到右侧副屏（非主屏且 x>0），不动任何显示器")
+        print("FAIL 找不到目标显示器 %s，不动任何显示器" % args.target)
         return 1
     cur = target["info"]
     original = current_devmode(target["name"])
@@ -237,7 +259,9 @@ def main():
         print("FAIL 副屏没有更小的可用分辨率")
         return 1
 
-    plan = {"device": target["name"], "primary": target["primary"],
+    tag = args.target
+    plan = {"device": target["name"], "target": args.target,
+            "target_label": TARGET_LABEL[args.target], "primary": target["primary"],
             "current": cur, "new_mode": {"w": new_mode[0], "h": new_mode[1], "freq": new_mode[2]},
             "original_devmode_hex": original.raw.hex(),
             "hold_seconds": args.hold}
@@ -274,8 +298,8 @@ def main():
         result["started_app_here"] = started_here
 
         print("\n--- 采集 before ---")
-        print(tool("capture", "--label=disp-before"))
-        before_p = os.path.join(OUT, "phase13-probe-disp-before.json")
+        print(tool("capture", "--label=disp-%s-before" % tag))
+        before_p = os.path.join(OUT, "phase13-probe-disp-%s-before.json" % tag)
 
         rc = apply_devmode(target["name"], newbuf)
         print("\n--- 改分辨率 rc=%s (0=成功) ---" % rc)
@@ -288,10 +312,10 @@ def main():
         after_info = devmode_info(current_devmode(target["name"]))
         result["after_devmode"] = after_info
         print("\n--- 采集 after ---")
-        print(tool("capture", "--label=disp-after"))
-        after_p = os.path.join(OUT, "phase13-probe-disp-after.json")
+        print(tool("capture", "--label=disp-%s-after" % tag))
+        after_p = os.path.join(OUT, "phase13-probe-disp-%s-after.json" % tag)
 
-        cmp_out = os.path.join(OUT, "phase13-probe-display-compare.json")
+        cmp_out = os.path.join(OUT, "phase13-probe-display-%s-compare.json" % tag)
         print("\n--- compare ---")
         print(tool("compare", "--before=%s" % before_p,
                    "--after=%s" % after_p, "--out=%s" % cmp_out))
@@ -321,7 +345,7 @@ def main():
         result["restored_ok"] = (restored["w"] == cur["w"] and restored["h"] == cur["h"]
                                  and restored["x"] == cur["x"] and restored["y"] == cur["y"])
         print("恢复后模式：%s  -> %s" % (restored, "OK" if result["restored_ok"] else "不一致，请跑 --restore-only"))
-        tool("capture", "--label=disp-restored")
+        tool("capture", "--label=disp-%s-restored" % tag)
         if proc is not None and proc.poll() is None:
             proc.kill()
             proc.wait(timeout=6)
@@ -330,7 +354,7 @@ def main():
     result["verdict"] = ("PASS" if result.get("restored_ok") and j.get("virtual_screen_changed")
                          and j.get("errors_log_unchanged") and not j.get("unexpected_issues")
                          else "FAIL")
-    path = os.path.join(OUT, "phase13-display-probe.json")
+    path = os.path.join(OUT, "phase13-display-%s-probe.json" % tag)
     json.dump(result, open(path, "w", encoding="utf-8"), ensure_ascii=False, indent=2)
     print("\n判据：%s" % json.dumps(result["verdict"], ensure_ascii=False))
     print("证据：%s" % path)
