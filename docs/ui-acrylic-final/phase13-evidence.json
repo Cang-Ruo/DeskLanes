@@ -96,7 +96,7 @@
     "selftest": "应用运行时采集到 3 个窗口、辅助窗口已排除误报、compare issues=[]",
     "soak_24h": "tools/soak-8h.py --exe publish/win-x64-selfcontained/DeskLanes.exe --out docs/stage13-soak/soak-24h.csv --hours 24 --interval-min 5 --errorlog \"%LOCALAPPDATA%/DeskLanes/logs/errors.log\"",
     "still_unverified": [
-      "真实锁屏/睡眠恢复",
+      "真实睡眠/休眠唤醒",
       "跨天 24h+ 驻留",
       "运行中真实硬件热插拔/改分辨率",
       "远程桌面会话"
@@ -116,7 +116,37 @@
       "selftest": "app_running=true 两次、10 个同进程窗口、forced_refreshes_delta=1、resume_event_observed=true、issues=[]",
       "selftest_evidence": "docs/ui-acrylic-final/phase13-probe-selftest-compare.json",
       "invalid_first_attempt": "已删除，不算证据"
-    }
+    },
+    "lock_unlock_real_test_2026_11_09": {
+      "status": "PASS",
+      "before": "2026-11-09 01:38:32.179",
+      "after": "2026-11-09 01:40:01.343",
+      "app_running": [
+        true,
+        true
+      ],
+      "resume_log_count": 2,
+      "rescan_done_count": 2,
+      "errors_log": [
+        3634,
+        3634
+      ],
+      "sync_log": [
+        341618,
+        342515
+      ],
+      "windows": [
+        11,
+        11
+      ],
+      "issues": [],
+      "evidence": [
+        "docs/ui-acrylic-final/phase13-probe-before.json",
+        "docs/ui-acrylic-final/phase13-probe-after.json",
+        "docs/ui-acrylic-final/phase13-probe-compare.json"
+      ]
+    },
+    "judgement_fix": "首版以 dynamic-text.json 的 forced_refreshes_delta 判恢复，但该文件只在 DESKLANES_DIAG_TEXT=1 启动时写，正常启动恒为 0 -> 误报 false。改为以 sync.log 两次采集之间的恢复日志为主判据；真实用户数据重跑 resume_event_observed=true。"
   },
   "glass_proof": {
     "floating_runs": [
