@@ -98,8 +98,7 @@
     "still_unverified": [
       "真实睡眠/休眠唤醒",
       "跨天 24h+ 驻留",
-      "运行中真实硬件热插拔/改分辨率",
-      "远程桌面会话"
+      "物理热插拔显示器"
     ],
     "tool_fix_2026_11_09": {
       "trigger": "用户按说明在 Windows 终端首次实跑",
@@ -146,7 +145,15 @@
         "docs/ui-acrylic-final/phase13-probe-compare.json"
       ]
     },
-    "judgement_fix": "首版以 dynamic-text.json 的 forced_refreshes_delta 判恢复，但该文件只在 DESKLANES_DIAG_TEXT=1 启动时写，正常启动恒为 0 -> 误报 false。改为以 sync.log 两次采集之间的恢复日志为主判据；真实用户数据重跑 resume_event_observed=true。"
+    "judgement_fix": "首版以 dynamic-text.json 的 forced_refreshes_delta 判恢复，但该文件只在 DESKLANES_DIAG_TEXT=1 启动时写，正常启动恒为 0 -> 误报 false。改为以 sync.log 两次采集之间的恢复日志为主判据；真实用户数据重跑 resume_event_observed=true。",
+    "unplug_tool": "tools/phase13-display-probe.py --unplug（交互式三次采集+两次比对，物理拔插由用户完成）",
+    "deferred_by_user": [
+      "远程桌面会话（用户 2026-11-09 明确暂缓）"
+    ],
+    "completed_real_tests": [
+      "真实锁屏/解锁（PASS）",
+      "运行中改分辨率（PASS）"
+    ]
   },
   "glass_proof": {
     "floating_runs": [
@@ -293,5 +300,92 @@
     "portable_md5": "91c6ac20f511b0c34fe7126378d1e19c",
     "selfcontained_md5": "ec53018c14ba9f46c3461c678ca8d44d",
     "installed_matches": true
+  },
+  "display_change_real_test_2026_11_09": {
+    "status": "PASS",
+    "device": "\\\\.\\DISPLAY1",
+    "mode_change": {
+      "from": {
+        "x": 2560,
+        "y": 0,
+        "w": 2560,
+        "h": 1600,
+        "freq": 180
+      },
+      "to": {
+        "w": 1920,
+        "h": 1200,
+        "freq": 60
+      },
+      "applied": {
+        "x": 2560,
+        "y": 0,
+        "w": 1920,
+        "h": 1200,
+        "freq": 60
+      },
+      "restored": {
+        "x": 2560,
+        "y": 0,
+        "w": 2560,
+        "h": 1600,
+        "freq": 180
+      },
+      "restored_ok": true,
+      "apply_rc": 0,
+      "restore_rc": 0
+    },
+    "reused_running_app": true,
+    "virtual_screen": [
+      [
+        -1080,
+        0,
+        6200,
+        1920
+      ],
+      [
+        -1080,
+        0,
+        5560,
+        1920
+      ]
+    ],
+    "app_running": [
+      true,
+      true
+    ],
+    "windows": [
+      9,
+      9
+    ],
+    "errors_log": [
+      3634,
+      3634
+    ],
+    "issues": [],
+    "notices": [
+      "显示器拓扑变了（预期事件；窗口已被检查是否仍在可见区）"
+    ],
+    "judgement": {
+      "virtual_screen_changed": true,
+      "errors_log_unchanged": true,
+      "expected_topology_notices": 1,
+      "unexpected_issues": [],
+      "app_running": [
+        true,
+        true
+      ],
+      "windows": [
+        9,
+        9
+      ],
+      "resume_event_observed_note": "改分辨率走 WM_DISPLAYCHANGE 分支（钳位 + 亮度重算），不写电源/会话恢复日志，resume_log_count=0 属正常"
+    },
+    "evidence": [
+      "docs/ui-acrylic-final/phase13-display-probe.json",
+      "docs/ui-acrylic-final/phase13-probe-display-compare.json",
+      "docs/ui-acrylic-final/phase13-probe-disp-before.json",
+      "docs/ui-acrylic-final/phase13-probe-disp-after.json"
+    ]
   }
 }
