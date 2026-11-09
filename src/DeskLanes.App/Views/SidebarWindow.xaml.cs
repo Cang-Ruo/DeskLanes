@@ -1,7 +1,12 @@
 using System;
 using System.Windows;
+using DeskLanes.Core;
+using System.Windows.Interop;
+using System.Windows.Controls;
+using System.Windows.Input;
 using DeskLanes.App.Services;
 using DeskLanes.App.ViewModels;
+using DeskLanes.Core.Models;
 
 namespace DeskLanes.App.Views;
 
@@ -71,13 +76,42 @@ public partial class SidebarWindow : Window
         double screenWidth = SystemParameters.VirtualScreenWidth;
         double screenHeight = SystemParameters.VirtualScreenHeight;
 
-        double height = Math.Min(screenHeight * 0.85, 760);
-        Height = height;
-        Top = screenTop + Math.Max(0, (screenHeight - height) / 2);
-
+        // 阶段 20：用户要「屏幕有多高就占多高」。
+        // 不能直接取 VirtualScreenHeight —— 三屏时那是所有屏叠加的总高，
+        // 窗口会被推到屏幕外（截图里只剩壁纸）。先按停靠侧定位，
+        // 再取窗口所在那块显示器的工作区高度，按该屏 DPI 换算成 DIP。
         Left = _viewModel.IsDockedRight ? screenLeft + screenWidth - Width : screenLeft;
+        Top = screenTop;
+
+        IntPtr hwnd = new WindowInteropHelper(this).Handle;
+        if (hwnd != IntPtr.Zero
+            && MonitorInterop.TryGetWorkArea(hwnd, out MonitorInterop.RECT work, out uint dpi)
+            && work.Height > 0)
+        {
+            double scale = Math.Max(dpi / 96.0, 0.01);
+            Height = Math.Max(MinHeight, work.Height / scale);
+            Top = work.Top / scale;
+        }
+        else
+        {
+            // 拿不到显示器信息时退回主屏工作区，绝不用虚拟屏总高
+            Rect primaryWork = SystemParameters.WorkArea;
+            Height = Math.Max(MinHeight, primaryWork.Height);
+            Top = primaryWork.Top;
+        }
     }
 
     private void OnDeactivated(object? sender, EventArgs e)
         => _viewModel.OnWindowDeactivated();
+    /// <summary>双击侧边栏项目启动（自定义行模板不走 ItemTile 的双击处理）。</summary>
+    private void OnItemDoubleClick(object sender, MouseButtonEventArgs e)
+    {
+        if (sender is ListBoxItem { DataContext: DesktopItem item }
+            && DataContext is SidebarViewModel viewModel)
+        {
+            viewModel.OpenItemCommand.Execute(item);
+            e.Handled = true;
+        }
+    }
+
 }

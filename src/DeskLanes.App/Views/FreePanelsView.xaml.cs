@@ -84,4 +84,33 @@ public partial class FreePanelsView : UserControl
 
         e.Handled = true;
     }
+    /// <summary>拖到画布空白处：PanelView 会先接住并处理，只有空白区域才到这里。</summary>
+    private void OnCanvasDragOver(object sender, DragEventArgs e)
+    {
+        e.Effects = DragDropFormats.GetItemId(e.Data) is null ? DragDropEffects.None : DragDropEffects.Move;
+    }
+
+    private void OnCanvasDrop(object sender, DragEventArgs e)
+    {
+        string? itemId = DragDropFormats.GetItemId(e.Data);
+        if (itemId is null || DataContext is not FreePanelsViewModel viewModel)
+        {
+            return;
+        }
+
+        DesktopItem? item = viewModel.FindItemById(itemId);
+        if (item is null)
+        {
+            return;
+        }
+
+        // CanvasBorder 做了 Scale + Translate，落点要逆变换回 1600×900 虚拟坐标。
+        double scale = Math.Max(CanvasScaleFactor, 0.01);
+        Point hostPoint = e.GetPosition(CanvasHost);
+        double x = (hostPoint.X - CanvasOffset.X) / scale;
+        double y = (hostPoint.Y - CanvasOffset.Y) / scale;
+        viewModel.CreatePanelAt(item, x, y);
+        e.Handled = true;
+    }
+
 }

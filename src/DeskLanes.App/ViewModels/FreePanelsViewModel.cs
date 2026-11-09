@@ -132,6 +132,20 @@ public sealed class FreePanelsViewModel : ObservableObject
     public void AssignToPool(DesktopItem item)
         => _workspace.AssignItemToPanel(item, null);
 
+    /// <summary>
+    /// 阶段 20：把项目拖到画布空白处时，在落点新建一个分区并把它放进去。
+    /// 这样「软件拖到哪里，框就出现在哪里」，不必先手动新建分区。
+    /// </summary>
+    public void CreatePanelAt(DesktopItem item, double x, double y)
+    {
+        WorkspacePanel panel = _workspace.CreatePanel("新文件夹");
+        double px = Math.Max(0, Math.Min(WorkspacePanel.CanvasWidth - WorkspacePanel.DefaultWidth, x - 40));
+        double py = Math.Max(0, Math.Min(WorkspacePanel.CanvasHeight - WorkspacePanel.DefaultHeight, y - 20));
+        _workspace.UpdatePanelLayout(panel, px, py, panel.Width, panel.Height);
+        _workspace.AssignItemToPanel(item, panel);
+        SelectedPanel = Panels.FirstOrDefault(p => p.Model.Id == panel.Id);
+    }
+
     /// <summary>按 Id 查找项目（拖拽放置时用）；找不到返回 null。</summary>
     public DesktopItem? FindItemById(string id)
         => _itemsById.TryGetValue(id, out DesktopItem? item) ? item : null;

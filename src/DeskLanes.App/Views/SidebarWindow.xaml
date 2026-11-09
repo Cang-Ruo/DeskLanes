@@ -114,6 +114,13 @@
                          Background="Transparent" BorderThickness="0"
                          ScrollViewer.HorizontalScrollBarVisibility="Disabled"
                          Visibility="{Binding HasItems, Converter={StaticResource BoolToVis}}">
+                    <!-- 阶段 20：侧边栏用的是自定义行模板，不是 ItemTile，
+                         阶段 14 删掉 MouseBinding 后双击就彻底没绑定了，这里补回来。 -->
+                    <ListBox.ItemContainerStyle>
+                        <Style TargetType="ListBoxItem" BasedOn="{StaticResource {x:Type ListBoxItem}}">
+                            <EventSetter Event="MouseDoubleClick" Handler="OnItemDoubleClick" />
+                        </Style>
+                    </ListBox.ItemContainerStyle>
                     <ListBox.ItemTemplate>
                         <DataTemplate>
                             <Border Padding="6,4" CornerRadius="6" ToolTip="{Binding TooltipText}">

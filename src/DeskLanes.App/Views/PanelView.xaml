@@ -27,9 +27,13 @@
                    PreviewMouseLeftButtonDown="OnMoveThumbPreviewMouseLeftButtonDown">
                 <Thumb.Template>
                     <ControlTemplate TargetType="Thumb">
-                        <Border Background="#2E17283B" CornerRadius="9,9,0,0" Padding="10,7">
+                        <Border Background="#2E17283B" CornerRadius="9,9,0,0" Padding="10,9"
+                                ToolTip="按住这里拖动整个分区；右下角可拉伸大小">
                             <Grid>
+                                <TextBlock Text="⠿" FontSize="13" Foreground="{StaticResource BrushTextSecondary}"
+                                           HorizontalAlignment="Left" VerticalAlignment="Center" Margin="0,0,6,0" />
                                 <TextBlock Text="{Binding Title}" FontSize="13" FontWeight="SemiBold"
+                                           Margin="18,0,0,0"
                                            Foreground="{StaticResource BrushTextPrimary}" TextTrimming="CharacterEllipsis" />
                                 <!-- 标题栏本身是固定深底 #2E17283B，用静态主文字色即可，
                                      不接入动态色（否则亮壁纸下会误判成深字压深底）。 -->
