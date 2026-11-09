@@ -1,3 +1,6 @@
+<!-- 阶段 17：用户要「真的全屏 / 无边框全屏，不要看到窗口界面」。
+     去掉系统标题栏与边框，由 BeginFullMode 最大化铺满屏幕；
+     Esc 与顶部「⌄ 托盘」按钮负责退出，切模式按钮仍在内容区。 -->
 <Window x:Class="DeskLanes.App.MainWindow"
         xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
@@ -6,7 +9,8 @@
         Title="DeskLanes" Height="760" Width="1180" MinHeight="420" MinWidth="620"
         Background="Transparent" WindowStartupLocation="CenterScreen"
         TextOptions.TextFormattingMode="Ideal" UseLayoutRounding="True"
-        Closing="OnClosing">
+        WindowStyle="None" ResizeMode="NoResize"
+        KeyDown="OnWindowKeyDown" Closing="OnClosing">
     <!-- 背景说明：普通窗口由 WindowBackdropService 应用 Win11 原生 DWM 背景材料
          （Acrylic → Mica），失败时服务会把 Background 还原为不透明玻璃底色 -->
     <Window.Resources>
