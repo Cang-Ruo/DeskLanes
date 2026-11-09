@@ -60,7 +60,7 @@ public sealed class CategoryNavViewModel : ObservableObject
         Rebuild();
     }
 
-    /// <summary>分类节点列表（第 0 项为"未分组"，其余为用户分类，按 Order 升序）。</summary>
+    /// <summary>分类节点列表（第 0 项为"全部"，其余为用户分类，按 Order 升序）。</summary>
     public ObservableCollection<CategoryNodeViewModel> Categories { get; } = new();
 
     /// <summary>当前选中分类的项目（按搜索词过滤）。</summary>
@@ -262,7 +262,7 @@ public sealed class CategoryNavViewModel : ObservableObject
         string? selectedGroupId = _selectedCategory?.Group?.Id;
 
         Categories.Clear();
-        Categories.Add(new CategoryNodeViewModel(null, CountUngrouped()));
+        Categories.Add(new CategoryNodeViewModel(null, CountAll()));
         foreach (ShortcutGroup group in _workspace.Groups.OrderBy(g => g.Order))
         {
             Categories.Add(new CategoryNodeViewModel(group, group.ItemIds.Count));
@@ -277,6 +277,9 @@ public sealed class CategoryNavViewModel : ObservableObject
         ApplyItems();
         RaiseCategoryCommands();
     }
+
+    /// <summary>阶段 19：「全部」节点显示所有项目，包括已归到用户分类里的。</summary>
+    private int CountAll() => _workspace.Items.Count;
 
     private int CountUngrouped()
     {
@@ -308,7 +311,7 @@ public sealed class CategoryNavViewModel : ObservableObject
 
         IEnumerable<DesktopItem> source = _selectedCategory?.Group is ShortcutGroup group
             ? group.ItemIds.Where(id => _itemsById.ContainsKey(id)).Select(id => _itemsById[id])
-            : _workspace.Items.Where(IsUngrouped);
+            : _workspace.Items;   // 阶段 19：「全部」含已分组项目，不再从列表里消失
 
         string keyword = _shellState.SearchText.Trim();
         if (keyword.Length > 0)
@@ -318,7 +321,8 @@ public sealed class CategoryNavViewModel : ObservableObject
                 item.FullPath.Contains(keyword, StringComparison.OrdinalIgnoreCase));
         }
 
-        foreach (DesktopItem item in source)
+        // 阶段 19：两个区域各自按名称 A-Z 排序（中文按当前文化的拼音序）
+        foreach (DesktopItem item in source.OrderBy(i => i.Name, StringComparer.CurrentCultureIgnoreCase))
         {
             Items.Add(item);
             (item.Kind == DesktopItemKind.Folder ? FolderItems : AppItems).Add(item);
@@ -363,7 +367,7 @@ public sealed class CategoryNavViewModel : ObservableObject
     }
 }
 
-/// <summary>分类导航中的一个节点。<see cref="Group"/> 为 null 表示"未分组"。</summary>
+/// <summary>分类导航中的一个节点。<see cref="Group"/> 为 null 表示"全部"。</summary>
 public sealed class CategoryNodeViewModel : ObservableObject
 {
     public CategoryNodeViewModel(ShortcutGroup? group, int itemCount)
@@ -372,10 +376,10 @@ public sealed class CategoryNodeViewModel : ObservableObject
         _itemCount = itemCount;
     }
 
-    /// <summary>null 表示未分组（虚拟节点，不属于任何用户分类）。</summary>
+    /// <summary>null 表示「全部」虚拟节点（不属于任何用户分类）。</summary>
     public ShortcutGroup? Group { get; }
 
-    public string Name => Group?.Name ?? "未分组";
+    public string Name => Group?.Name ?? "全部";
 
     public bool IsUngrouped => Group is null;
 

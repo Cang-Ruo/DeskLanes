@@ -8,8 +8,12 @@
     </UserControl.Resources>
     <!-- 几何（Canvas.Left/Top/Width/Height）由外层 DataTemplate 绑定在 PanelView 元素上，
          Canvas 只识别直接子元素的附加属性；内部 Border 撑满 UserControl 即可 -->
+    <!-- 阶段 19：拖放目标放在根 Border 上。原先只挂在项目 ListBox 上，
+         而那个 ListBox 绑了 HasItems 可见性——空面板时控件被折叠，根本收不到 Drop，
+         导致「下面的项目拖不进新建的分区」。 -->
     <Border x:Name="PanelBorder" BorderBrush="{StaticResource BrushBorderGlass}" BorderThickness="1"
             Background="{StaticResource BrushCardGlass}" CornerRadius="10"
+            AllowDrop="True" Drop="OnItemDrop" DragOver="OnItemDragOver"
             MouseLeftButtonDown="OnPanelMouseLeftButtonDown">
         <Grid>
             <Grid.RowDefinitions>
