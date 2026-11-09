@@ -34,6 +34,11 @@ public sealed class WorkspaceService : IWorkspaceService
         // 加载后保证排序稳定（防止手工编辑的配置顺序错乱）
         SortByOrder(Groups, g => g.Order);
         SortByOrder(Panels, p => p.Order);
+
+        // 阶段 19：旧配置里分类与分区是两套独立数据（例如同名「游戏」分类里
+        // 有 2 个项目、分区里却是 0 个）。加载后立刻配对并同步成员，不丢用户数据。
+        // 这里不补建缺失的一边，避免改变已有集合数量；切换布局时才补全。
+        EnsurePairedContainers(createMissing: false);
     }
 
     private LibraryData Library => _libraryStore.Data;
@@ -423,6 +428,7 @@ public sealed class WorkspaceService : IWorkspaceService
         };
         Groups.Add(group);
         SortByOrder(Groups, g => g.Order);
+        EnsurePairedContainers();   // 自动建出同名分区面板
         Save();
         OnChanged();
         return group;
@@ -442,6 +448,7 @@ public sealed class WorkspaceService : IWorkspaceService
         }
 
         group.Name = finalName;
+        EnsurePairedContainers();   // 同步分区标题
         Save();
         OnChanged();
     }
@@ -454,8 +461,13 @@ public sealed class WorkspaceService : IWorkspaceService
         }
 
         // 只删除分类本身这条内部记录，不触碰任何桌面文件；
-        // 成员项目回到未分组池
+        // 配对的分区面板一并删除（同一份数据），成员项目仍在「全部」里
+        WorkspacePanel? paired = PairedPanel(group);
         Groups.Remove(group);
+        if (paired is not null)
+        {
+            Panels.Remove(paired);
+        }
         Save();
         OnChanged();
     }
@@ -500,6 +512,7 @@ public sealed class WorkspaceService : IWorkspaceService
 
         DetachFromAllContainers(item.Id);
         group?.ItemIds.Add(item.Id);
+        EnsurePairedContainers();   // 镜像到配对分区
         Save();
         OnChanged();
         return OperationResult.Ok();
@@ -528,6 +541,7 @@ public sealed class WorkspaceService : IWorkspaceService
         };
         Panels.Add(panel);
         SortByOrder(Panels, p => p.Order);
+        EnsurePairedContainers();   // 自动建出同名分类
         Save();
         OnChanged();
         return panel;
@@ -547,6 +561,12 @@ public sealed class WorkspaceService : IWorkspaceService
         }
 
         panel.Title = finalTitle;
+        ShortcutGroup? pairedGroup = PairedGroup(panel);
+        if (pairedGroup is not null)
+        {
+            pairedGroup.Name = finalTitle;
+        }
+        EnsurePairedContainers();
         Save();
         OnChanged();
     }
@@ -558,8 +578,14 @@ public sealed class WorkspaceService : IWorkspaceService
             return;
         }
 
-        // 只删除分区这条内部记录，不触碰任何桌面文件；成员项目回到未分组池
+        // 只删除分区这条内部记录，不触碰任何桌面文件；
+        // 配对的分类一并删除，成员项目仍在「全部」里
+        ShortcutGroup? pairedGroup = PairedGroup(panel);
         Panels.Remove(panel);
+        if (pairedGroup is not null)
+        {
+            Groups.Remove(pairedGroup);
+        }
         Save();
         OnChanged();
     }
@@ -644,7 +670,14 @@ public sealed class WorkspaceService : IWorkspaceService
         }
 
         DetachFromAllContainers(item.Id);
-        panel?.ItemIds.Add(item.Id);
+        if (panel is not null)
+        {
+            panel.ItemIds.Add(item.Id);
+            // Group.ItemIds 是权威，先回写，避免下面镜像时把这次拖入覆盖掉
+            ShortcutGroup? paired = PairedGroup(panel);
+            paired?.ItemIds.Add(item.Id);
+        }
+        EnsurePairedContainers();
         Save();
         OnChanged();
         return OperationResult.Ok();
@@ -660,6 +693,9 @@ public sealed class WorkspaceService : IWorkspaceService
         }
 
         SettingsData.LayoutMode = mode;
+        // 阶段 19：切换分类导航 / 自由分区时把两边补成同一份分组定义，
+        // 这样在分类导航里建的「游戏」会出现在自由分区里，成员也同步。
+        EnsurePairedContainers(createMissing: true);
         Save();
         OnChanged();
     }
@@ -752,6 +788,97 @@ public sealed class WorkspaceService : IWorkspaceService
             panel.ItemIds.RemoveAll(id => string.Equals(id, itemId, StringComparison.Ordinal));
         }
     }
+
+    /// <summary>
+    /// 阶段 19：分类导航与自由分区共用同一份分组定义。
+    /// ShortcutGroup.ItemIds 是成员关系的唯一权威；WorkspacePanel 通过 GroupId 关联，
+    /// 只额外保存画布几何。每次变更后双向补齐配对、把名字与成员镜像过去。
+    /// </summary>
+    /// <param name="createMissing">
+    /// true 时给没有配对的另一边补建对象（切换布局时用）；
+    /// false 只配对并同步已有对象，不改变集合数量。
+    /// </param>
+    private void EnsurePairedContainers(bool createMissing = false)
+    {
+        // 每个分类都要有一个分区面板
+        foreach (ShortcutGroup group in Groups.ToList())
+        {
+            WorkspacePanel? panel = Panels.FirstOrDefault(p => p.GroupId == group.Id);
+            if (panel is null)
+            {
+                // 旧数据兼容：按名字配对同名的分区
+                panel = Panels.FirstOrDefault(p => p.GroupId is null && p.Title == group.Name);
+                if (panel is null)
+                {
+                    if (!createMissing)
+                    {
+                        continue;
+                    }
+
+                    double offset = (Panels.Count % 6) * 32;
+                    panel = new WorkspacePanel
+                    {
+                        Title = group.Name,
+                        GroupId = group.Id,
+                        X = Math.Min(WorkspacePanel.DefaultX + offset,
+                            Math.Max(0, WorkspacePanel.CanvasWidth - WorkspacePanel.DefaultWidth)),
+                        Y = Math.Min(WorkspacePanel.DefaultY + offset,
+                            Math.Max(0, WorkspacePanel.CanvasHeight - WorkspacePanel.DefaultHeight)),
+                        Width = WorkspacePanel.DefaultWidth,
+                        Height = WorkspacePanel.DefaultHeight,
+                        Order = NextPanelOrder(),
+                    };
+                    Panels.Add(panel);
+                }
+
+                panel.GroupId = group.Id;
+            }
+
+            panel.Title = group.Name;
+            panel.ItemIds.Clear();
+            panel.ItemIds.AddRange(group.ItemIds);
+        }
+
+        // 每个分区面板都要有一个分类（用户先在自由分区建面板的场景）
+        foreach (WorkspacePanel panel in Panels.ToList())
+        {
+            if (panel.GroupId is not null && Groups.Any(g => g.Id == panel.GroupId))
+            {
+                continue;
+            }
+
+            ShortcutGroup? group = panel.GroupId is null
+                ? Groups.FirstOrDefault(g => g.Name == panel.Title)
+                : null;
+            if (group is null)
+            {
+                if (!createMissing)
+                {
+                    continue;
+                }
+
+                group = new ShortcutGroup
+                {
+                    Id = string.IsNullOrEmpty(panel.GroupId) ? Guid.NewGuid().ToString("N") : panel.GroupId!,
+                    Name = panel.Title,
+                    Order = NextGroupOrder(),
+                };
+                group.ItemIds.AddRange(panel.ItemIds);
+                Groups.Add(group);
+                SortByOrder(Groups, g => g.Order);
+            }
+
+            panel.GroupId = group.Id;
+        }
+
+        SortByOrder(Panels, p => p.Order);
+    }
+
+    private WorkspacePanel? PairedPanel(ShortcutGroup group)
+        => Panels.FirstOrDefault(p => p.GroupId == group.Id);
+
+    private ShortcutGroup? PairedGroup(WorkspacePanel panel)
+        => panel.GroupId is null ? null : Groups.FirstOrDefault(g => g.Id == panel.GroupId);
 
     private int NextGroupOrder() => Groups.Count == 0 ? 0 : Groups.Max(g => g.Order) + 1;
 

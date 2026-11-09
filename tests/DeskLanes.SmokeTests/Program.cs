@@ -649,23 +649,25 @@ try
 
     PanelViewModel panelVm = fp.Panels.First(p => p.Model.Id == panel2.Id);
 
-    // 数据共享：自由分区中的归属调整，分类导航立即可见（同一份底层数据）
-    nav.SelectedCategory = nav.Categories[0]; // 未分组
-    int ungroupedBefore = nav.Items.Count;
+    // 阶段 19：数据共享 + 「全部」含已分组项目（不再从列表里消失）
+    nav.SelectedCategory = nav.Categories[0]; // 全部
+    int allBefore = nav.Items.Count;
     DesktopItem shareItem = nav.Items.First();
     fp.AssignToPanel(shareItem, panelVm);
-    Check(!nav.Items.Contains(shareItem), "两种布局共用同一份数据（分区归属同步到分类导航）");
-    Check(nav.Items.Count == ungroupedBefore - 1, "分类导航未分组数量同步减少");
+    Check(!fp.PoolItems.Contains(shareItem) == false, "两种布局共用同一份数据（分区归属同步，全部仍可见）");
+    Check(nav.Items.Contains(shareItem) && nav.Items.Count == allBefore,
+        "「全部」不会因项目归到分区而减少", $"{nav.Items.Count}/{allBefore}");
 
     // Changed 事件后面板视图模型会整体重建，需重新获取最新实例验证
     PanelViewModel refreshedPanel = fp.Panels.First(p => p.Model.Id == panel2.Id);
     Check(refreshedPanel.Items.Contains(shareItem), "项目成功加入分区");
 
     fp.AssignToPool(shareItem);
-    Check(nav.Items.Contains(shareItem) && fp.PoolItems.Contains(shareItem), "放回未分区池后两边都可见");
+    Check(nav.Items.Contains(shareItem) && fp.PoolItems.Contains(shareItem), "从分区移出后两边都仍可见");
 
     fp.AssignToPanel(shareItem, refreshedPanel);
-    Check(refreshedPanel.Items.Contains(shareItem) && !fp.PoolItems.Contains(shareItem), "重新拖入分区");
+    Check(refreshedPanel.Items.Contains(shareItem) && fp.PoolItems.Contains(shareItem),
+        "重新拖入分区后，项目仍留在「全部」里");
 }
 finally
 {
@@ -953,12 +955,20 @@ try
     File.WriteAllText(Path.Combine(syncUser, "触发一次同步.txt"), "x");
     await WaitForSyncAsync(syncService);
 
-    Check(syncWorkspace.Groups.Count == 1 && syncWorkspace.Groups[0].ItemIds.Count >= 0,
-        "同步后分类仍在（不被重建）");
-    Check(syncWorkspace.Panels.Count == 1 && keepPanel.X == 111 && keepPanel.Width == 333,
+    // 阶段 19：切换布局会把两边补成同一份分组定义，因此集合数量会变，
+    // 改为按 Id 验证原对象没有被重建、几何与成员都还在。
+    Check(syncWorkspace.Groups.Any(g => g.Id == keepGroup.Id),
+        "同步后分类仍在（不被重建）",
+        $"groups={syncWorkspace.Groups.Count}");
+    Check(syncWorkspace.Panels.Any(p => p.Id == keepPanel.Id)
+          && keepPanel.X == 111 && keepPanel.Width == 333,
         "同步后分区几何保留",
-        $"X={keepPanel.X} W={keepPanel.Width}");
+        $"X={keepPanel.X} W={keepPanel.Width} panels={syncWorkspace.Panels.Count}");
     Check(keepPanel.ItemIds.Contains(panelTarget.Id), "同步后分区成员关系保留");
+    WorkspacePanel? mirrored = syncWorkspace.Panels.FirstOrDefault(p => p.GroupId == keepGroup.Id);
+    Check(mirrored is not null && mirrored.ItemIds.Count == keepGroup.ItemIds.Count,
+        "切换布局后分类成员镜像到配对分区",
+        mirrored is null ? "无配对分区" : $"{mirrored.ItemIds.Count}/{keepGroup.ItemIds.Count}");
     Check(syncWorkspace.Settings.LayoutMode == LayoutMode.FreePanels, "同步后布局模式保留");
     Check(syncWorkspace.Settings.WindowWidth == 1000 && syncWorkspace.Settings.WindowLeft == 10,
         "同步后窗口偏好保留");
@@ -3056,6 +3066,94 @@ Console.WriteLine("== 26. 大桌面：项目数超过图标缓存上限时的表
         {
             Directory.Delete(deskRoot, true);
             Directory.Delete(p14CfgRoot, true);
+        }
+        catch
+        {
+            // 临时目录清理失败不影响结果
+        }
+    }
+}
+
+// ---------------------------------------------------------------- 29. 阶段 19：全部视图 / 分组统一 / 悬浮窗两视图
+{
+    string p19Root = Path.Combine(Path.GetTempPath(), "DeskLanesP19_" + Guid.NewGuid().ToString("N"));
+    string p19Cfg = p19Root + "_cfg";
+    Directory.CreateDirectory(p19Root);
+    Directory.CreateDirectory(p19Cfg);
+    try
+    {
+        var ws19 = new WorkspaceService(new LibraryStore(p19Cfg), new ConfigStore(p19Cfg),
+            new ShortcutResolver());
+        var state19 = new ShellState();
+        var dlg19 = new ConsoleDialogService();
+
+        // 造 4 个项目：两个文件夹、两个软件，名字故意乱序
+        DesktopItem Make(string name, DesktopItemKind kind) => new()
+        {
+            Name = name, FullPath = Path.Combine(p19Root, name),
+            Kind = kind, Origin = ItemOrigin.UserDesktop,
+        };
+        var zFolder = Make("Zeta 文件夹", DesktopItemKind.Folder);
+        var aFolder = Make("Alpha 文件夹", DesktopItemKind.Folder);
+        var zApp = Make("Zeta 软件", DesktopItemKind.Shortcut);
+        var aApp = Make("Alpha 软件", DesktopItemKind.Shortcut);
+        await ws19.MergeScanAsync(new ScanResult
+        {
+            Items = new[] { zFolder, aFolder, zApp, aApp },
+            ScopeDirectories = new[] { p19Root },
+        });
+
+        // 建一个「游戏」分类并放两个项目进去
+        ShortcutGroup game = ws19.CreateGroup("游戏");
+        ws19.AssignItemToGroup(aApp, game);
+        ws19.AssignItemToGroup(zApp, game);
+
+        var nav19 = new CategoryNavViewModel(ws19, dlg19, launchService, state19);
+        Check(nav19.Categories[0].Name == "全部", "分类导航首节点叫「全部」", nav19.Categories[0].Name);
+        nav19.SelectedCategory = nav19.Categories[0];
+        Check(nav19.Items.Count == 4, "「全部」含已分组项目（4 个都在）", nav19.Items.Count.ToString());
+        Check(nav19.FolderItems.Count == 2 && nav19.AppItems.Count == 2,
+            "「全部」拆成文件夹 / 软件两区", $"{nav19.FolderItems.Count}/{nav19.AppItems.Count}");
+        Check(nav19.FolderItems.Select(i => i.Name).SequenceEqual(new[] { "Alpha 文件夹", "Zeta 文件夹" })
+              && nav19.AppItems.Select(i => i.Name).SequenceEqual(new[] { "Alpha 软件", "Zeta 软件" }),
+            "两区各自按 A-Z 排序", "");
+
+        // 切换布局后，自由分区出现同名的「游戏」面板且成员同步
+        ws19.SetLayoutMode(LayoutMode.FreePanels);
+        WorkspacePanel? gamePanel = ws19.Panels.FirstOrDefault(p => p.GroupId == game.Id);
+        Check(gamePanel is not null && gamePanel.Title == "游戏"
+              && gamePanel.ItemIds.Count == 2,
+            "切换布局后分类自动成为同名分区面板且成员同步",
+            gamePanel is null ? "无配对面板" : $"{gamePanel.Title}/{gamePanel.ItemIds.Count}");
+
+        var fp19 = new FreePanelsViewModel(ws19, dlg19, launchService, state19);
+        Check(fp19.PoolHeaderText.StartsWith("全部"), "自由分区底部叫「全部」", fp19.PoolHeaderText);
+        Check(fp19.PoolItems.Count == 4 && fp19.PoolItems.Contains(aApp),
+            "自由分区「全部」含已加入面板的项目", fp19.PoolItems.Count.ToString());
+
+        // 悬浮窗两种视图
+        var float19 = new FloatingWindowViewModel(ws19, dlg19, launchService, state19);
+        Check(float19.IsAllView && float19.DesktopFolderItems.Count == 2
+              && float19.SoftwareItems.Count == 2,
+            "悬浮窗默认「全部」视图且分两区", "");
+        float19.ToggleViewModeCommand.Execute(null);
+        Check(float19.IsFolderView && float19.GroupCards.Count == 1
+              && float19.GroupCards[0].Name == "游戏" && float19.GroupCards[0].ItemCount == 2,
+            "切到文件夹视图只显示分组卡片（不是 4 个文件）",
+            $"cards={float19.GroupCards.Count}");
+        float19.OpenFolderCommand.Execute(float19.GroupCards[0]);
+        Check(float19.IsOpenedFolderVisible && float19.Items.Count == 2
+              && float19.OpenedFolderTitle == "游戏",
+            "点开文件夹才列出里面的 2 个项目", float19.Items.Count.ToString());
+        float19.BackToFoldersCommand.Execute(null);
+        Check(float19.IsGroupCardsVisible && float19.Items.Count == 0, "返回文件夹列表", "");
+    }
+    finally
+    {
+        try
+        {
+            Directory.Delete(p19Root, true);
+            Directory.Delete(p19Cfg, true);
         }
         catch
         {

@@ -53,8 +53,8 @@ namespace DeskLanes.UiSnapshot;
 public static class Program
 {
     private static readonly string[] Modes =
-        { "category", "panels", "floating", "sidebar", "settings", "dialog", "perf", "reference",
-          "perf200", "mem", "memtoggle", "toggle" };
+        { "category", "panels", "floating", "floatingfolders", "sidebar", "settings", "dialog",
+          "perf", "reference", "perf200", "mem", "memtoggle", "toggle" };
 
     /// <summary>进程启动时刻：用来量"从双击到首屏可用"的端到端时间。</summary>
     private static readonly System.Diagnostics.Stopwatch ProgramClock =
@@ -228,9 +228,13 @@ public static class Program
                     ShowActivated = screen,
                 };
             }
-            else if (mode == "floating")
+            else if (mode == "floating" || mode == "floatingfolders")
             {
                 var vm = new FloatingWindowViewModel(workspace, dialogService, launchService, shellState);
+                if (mode == "floatingfolders")
+                {
+                    vm.ToggleViewModeCommand.Execute(null);   // 拍阶段 19 的文件夹视图
+                }
                 window = new FloatingWindow(vm, controller)
                 {
                     WindowStartupLocation = WindowStartupLocation.CenterScreen,

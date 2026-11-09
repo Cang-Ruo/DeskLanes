@@ -69,6 +69,14 @@
                            VerticalAlignment="Center" IsHitTestVisible="False"
                            Visibility="{Binding IsSearchEmpty, Converter={StaticResource BoolToVis}}" />
                 <StackPanel Orientation="Horizontal" HorizontalAlignment="Right" VerticalAlignment="Center">
+                    <!-- 阶段 19：两种展示方式切换 + 从打开的文件夹返回 -->
+                    <Button Content="{Binding ViewModeButtonText}" Padding="10,5" Margin="0,0,6,0" FontSize="12"
+                            ToolTip="在「全部（A-Z）」与「文件夹分组」之间切换"
+                            Command="{Binding ToggleViewModeCommand}" />
+                    <Button Content="← 返回" Padding="10,5" Margin="0,0,6,0" FontSize="12"
+                            ToolTip="返回文件夹列表"
+                            Visibility="{Binding IsOpenedFolderVisible, Converter={StaticResource BoolToVis}}"
+                            Command="{Binding BackToFoldersCommand}" />
                     <Button Content="全屏" Padding="10,5" Margin="0,0,6,0" FontSize="12"
                             ToolTip="切换到全屏工作空间（数据共用）"
                             Command="{Binding ToggleFullModeCommand}" />
@@ -84,6 +92,7 @@
             <!-- 分类标签 -->
             <ListBox Grid.Row="1" ItemsSource="{Binding Categories}"
                      SelectedItem="{Binding SelectedCategory}"
+                     Visibility="{Binding IsAllView, Converter={StaticResource BoolToVis}}"
                      Background="Transparent" BorderThickness="0"
                      ScrollViewer.HorizontalScrollBarVisibility="Disabled"
                      Margin="0,0,0,10">
@@ -135,39 +144,105 @@
                 </ListBox.ItemTemplate>
             </ListBox>
 
-            <!-- 项目网格：双击 / 回车启动 -->
-            <ListBox Grid.Row="2"
-                     x:Name="ItemList"
-                     ItemsSource="{Binding Items}"
-                     Background="Transparent" BorderThickness="0"
-                     ScrollViewer.HorizontalScrollBarVisibility="Disabled"
-                     Visibility="{Binding HasItems, Converter={StaticResource BoolToVis}}">
-                <ListBox.ItemsPanel>
-                    <ItemsPanelTemplate>
-                        <WrapPanel Orientation="Horizontal" />
-                    </ItemsPanelTemplate>
-                </ListBox.ItemsPanel>
-                <ListBox.ItemContainerStyle>
-                    <Style TargetType="ListBoxItem" BasedOn="{StaticResource {x:Type ListBoxItem}}" />
-                </ListBox.ItemContainerStyle>
-                <ListBox.ItemTemplate>
-                    <DataTemplate>
-                        <local:ItemTile />
-                    </DataTemplate>
-                </ListBox.ItemTemplate>
-                <ListBox.InputBindings>
-                    <KeyBinding Key="Enter"
-                                Command="{Binding OpenItemCommand}"
-                                CommandParameter="{Binding SelectedItem, RelativeSource={RelativeSource AncestorType=ListBox}}" />
-                </ListBox.InputBindings>
-            </ListBox>
+            <!-- 阶段 19：项目区分三种呈现，按视图模式切换 -->
+            <Grid Grid.Row="2">
+                <!-- ① 全部视图：文件夹 / 软件两区，各自 A-Z -->
+                <ScrollViewer VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled"
+                              Visibility="{Binding IsAllView, Converter={StaticResource BoolToVis}}">
+                    <StackPanel Orientation="Vertical">
+                        <StackPanel Visibility="{Binding HasDesktopFolderItems, Converter={StaticResource BoolToVis}}">
+                            <Border Margin="2,2,0,6" Padding="7,3" HorizontalAlignment="Left"
+                                    Background="{StaticResource BrushLabelScrim}" CornerRadius="3">
+                                <TextBlock Text="文件夹" FontSize="12" FontWeight="SemiBold"
+                                           Foreground="{StaticResource BrushTextPrimary}" />
+                            </Border>
+                            <ListBox ItemsSource="{Binding DesktopFolderItems}" Background="Transparent"
+                                     BorderThickness="0" ScrollViewer.HorizontalScrollBarVisibility="Disabled">
+                                <ListBox.ItemsPanel>
+                                    <ItemsPanelTemplate><WrapPanel Orientation="Horizontal" /></ItemsPanelTemplate>
+                                </ListBox.ItemsPanel>
+                                <ListBox.ItemContainerStyle>
+                                    <Style TargetType="ListBoxItem" BasedOn="{StaticResource {x:Type ListBoxItem}}" />
+                                </ListBox.ItemContainerStyle>
+                                <ListBox.ItemTemplate><DataTemplate><local:ItemTile /></DataTemplate></ListBox.ItemTemplate>
+                            </ListBox>
+                        </StackPanel>
+                        <StackPanel Visibility="{Binding HasSoftwareItems, Converter={StaticResource BoolToVis}}">
+                            <Border Margin="2,10,0,6" Padding="7,3" HorizontalAlignment="Left"
+                                    Background="{StaticResource BrushLabelScrim}" CornerRadius="3">
+                                <TextBlock Text="软件" FontSize="12" FontWeight="SemiBold"
+                                           Foreground="{StaticResource BrushTextPrimary}" />
+                            </Border>
+                            <ListBox ItemsSource="{Binding SoftwareItems}" Background="Transparent"
+                                     BorderThickness="0" ScrollViewer.HorizontalScrollBarVisibility="Disabled">
+                                <ListBox.ItemsPanel>
+                                    <ItemsPanelTemplate><WrapPanel Orientation="Horizontal" /></ItemsPanelTemplate>
+                                </ListBox.ItemsPanel>
+                                <ListBox.ItemContainerStyle>
+                                    <Style TargetType="ListBoxItem" BasedOn="{StaticResource {x:Type ListBoxItem}}" />
+                                </ListBox.ItemContainerStyle>
+                                <ListBox.ItemTemplate><DataTemplate><local:ItemTile /></DataTemplate></ListBox.ItemTemplate>
+                            </ListBox>
+                        </StackPanel>
+                    </StackPanel>
+                </ScrollViewer>
 
-            <!-- 空状态 -->
-            <TextBlock Grid.Row="2" Text="{Binding EmptyStateText}" FontSize="13"
-                       Foreground="{StaticResource BrushTextTertiary}" dt:DynamicText.Tone="Tertiary"
-                       HorizontalAlignment="Center" VerticalAlignment="Center"
-                       TextWrapping="Wrap"
-                       Visibility="{Binding HasNoItems, Converter={StaticResource BoolToVis}}" />
+                <!-- ② 文件夹视图：只显示分组卡片，不把里面的文件平铺出来 -->
+                <ListBox ItemsSource="{Binding GroupCards}" Background="Transparent" BorderThickness="0"
+                         ScrollViewer.HorizontalScrollBarVisibility="Disabled"
+                         Visibility="{Binding IsGroupCardsVisible, Converter={StaticResource BoolToVis}}">
+                    <ListBox.ItemsPanel>
+                        <ItemsPanelTemplate><WrapPanel Orientation="Horizontal" /></ItemsPanelTemplate>
+                    </ListBox.ItemsPanel>
+                    <ListBox.ItemContainerStyle>
+                        <Style TargetType="ListBoxItem" BasedOn="{StaticResource {x:Type ListBoxItem}}" />
+                    </ListBox.ItemContainerStyle>
+                    <ListBox.ItemTemplate>
+                        <DataTemplate>
+                            <Button Padding="10,8" Margin="0,0,8,8" MinWidth="120" MinHeight="64"
+                                    Command="{Binding Data.OpenFolderCommand, RelativeSource={RelativeSource AncestorType=ListBox}}"
+                                    CommandParameter="{Binding}">
+                                <StackPanel>
+                                    <TextBlock Text="📁" FontSize="22" HorizontalAlignment="Center" />
+                                    <TextBlock Text="{Binding Name}" FontSize="13" HorizontalAlignment="Center"
+                                               TextTrimming="CharacterEllipsis" />
+                                    <TextBlock Text="{Binding ItemCount, StringFormat={}{0} 个项目}" FontSize="11"
+                                               HorizontalAlignment="Center"
+                                               Foreground="{StaticResource BrushTextSecondary}" />
+                                </StackPanel>
+                            </Button>
+                        </DataTemplate>
+                    </ListBox.ItemTemplate>
+                </ListBox>
+
+                <!-- ③ 点开某个文件夹：列出里面的项目 -->
+                <StackPanel Orientation="Vertical"
+                            Visibility="{Binding IsOpenedFolderVisible, Converter={StaticResource BoolToVis}}">
+                    <TextBlock Text="{Binding OpenedFolderTitle}" FontSize="13" FontWeight="SemiBold"
+                               Foreground="{StaticResource BrushTextPrimary}" Margin="2,2,0,8" />
+                    <ListBox ItemsSource="{Binding Items}" Background="Transparent" BorderThickness="0"
+                             ScrollViewer.HorizontalScrollBarVisibility="Disabled">
+                        <ListBox.ItemsPanel>
+                            <ItemsPanelTemplate><WrapPanel Orientation="Horizontal" /></ItemsPanelTemplate>
+                        </ListBox.ItemsPanel>
+                        <ListBox.ItemContainerStyle>
+                            <Style TargetType="ListBoxItem" BasedOn="{StaticResource {x:Type ListBoxItem}}" />
+                        </ListBox.ItemContainerStyle>
+                        <ListBox.ItemTemplate><DataTemplate><local:ItemTile /></DataTemplate></ListBox.ItemTemplate>
+                        <ListBox.InputBindings>
+                            <KeyBinding Key="Enter" Command="{Binding OpenItemCommand}"
+                                        CommandParameter="{Binding SelectedItem, RelativeSource={RelativeSource AncestorType=ListBox}}" />
+                        </ListBox.InputBindings>
+                    </ListBox>
+                </StackPanel>
+
+                <!-- 空状态：卡片视图不显示 -->
+                <TextBlock Text="{Binding EmptyStateText}" FontSize="13"
+                           Foreground="{StaticResource BrushTextTertiary}" dt:DynamicText.Tone="Tertiary"
+                           HorizontalAlignment="Center" VerticalAlignment="Center"
+                           TextWrapping="Wrap" IsHitTestVisible="False"
+                           Visibility="{Binding ShowEmptyState, Converter={StaticResource BoolToVis}}" />
+            </Grid>
 
             <!-- 底部状态栏：主窗口早就有 StatusBarScrim，这里补齐一致性 -->
             <Border Grid.Row="3" Style="{StaticResource StatusBarScrim}" dt:DynamicText.Scrim="True"

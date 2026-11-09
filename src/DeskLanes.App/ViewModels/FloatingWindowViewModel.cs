@@ -21,6 +21,9 @@ public sealed class FloatingWindowViewModel : ObservableObject
 
     private FloatingCategoryViewModel? _selectedCategory;
     private string _statusText = "就绪";
+    // 阶段 19：悬浮窗两种视图 + 文件夹视图里当前打开的分组
+    private FloatingViewMode _viewMode = FloatingViewMode.All;
+    private ShortcutGroup? _openedFolder;
 
     public FloatingWindowViewModel(
         IWorkspaceService workspace,
@@ -37,6 +40,24 @@ public sealed class FloatingWindowViewModel : ObservableObject
         ToggleSidebarModeCommand = new RelayCommand(_ => ModeSwitchRequested?.Invoke(this, WindowMode.Sidebar));
         ToggleFullModeCommand = new RelayCommand(_ => ModeSwitchRequested?.Invoke(this, WindowMode.Full));
         HideWindowCommand = new RelayCommand(_ => HideRequested?.Invoke(this, EventArgs.Empty));
+        ToggleViewModeCommand = new RelayCommand(_ => ToggleViewMode());
+        OpenFolderCommand = new RelayCommand(
+            parameter =>
+            {
+                if (parameter is FloatingFolderCard card)
+                {
+                    _openedFolder = card.Group;
+                    ApplyItems();
+                    NotifyViewState();
+                }
+            },
+            parameter => parameter is FloatingFolderCard);
+        BackToFoldersCommand = new RelayCommand(_ =>
+        {
+            _openedFolder = null;
+            ApplyItems();
+            NotifyViewState();
+        });
 
         _workspace.Changed += (_, _) => Rebuild();
         _shellState.PropertyChanged += (_, e) =>
@@ -65,6 +86,42 @@ public sealed class FloatingWindowViewModel : ObservableObject
 
     /// <summary>当前分类下的项目（按共享搜索词过滤）。</summary>
     public ObservableCollection<DesktopItem> Items { get; } = new();
+
+    /// <summary>「全部」视图里的桌面文件夹（A-Z）。</summary>
+    public ObservableCollection<DesktopItem> DesktopFolderItems { get; } = new();
+
+    /// <summary>「全部」视图里的软件/文件（A-Z）。</summary>
+    public ObservableCollection<DesktopItem> SoftwareItems { get; } = new();
+
+    /// <summary>「文件夹视图」里的分组卡片。</summary>
+    public ObservableCollection<FloatingFolderCard> GroupCards { get; } = new();
+
+    public bool IsAllView => _viewMode == FloatingViewMode.All;
+
+    public bool IsFolderView => _viewMode == FloatingViewMode.Folders;
+
+    public bool IsGroupCardsVisible => IsFolderView && _openedFolder is null;
+
+    public bool IsOpenedFolderVisible => IsFolderView && _openedFolder is not null;
+
+    public bool HasDesktopFolderItems => DesktopFolderItems.Count > 0;
+
+    public bool HasSoftwareItems => SoftwareItems.Count > 0;
+
+    public bool HasGroupCards => GroupCards.Count > 0;
+
+    /// <summary>卡片视图不显示「无项目」空状态。</summary>
+    public bool ShowEmptyState => !IsGroupCardsVisible && Items.Count == 0;
+
+    public string ViewModeButtonText => IsAllView ? "文件夹视图" : "全部视图";
+
+    public string OpenedFolderTitle => _openedFolder?.Name ?? string.Empty;
+
+    public RelayCommand ToggleViewModeCommand { get; }
+
+    public RelayCommand OpenFolderCommand { get; }
+
+    public RelayCommand BackToFoldersCommand { get; }
 
     public FloatingCategoryViewModel? SelectedCategory
     {
@@ -142,7 +199,10 @@ public sealed class FloatingWindowViewModel : ObservableObject
 
         string? selectedId = _selectedCategory?.GroupId;
         Categories.Clear();
-        Categories.Add(new FloatingCategoryViewModel(null));
+        Categories.Add(new FloatingCategoryViewModel(null)
+        {
+            ItemCount = _workspace.Items.Count,   // 「全部」显示真实总数，不要是 0
+        });
         foreach (ShortcutGroup group in _workspace.Groups.OrderBy(g => g.Order))
         {
             Categories.Add(new FloatingCategoryViewModel(group));
@@ -155,15 +215,77 @@ public sealed class FloatingWindowViewModel : ObservableObject
         ApplyItems();
     }
 
+    private void ToggleViewMode()
+    {
+        _viewMode = _viewMode == FloatingViewMode.All
+            ? FloatingViewMode.Folders
+            : FloatingViewMode.All;
+        _openedFolder = null;
+        ApplyItems();
+        NotifyViewState();
+    }
+
+    private void NotifyViewState()
+    {
+        OnPropertyChanged(nameof(IsAllView));
+        OnPropertyChanged(nameof(IsFolderView));
+        OnPropertyChanged(nameof(IsGroupCardsVisible));
+        OnPropertyChanged(nameof(IsOpenedFolderVisible));
+        OnPropertyChanged(nameof(ViewModeButtonText));
+        OnPropertyChanged(nameof(OpenedFolderTitle));
+        OnPropertyChanged(nameof(HasGroupCards));
+        OnPropertyChanged(nameof(HasDesktopFolderItems));
+        OnPropertyChanged(nameof(HasSoftwareItems));
+        OnPropertyChanged(nameof(HasItems));
+        OnPropertyChanged(nameof(HasNoItems));
+        OnPropertyChanged(nameof(EmptyStateText));
+        OnPropertyChanged(nameof(ShowEmptyState));
+    }
+
     private void ApplyItems()
     {
         Items.Clear();
-
-        IEnumerable<DesktopItem> source = _selectedCategory?.Group is ShortcutGroup group
-            ? group.ItemIds.Where(id => _itemsById.ContainsKey(id)).Select(id => _itemsById[id])
-            : _workspace.Items;
+        DesktopFolderItems.Clear();
+        SoftwareItems.Clear();
+        GroupCards.Clear();
 
         string keyword = _shellState.SearchText.Trim();
+
+        // 文件夹视图、还没点开某个分组：只显示分组卡片，不把里面的文件平铺出来。
+        if (IsFolderView && _openedFolder is null)
+        {
+            foreach (ShortcutGroup group in _workspace.Groups
+                         .OrderBy(g => g.Name, StringComparer.CurrentCultureIgnoreCase))
+            {
+                if (keyword.Length == 0 ||
+                    group.Name.Contains(keyword, StringComparison.OrdinalIgnoreCase))
+                {
+                    GroupCards.Add(new FloatingFolderCard(group));
+                }
+            }
+
+            NotifyViewState();
+            return;
+        }
+
+        IEnumerable<DesktopItem> source;
+        if (_openedFolder is not null)
+        {
+            source = _openedFolder.ItemIds
+                .Where(id => _itemsById.ContainsKey(id))
+                .Select(id => _itemsById[id]);
+        }
+        else if (_selectedCategory?.Group is ShortcutGroup selectedGroup)
+        {
+            source = selectedGroup.ItemIds
+                .Where(id => _itemsById.ContainsKey(id))
+                .Select(id => _itemsById[id]);
+        }
+        else
+        {
+            source = _workspace.Items;   // 「全部」含已分组项目
+        }
+
         if (keyword.Length > 0)
         {
             source = source.Where(item =>
@@ -171,15 +293,15 @@ public sealed class FloatingWindowViewModel : ObservableObject
                 item.FullPath.Contains(keyword, StringComparison.OrdinalIgnoreCase));
         }
 
-        foreach (DesktopItem item in source)
+        foreach (DesktopItem item in source.OrderBy(i => i.Name, StringComparer.CurrentCultureIgnoreCase))
         {
             Items.Add(item);
+            (item.Kind == DesktopItemKind.Folder ? DesktopFolderItems : SoftwareItems).Add(item);
         }
 
-        OnPropertyChanged(nameof(HasItems));
-        OnPropertyChanged(nameof(HasNoItems));
-        OnPropertyChanged(nameof(EmptyStateText));
+        NotifyViewState();
     }
+
 }
 
 /// <summary>悬浮窗的分类标签。<see cref="Group"/> 为 null 表示"全部项目"。</summary>
@@ -204,4 +326,27 @@ public sealed class FloatingCategoryViewModel : ObservableObject
         get => _itemCount;
         set => SetProperty(ref _itemCount, value);
     }
+}
+
+
+/// <summary>悬浮窗「文件夹视图」里的一张分组卡片。</summary>
+public sealed class FloatingFolderCard
+{
+    public FloatingFolderCard(ShortcutGroup group) => Group = group;
+
+    public ShortcutGroup Group { get; }
+
+    public string Name => Group.Name;
+
+    public int ItemCount => Group.ItemIds.Count;
+}
+
+/// <summary>悬浮窗的两种展示方式。</summary>
+public enum FloatingViewMode
+{
+    /// <summary>全部项目，按「文件夹 / 软件」两区 A-Z 排列。</summary>
+    All,
+
+    /// <summary>按用户分组显示文件夹卡片，点开才列出成员。</summary>
+    Folders,
 }

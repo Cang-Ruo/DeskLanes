@@ -273,3 +273,17 @@ sidebar 63.9→71.9。单层 α（导航 30.2% / 内容 20% / 卡片 25.1%）**�
 三屏视觉证据 `phase18-{floating,full}.png`。
 仍未闭环：物理热插拔修复复测、双击真实点击确认、真实睡眠唤醒、
 新构建 24h+ 驻留；远程桌面用户暂缓。详见 `phase18-verification.md`。
+
+### 阶段 19（分组统一 / 全部视图 / 悬浮窗两视图 / 拖拽）
+
+用户反馈分类导航建的「游戏」切到自由分区看不到、「未分组」应改成「全部」且
+已分组项目不消失、底部未分区项目拖不进面板、悬浮窗要两种展示方式。
+
+- `ShortcutGroup` 与 `WorkspacePanel` 通过 `GroupId` 配对，成员以 Group 为权威，
+  切布局时双向补全；旧配置自动迁移不丢数据。
+- 「全部」显示所有项目，分「文件夹 / 软件」两区、各自 A-Z 排序。
+- 悬浮窗新增「全部视图 / 文件夹视图」切换，后者只显示分组卡片，点开才列成员。
+- 自由分区 `PanelView` 根 Border 加 AllowDrop，修好空面板收不到 Drop 的问题。
+- Release 0/0、冒烟 484/484、启动 7/7、端到端 36/36；
+  视觉 `phase19-{floating,floatingfolders,category,panels}.png`。
+  正式 selfcontained `7c203315…` 已覆盖安装，详见 `phase19-report.md`。
