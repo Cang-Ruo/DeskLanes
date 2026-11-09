@@ -62,9 +62,16 @@
     <!-- 文字局部底：亮壁纸下玻璃会变亮，浅色正文对比度会掉到 3 左右。
          按规格"给文字所在区域增加非常轻的局部背景"，只垫在文字本身下面，
          不动整个面板，玻璃面积不受影响。 -->
-    <!-- 阶段 14：用户要求名字牌"保持黑底"。30% 黑在亮壁纸上会显得发灰，
-         加深到 55% 黑配浅字，且不随壁纸变化。 -->
+    <!-- 阶段 14：用户要求名字牌"保持黑底"，一度加深到 55% 黑配浅字。
+         阶段 16：用户看到实际效果后觉得深黑条丑，改要浅灰。
+         注意 BrushLabelScrim 仍被状态栏 / 计数 / 分组标题共用，保持深底不动；
+         文件名标签单独用下面这两个资源。 -->
     <SolidColorBrush x:Key="BrushLabelScrim" Color="#8C000000" />
+
+    <!-- 文件名标签：固定浅灰（约 90% 不透明，不随壁纸变化）+ 深灰黑字。
+         浅底配白字会糊，所以文字同步换成深色；对比度约 13:1。 -->
+    <SolidColorBrush x:Key="BrushNamePlate" Color="#E6ECECEC" />
+    <SolidColorBrush x:Key="BrushNamePlateText" Color="#20242A" />
 
     <!-- 交互反馈 -->
     <SolidColorBrush x:Key="BrushHoverGlass" Color="#0FFFFFFF" />
@@ -520,6 +527,14 @@
         <Setter Property="TextTrimming" Value="CharacterEllipsis" />
         <Setter Property="TextAlignment" Value="Center" />
         <Setter Property="Effect" Value="{StaticResource TextShadowGlass}" />
+    </Style>
+
+    <!-- 阶段 16：浅灰标签上的文件名，用深色字、去掉玻璃投影（投影在浅底上会脏） -->
+    <Style x:Key="ItemNameTextOnLight" TargetType="TextBlock">
+        <Setter Property="FontSize" Value="13" />
+        <Setter Property="Foreground" Value="{StaticResource BrushNamePlateText}" />
+        <Setter Property="TextTrimming" Value="CharacterEllipsis" />
+        <Setter Property="TextAlignment" Value="Center" />
     </Style>
 
     <Style x:Key="ItemNameTextTight" TargetType="TextBlock">
