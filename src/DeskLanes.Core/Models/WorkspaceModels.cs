@@ -284,8 +284,11 @@ public sealed class WorkspacePanel
     /// <summary>排序序号（越小越靠前）。</summary>
     public int Order { get; set; }
 
-    /// <summary>成员项目 Id 列表。</summary>
+    /// <summary>成员项目 Id 列表（由配对分类镜像而来，见 WorkspaceService.EnsurePairedContainers）。</summary>
     public List<string> ItemIds { get; set; } = new();
+
+    /// <summary>阶段 19：关联的 ShortcutGroup.Id。分类与自由分区是同一份分组定义。</summary>
+    public string? GroupId { get; set; }
 }
 
 /// <summary>数据格式版本号。</summary>

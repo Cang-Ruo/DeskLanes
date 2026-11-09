@@ -28,7 +28,7 @@
             </TextBlock>
         </StackPanel>
 
-        <!-- 底部：未分区项目池 + 移除区
+        <!-- 底部：「全部」项目 + 移除区（阶段 19）
              （必须在画布之前声明并停靠底部：画布 Grid 是最后子元素、填充剩余空间；
                若画布在池区之前声明，它会按默认 Left 停靠占满全高，把池区挤成 0 高度） -->
         <StackPanel DockPanel.Dock="Bottom">
@@ -75,7 +75,7 @@
                                         CommandParameter="{Binding SelectedItem, RelativeSource={RelativeSource AncestorType=ListBox}}" />
                         </ListBox.InputBindings>
                     </ListBox>
-                    <TextBlock Text="未分区项目都显示在这里，把项目拖到上方分区即可加入。"
+                    <TextBlock Text="全部项目都显示在这里（含已加入分区的）；把项目拖到上方分区即可加入。"
                                Style="{StaticResource HintText}"
                                Visibility="{Binding HasNoPoolItems, Converter={StaticResource BoolToVis}}" />
                 </DockPanel>

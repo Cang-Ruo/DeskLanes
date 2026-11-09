@@ -58,8 +58,18 @@ public sealed class FreePanelsViewModel : ObservableObject
     /// <summary>画布上的分区面板（按 Order 升序）。</summary>
     public ObservableCollection<PanelViewModel> Panels { get; } = new();
 
-    /// <summary>未分区项目池（按搜索词过滤）。</summary>
+    /// <summary>底部「全部」项目（按搜索词过滤，含已归到分区里的）。</summary>
     public ObservableCollection<DesktopItem> PoolItems { get; } = new();
+
+    /// <summary>「全部」里的桌面文件夹（A-Z）。</summary>
+    public ObservableCollection<DesktopItem> PoolFolderItems { get; } = new();
+
+    /// <summary>「全部」里的软件/文件（A-Z）。</summary>
+    public ObservableCollection<DesktopItem> PoolAppItems { get; } = new();
+
+    public bool HasPoolFolderItems => PoolFolderItems.Count > 0;
+
+    public bool HasPoolAppItems => PoolAppItems.Count > 0;
 
     public PanelViewModel? SelectedPanel
     {
@@ -76,7 +86,7 @@ public sealed class FreePanelsViewModel : ObservableObject
 
     public string SelectedPanelTitle => SelectedPanel?.Title ?? string.Empty;
 
-    public string PoolHeaderText => $"未分区项目（{PoolItems.Count}）";
+    public string PoolHeaderText => $"全部（{PoolItems.Count}）";
 
     public bool HasPoolItems => PoolItems.Count > 0;
 
@@ -281,17 +291,12 @@ public sealed class FreePanelsViewModel : ObservableObject
     {
         PoolItems.Clear();
 
-        HashSet<string> assigned = new(StringComparer.Ordinal);
-        foreach (WorkspacePanel panel in _workspace.Panels)
-        {
-            foreach (string id in panel.ItemIds)
-            {
-                assigned.Add(id);
-            }
-        }
+        PoolFolderItems.Clear();
+        PoolAppItems.Clear();
 
+        // 阶段 19：底部改成「全部」，已归到上方分区里的项目也仍然显示。
         string keyword = _shellState.SearchText.Trim();
-        IEnumerable<DesktopItem> source = _workspace.Items.Where(i => !assigned.Contains(i.Id));
+        IEnumerable<DesktopItem> source = _workspace.Items;
         if (keyword.Length > 0)
         {
             source = source.Where(item =>
@@ -299,14 +304,17 @@ public sealed class FreePanelsViewModel : ObservableObject
                 item.FullPath.Contains(keyword, StringComparison.OrdinalIgnoreCase));
         }
 
-        foreach (DesktopItem item in source)
+        foreach (DesktopItem item in source.OrderBy(i => i.Name, StringComparer.CurrentCultureIgnoreCase))
         {
             PoolItems.Add(item);
+            (item.Kind == DesktopItemKind.Folder ? PoolFolderItems : PoolAppItems).Add(item);
         }
 
         OnPropertyChanged(nameof(PoolHeaderText));
         OnPropertyChanged(nameof(HasPoolItems));
         OnPropertyChanged(nameof(HasNoPoolItems));
+        OnPropertyChanged(nameof(HasPoolFolderItems));
+        OnPropertyChanged(nameof(HasPoolAppItems));
     }
 
     private void RaisePanelCommands()
