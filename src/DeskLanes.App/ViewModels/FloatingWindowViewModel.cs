@@ -110,6 +110,8 @@ public sealed class FloatingWindowViewModel : ObservableObject
 
     public bool HasGroupCards => GroupCards.Count > 0;
 
+    public bool HasNoGroupCards => IsGroupCardsVisible && GroupCards.Count == 0;
+
     /// <summary>卡片视图不显示「无项目」空状态。</summary>
     public bool ShowEmptyState => !IsGroupCardsVisible && Items.Count == 0;
 
@@ -234,6 +236,7 @@ public sealed class FloatingWindowViewModel : ObservableObject
         OnPropertyChanged(nameof(ViewModeButtonText));
         OnPropertyChanged(nameof(OpenedFolderTitle));
         OnPropertyChanged(nameof(HasGroupCards));
+        OnPropertyChanged(nameof(HasNoGroupCards));
         OnPropertyChanged(nameof(HasDesktopFolderItems));
         OnPropertyChanged(nameof(HasSoftwareItems));
         OnPropertyChanged(nameof(HasItems));
@@ -251,17 +254,28 @@ public sealed class FloatingWindowViewModel : ObservableObject
 
         string keyword = _shellState.SearchText.Trim();
 
-        // 文件夹视图、还没点开某个分组：只显示分组卡片，不把里面的文件平铺出来。
+        // 阶段 20：文件夹视图直接显示「一个框 + 框里的软件」，
+        // 和全屏自由分区的面板一样，不再用卡片点进去。
         if (IsFolderView && _openedFolder is null)
         {
             foreach (ShortcutGroup group in _workspace.Groups
                          .OrderBy(g => g.Name, StringComparer.CurrentCultureIgnoreCase))
             {
-                if (keyword.Length == 0 ||
-                    group.Name.Contains(keyword, StringComparison.OrdinalIgnoreCase))
+                if (keyword.Length > 0 &&
+                    !group.Name.Contains(keyword, StringComparison.OrdinalIgnoreCase))
                 {
-                    GroupCards.Add(new FloatingFolderCard(group));
+                    continue;
                 }
+
+                var card = new FloatingFolderCard(group);
+                foreach (DesktopItem member in group.ItemIds
+                             .Where(id => _itemsById.ContainsKey(id))
+                             .Select(id => _itemsById[id])
+                             .OrderBy(i => i.Name, StringComparer.CurrentCultureIgnoreCase))
+                {
+                    card.Items.Add(member);
+                }
+                GroupCards.Add(card);
             }
 
             NotifyViewState();
@@ -338,7 +352,10 @@ public sealed class FloatingFolderCard
 
     public string Name => Group.Name;
 
-    public int ItemCount => Group.ItemIds.Count;
+    public int ItemCount => Items.Count;
+
+    /// <summary>本分组里的项目，直接铺在框内（阶段 20）。</summary>
+    public ObservableCollection<DesktopItem> Items { get; } = new();
 }
 
 /// <summary>悬浮窗的两种展示方式。</summary>
