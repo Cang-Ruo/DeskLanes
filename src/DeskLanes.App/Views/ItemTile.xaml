@@ -19,12 +19,12 @@
         <StackPanel>
             <Image Source="{Binding Icon}" Width="48" Height="48"
                    Margin="0,2,0,6" RenderOptions.BitmapScalingMode="HighQuality" />
-            <!-- 阶段 16：用户觉得深黑名字条丑，改成固定浅灰底 + 深灰黑字。
-                 不挂 dt:DynamicText.Scrim —— 这一块要恒定浅灰，不随壁纸切换。 -->
-            <Border Background="{StaticResource BrushNamePlate}"
+            <!-- 阶段 17：回到深色半透明标签 + 白字（附图样式）。
+                 不挂 dt:DynamicText.Scrim，这一块恒定深色，不随壁纸切换。 -->
+            <Border Background="{StaticResource BrushLabelScrim}"
                     CornerRadius="4" Padding="4,1" HorizontalAlignment="Center">
                 <TextBlock Text="{Binding Name}" MaxWidth="100"
-                           Style="{StaticResource ItemNameTextOnLight}" />
+                           Style="{StaticResource ItemNameText}" />
             </Border>
             <TextBlock Text="{Binding StatusText}" FontSize="10" Foreground="{StaticResource BrushDangerText}"
                        TextAlignment="Center" TextTrimming="CharacterEllipsis">

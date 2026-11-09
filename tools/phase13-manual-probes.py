@@ -129,9 +129,17 @@ def windows():
             return True
         r = RECT()
         u.GetWindowRect(ctypes.c_void_p(h), ctypes.byref(r))
+        # WS_EX_TOPMOST：悬浮窗曾长期置顶挡住其他软件（阶段 17 修），
+        # 把这一位读出来，才不是只靠"看代码"判断。
+        try:
+            ex_style = u.GetWindowLongPtrW(ctypes.c_void_p(h), -20)
+            topmost = bool(ex_style & 0x00000008)
+        except Exception:
+            topmost = None
         out.append({
             "title": b.value,
             "pid": pid.value,
+            "topmost": topmost,
             # 同进程还有一堆 WPF/IME/消息宿主辅助窗口（Hidden Window、
             # MSCTFIME UI 等），本来就在屏幕外，不能拿"窗口是否在虚拟屏内"判它们。
             "helper": b.value not in APP_TITLES,
