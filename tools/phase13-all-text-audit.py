@@ -102,7 +102,7 @@ def main():
         p10.wallpaper(wall)
         hidden = p10.set_aside(0)
         time.sleep(1.5)
-        env = dict(os.environ, DESKLANES_DIAG_TEXT="1")
+        env = dict(os.environ, DESKLANES_DIAG_TEXT="1", DESKLANES_DYNAMIC_TEXT="1")
         subprocess.run(["taskkill", "/IM", "DeskLanes.exe", "/F"],
                        stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
         time.sleep(1.0)

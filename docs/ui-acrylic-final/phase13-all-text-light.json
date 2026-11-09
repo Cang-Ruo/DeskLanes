@@ -6,15 +6,17 @@
     975,
     675
   ],
+  "pixel_audit_valid": true,
+  "pixel_audit_note": "",
   "app_reported_decisions": {
     "controls": 18,
     "min": 11.69,
     "p50": 12.67,
     "all_ge_4_5": true
   },
-  "exported_blocks": 87,
+  "exported_blocks": 77,
   "measured": 22,
-  "skipped_out_of_view": 65,
+  "skipped_out_of_view": 55,
   "adaptive_blocks": {
     "n": 18,
     "p50": 7.25,
@@ -27,7 +29,5 @@
     "below_4_5": 0
   },
   "all_below_4_5": [],
-  "verdict_fixed_blocks_all_pass": true,
-  "pixel_audit_valid": true,
-  "pixel_audit_note": ""
+  "verdict_fixed_blocks_all_pass": true
 }

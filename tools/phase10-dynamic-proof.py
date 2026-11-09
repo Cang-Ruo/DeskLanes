@@ -145,7 +145,7 @@ def main():
         except OSError:
             pass
 
-        env = dict(os.environ, DESKLANES_DIAG_TEXT="1")
+        env = dict(os.environ, DESKLANES_DIAG_TEXT="1", DESKLANES_DYNAMIC_TEXT="1")
         subprocess.run(["taskkill", "/IM", "DeskLanes.exe", "/F"],
                        stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
         time.sleep(1.2)

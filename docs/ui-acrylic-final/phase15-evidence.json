@@ -1,0 +1,126 @@
+{
+  "purpose": "阶段 15：24h 驻留收尾、正式覆盖安装、全量回归",
+  "soak": {
+    "samples": 288,
+    "duration_hours": 23.92,
+    "private_MB": {
+      "first": 294.6,
+      "peak": 532.2,
+      "last": 229.5,
+      "last_1h": [
+        242.6,
+        229.5
+      ]
+    },
+    "working_MB": {
+      "first": 374.0,
+      "peak": 556.2,
+      "last": 117.8
+    },
+    "handles": {
+      "first": 761,
+      "peak": 1035,
+      "last": 879,
+      "last_1h": [
+        885,
+        879
+      ]
+    },
+    "gdi": {
+      "first": 49,
+      "peak": 98,
+      "last": 85,
+      "last_1h": [
+        85,
+        85
+      ]
+    },
+    "user": {
+      "first": 40,
+      "peak": 55,
+      "last": 52,
+      "last_1h": [
+        52,
+        52
+      ]
+    },
+    "threads": {
+      "first": 73,
+      "peak": 98,
+      "last": 67,
+      "last_1h": [
+        67,
+        67
+      ]
+    },
+    "errors_log_bytes": "3634 constant",
+    "verdict": "NO LEAK",
+    "caveat": "采样期间含真实热插拔/改分辨率/多次实例启停；跑的是阶段 14 之前的构建",
+    "evidence": [
+      "docs/stage13-soak/soak-24h.csv",
+      "docs/stage13-soak/report-24h.md"
+    ]
+  },
+  "install": {
+    "formal_md5": "c05f01884cdcf571dda418c885710564",
+    "installed_md5": "c05f01884cdcf571dda418c885710564",
+    "installed_matches": true,
+    "note": "soak 进程退出后解除占用；install.ps1 -Force 覆盖安装；开机自启与桌面图标隐藏未改动",
+    "launch_note": "启动日志正常，但工具会话结束会清理子进程，需用户自行启动"
+  },
+  "regression": {
+    "release": "0 warning / 0 error",
+    "smoke": "472/472",
+    "startup": "7/7, warm median 1.04 s",
+    "glass": "0.629 vs opaque 0.132 PASS",
+    "dynamic_pixel": "6.90 / 5.11, idle flips 0",
+    "resume_events": "6/6",
+    "all_text": "22 blocks, 0 below 4.5",
+    "e2e": "31 passed / 5 failed (portrait monitor absent)"
+  },
+  "e2e_failure": {
+    "root_cause": "当前 SM_CMONITORS=2，左侧竖屏 (-1080,0) 1080x1920 不在拓扑里",
+    "monitors": {
+      "DISPLAY2": [
+        0,
+        0,
+        2560,
+        1440
+      ],
+      "DISPLAY1": [
+        2560,
+        0,
+        2560,
+        1600
+      ]
+    },
+    "virtual_screen": [
+      0,
+      0,
+      5120,
+      1600
+    ],
+    "failed": [
+      "floating window dragged to other monitor",
+      "cross-monitor position persisted",
+      "maximized window fits portrait width",
+      "restored window stays on portrait",
+      "restored window auto-shrinks to portrait"
+    ],
+    "policy": "不改判据、不删断言、不标通过；接回竖屏后重跑即可恢复 36/36"
+  },
+  "legacy_tools_fixed": [
+    "phase10-dynamic-proof.py",
+    "phase12-resume-events.py",
+    "phase13-all-text-audit.py"
+  ],
+  "legacy_tools_note": "阶段 14 默认关闭自适应，三个工具补 DESKLANES_DYNAMIC_TEXT=1 才能复现旧行为路径",
+  "pending": [
+    "用户启动软件确认双击/配色/分区/自动同步",
+    "接回左竖屏后重跑 e2e 与 target=left",
+    "热插拔修复复测",
+    "真实睡眠唤醒",
+    "悬浮窗是否也分区",
+    "新构建 24h+ 驻留未重跑"
+  ]
+}
