@@ -1,6 +1,6 @@
 {
-  "before": "2026-11-09 02:36:36.703",
-  "after": "2026-11-09 02:36:40.320",
+  "before": "2026-11-10 02:31:09.899",
+  "after": "2026-11-10 02:31:13.449",
   "app_running": [
     true,
     true
@@ -27,15 +27,15 @@
       2199
     ]
   ],
-  "windows_before": 11,
-  "windows_after": 11,
+  "windows_before": 9,
+  "windows_after": 9,
   "errors_log": [
     3634,
     3634
   ],
   "sync_log": [
-    344674,
-    344674
+    400898,
+    400898
   ],
   "resume_log_count": 0,
   "rescan_done_count": 0,
