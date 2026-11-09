@@ -1,5 +1,5 @@
 {
-  "captured_at": "2026-11-09 02:36:36.703",
+  "captured_at": "2026-11-10 02:31:09.899",
   "app_running": true,
   "remote_session": false,
   "monitor_count": 3,
@@ -40,52 +40,36 @@
   ],
   "windows": [
     {
-      "title": "DeskLanes 快速启动",
-      "pid": 286804,
+      "title": "DeskLanes",
+      "pid": 29344,
+      "topmost": false,
       "helper": false,
       "visible": true,
       "minimized": false,
       "rect": [
-        325,
-        225,
-        1575,
-        1100
+        0,
+        0,
+        2560,
+        1440
       ],
       "dwm": {
         "dark_mode": 1,
         "system_backdrop": 3,
         "corner": 2
-      }
-    },
-    {
-      "title": "Hidden Window",
-      "pid": 286804,
-      "helper": true,
-      "visible": false,
-      "minimized": false,
-      "rect": [
-        -156,
-        387,
-        2148,
-        1593
-      ],
-      "dwm": {
-        "dark_mode": 0,
-        "system_backdrop": 0,
-        "corner": 0
       }
     },
     {
       "title": "DeskLanesMessageHost",
-      "pid": 286804,
+      "pid": 29344,
+      "topmost": false,
       "helper": true,
       "visible": false,
       "minimized": false,
       "rect": [
-        -3512,
-        -2969,
-        -3493,
-        -2950
+        -2784,
+        -3073,
+        -2765,
+        -3054
       ],
       "dwm": {
         "dark_mode": 0,
@@ -95,15 +79,16 @@
     },
     {
       "title": "Hidden Window",
-      "pid": 286804,
+      "pid": 29344,
+      "topmost": false,
       "helper": true,
       "visible": false,
       "minimized": false,
       "rect": [
-        -274,
-        268,
-        2030,
-        1474
+        64,
+        64,
+        1984,
+        1069
       ],
       "dwm": {
         "dark_mode": 0,
@@ -112,34 +97,17 @@
       }
     },
     {
-      "title": "DeskLanes",
-      "pid": 286804,
-      "helper": false,
-      "visible": false,
-      "minimized": false,
-      "rect": [
-        -9,
-        -9,
-        2569,
-        1389
-      ],
-      "dwm": {
-        "dark_mode": 1,
-        "system_backdrop": 3,
-        "corner": 2
-      }
-    },
-    {
       "title": "SystemResourceNotifyWindow",
-      "pid": 286804,
+      "pid": 29344,
+      "topmost": false,
       "helper": true,
       "visible": false,
       "minimized": false,
       "rect": [
-        -512,
-        31,
-        -512,
-        31
+        0,
+        0,
+        0,
+        0
       ],
       "dwm": {
         "dark_mode": 0,
@@ -149,15 +117,54 @@
     },
     {
       "title": "MediaContextNotificationWindow",
-      "pid": 286804,
+      "pid": 29344,
+      "topmost": false,
       "helper": true,
       "visible": false,
       "minimized": false,
       "rect": [
-        -512,
-        31,
-        -512,
-        31
+        0,
+        0,
+        0,
+        0
+      ],
+      "dwm": {
+        "dark_mode": 0,
+        "system_backdrop": 0,
+        "corner": 0
+      }
+    },
+    {
+      "title": "CiceroUIWndFrame",
+      "pid": 29344,
+      "topmost": true,
+      "helper": true,
+      "visible": false,
+      "minimized": false,
+      "rect": [
+        200,
+        200,
+        400,
+        400
+      ],
+      "dwm": {
+        "dark_mode": 0,
+        "system_backdrop": 0,
+        "corner": 0
+      }
+    },
+    {
+      "title": "CiceroUIWndFrame",
+      "pid": 29344,
+      "topmost": false,
+      "helper": true,
+      "visible": false,
+      "minimized": false,
+      "rect": [
+        0,
+        0,
+        0,
+        0
       ],
       "dwm": {
         "dark_mode": 0,
@@ -167,15 +174,16 @@
     },
     {
       "title": "MSCTFIME UI",
-      "pid": 286804,
+      "pid": 29344,
+      "topmost": false,
       "helper": true,
       "visible": false,
       "minimized": false,
       "rect": [
-        -512,
-        31,
-        -512,
-        31
+        0,
+        0,
+        0,
+        0
       ],
       "dwm": {
         "dark_mode": 0,
@@ -185,51 +193,16 @@
     },
     {
       "title": "Default IME",
-      "pid": 286804,
+      "pid": 29344,
+      "topmost": false,
       "helper": true,
       "visible": false,
       "minimized": false,
       "rect": [
-        -512,
-        31,
-        -512,
-        31
-      ],
-      "dwm": {
-        "dark_mode": 0,
-        "system_backdrop": 0,
-        "corner": 0
-      }
-    },
-    {
-      "title": "CiceroUIWndFrame",
-      "pid": 286804,
-      "helper": true,
-      "visible": false,
-      "minimized": false,
-      "rect": [
-        -272,
-        271,
-        -32,
-        511
-      ],
-      "dwm": {
-        "dark_mode": 0,
-        "system_backdrop": 0,
-        "corner": 0
-      }
-    },
-    {
-      "title": "CiceroUIWndFrame",
-      "pid": 286804,
-      "helper": true,
-      "visible": false,
-      "minimized": false,
-      "rect": [
-        -512,
-        31,
-        -512,
-        31
+        0,
+        0,
+        0,
+        0
       ],
       "dwm": {
         "dark_mode": 0,
@@ -239,16 +212,16 @@
     }
   ],
   "logs": {
-    "sync.log": 344674,
+    "sync.log": 400898,
     "errors.log": 3634
   },
   "dynamic_text": {
-    "captured_at": "2026-11-09 01:26:12.950",
-    "luminance_source": "wallpaper_bitmap",
-    "desktop_refreshes": 1,
-    "forced_refreshes": 1,
+    "captured_at": "2026-11-10 01:58:05.927",
+    "luminance_source": "screen_capture",
+    "desktop_refreshes": 0,
+    "forced_refreshes": 0,
     "controls": 18,
-    "dark_scheme": 0,
-    "total_flips": 12
+    "dark_scheme": 18,
+    "total_flips": 0
   }
 }

@@ -59,3 +59,5 @@ docs/ui-acrylic-final/phase13-glassproof/
 docs/ui-acrylic-final/phase13-glassproof-r*/
 docs/ui-acrylic-final/phase13-glassproof-ref/
 
+# 改分辨率工具内部判断 app_running 用的临时快照
+docs/ui-acrylic-final/phase13-probe-display-running.json

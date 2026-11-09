@@ -470,8 +470,22 @@ try:
     else:
         time.sleep(2.5)
         x0, y0, w0, h0 = get_rect(hwnd)
-        say("starts maximized on the portrait monitor", get_showcmd(hwnd) == SW_MAXIMIZE and x0 < 0,
-            "showCmd=%d at (%d,%d)" % (get_showcmd(hwnd), x0, y0))
+        # 阶段 17：主窗口改成无边框全屏（WindowStyle=None + ResizeMode=NoResize），
+        # 用户不再能把主窗口拖到竖屏，旧断言的前提消失了。替换成等价的新设计断言，
+        # 验收强度不降低：必须真的没有系统标题栏/边框，且最大化铺满主屏。
+        # 旧断言（保留以便回溯）：
+        #   say("starts maximized on the portrait monitor",
+        #       get_showcmd(hwnd) == SW_MAXIMIZE and x0 < 0, ...)
+        style = u.GetWindowLongW(hwnd, -16) & 0xFFFFFFFF  # GWL_STYLE
+        has_caption = bool(style & 0x00C00000)             # WS_CAPTION
+        has_thickframe = bool(style & 0x00040000)          # WS_THICKFRAME
+        primary_w = u.GetSystemMetrics(SM_CXSCREEN)
+        say("borderless fullscreen: no system chrome and covers the primary monitor",
+            not has_caption and not has_thickframe
+            and get_showcmd(hwnd) == SW_MAXIMIZE
+            and w0 >= primary_w - 30,
+            "style=0x%08X caption=%s thickframe=%s showCmd=%d size=%dx%d primary=%d"
+            % (style, has_caption, has_thickframe, get_showcmd(hwnd), w0, h0, primary_w))
 
         # Same message the restore button sends. Going through the real message matters:
         # it is what flips the "user restored" flag and triggers the fit.
