@@ -454,7 +454,8 @@ public sealed class DesktopSyncService : IDesktopSyncService
         {
             Log(SyncLogLevel.Warning, $"同步跳过（{reason}）：{outcome.SkipReason}");
         }
-        else if (outcome.Added == 0 && outcome.UnavailableMarked == 0 && renames == 0)
+        else if (outcome.Added == 0 && outcome.UnavailableMarked == 0
+                 && outcome.Removed == 0 && renames == 0)
         {
             Log(SyncLogLevel.Info,
                 $"同步完成（{reason}）：无变化，扫描 {directories.Count} 个目录，耗时 {stopwatch.ElapsedMilliseconds} 毫秒");
@@ -463,7 +464,8 @@ public sealed class DesktopSyncService : IDesktopSyncService
         {
             Log(SyncLogLevel.Info,
                 $"同步完成（{reason}）：新增 {outcome.Added}，失效 {outcome.UnavailableMarked}，" +
-                $"重命名迁移 {renames}，耗时 {stopwatch.ElapsedMilliseconds} 毫秒");
+                $"清除已删除 {outcome.Removed}，重命名迁移 {renames}，" +
+                $"耗时 {stopwatch.ElapsedMilliseconds} 毫秒");
         }
 
         SyncCompleted?.Invoke(this, summary);

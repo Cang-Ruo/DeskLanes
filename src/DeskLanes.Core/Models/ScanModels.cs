@@ -74,7 +74,10 @@ public sealed record ScanMergeOutcome(
     int Updated,
     int UnavailableMarked,
     bool Skipped,
-    string? SkipReason)
+    string? SkipReason,
+    // 阶段 14：桌面上已确实不存在的扫描项被自动清除的数量。
+    // 带默认值，保持既有构造点不变。
+    int Removed = 0)
 {
     public static ScanMergeOutcome Skip(string reason) => new(0, 0, 0, true, reason);
 }

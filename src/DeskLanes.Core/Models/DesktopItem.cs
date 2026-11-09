@@ -105,6 +105,13 @@ public sealed class DesktopItem : ObservableObject
         _ => string.Empty,
     };
 
+    /// <summary>
+    /// 阶段 14：分类导航把「文件夹」与「软件」分成两个区域。
+    /// 文件夹单独一组，快捷方式 / 普通文件都归到「软件」。
+    /// </summary>
+    [JsonIgnore]
+    public string KindGroup => Kind == DesktopItemKind.Folder ? "文件夹" : "软件";
+
     [JsonIgnore]
     public string OriginText => Origin switch
     {

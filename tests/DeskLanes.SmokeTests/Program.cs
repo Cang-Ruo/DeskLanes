@@ -548,7 +548,7 @@ try
     OperationResult reAdd = workspace.AddCustomItem(itemA.FullPath);
     Check(reAdd.Success && workspace.Items.Any(i => i.FullPath == itemA.FullPath), "重新添加被移除的项目成功");
 
-    // ---- 失效路径：保留配置并标记失效 ----
+    // ---- 失效路径：阶段 14 改为「桌面上确实不存在就自动清除」----
     string gonePath = Path.Combine(fakeUser, "会消失.txt");
     File.WriteAllText(gonePath, "gone");
     ScanResult withGone = await scanner.ScanAsync(wsOptions);
@@ -559,9 +559,8 @@ try
     File.Delete(gonePath);
     ScanResult afterGone = await scanner.ScanAsync(wsOptions);
     await workspace.MergeScanAsync(afterGone);
-    Check(!goneItem.IsAvailable, "磁盘上消失的项目标记为失效");
-    Check(workspace.Items.Contains(goneItem), "失效项目保留在库中（配置不丢）");
-    Check(group2.ItemIds.Contains(goneItem.Id), "失效项目的分类关联保留");
+    Check(!workspace.Items.Contains(goneItem), "桌面上确实不存在的项目被自动清除");
+    Check(!group2.ItemIds.Contains(goneItem.Id), "自动清除时分类归属一并摘掉");
 
     // ---- 布局模式 ----
     Check(workspace.Settings.LayoutMode == LayoutMode.CategoryNav, "默认为分类导航模式");
@@ -581,8 +580,8 @@ try
         string.Join(" | ", workspace2.LoadWarnings));
     Check(workspace2.Items.Count == workspace.Items.Count, "重启后项目数量一致",
         $"{workspace.Items.Count} -> {workspace2.Items.Count}");
-    Check(workspace2.Items.Any(i => string.Equals(i.PathKey, goneItem.PathKey, StringComparison.OrdinalIgnoreCase) && !i.IsAvailable),
-        "重启后失效项目仍标记失效");
+    Check(!workspace2.Items.Any(i => string.Equals(i.PathKey, goneItem.PathKey, StringComparison.OrdinalIgnoreCase)),
+        "重启后已删除的项目不再出现");
     Check(workspace2.Groups.Count == workspace.Groups.Count, "重启后分类保留");
     Check(workspace2.Panels.Count == workspace.Panels.Count, "重启后分区保留");
 
@@ -591,8 +590,8 @@ try
           panel2Reloaded.Width == panel2.Width && panel2Reloaded.Height == panel2.Height,
         "重启后分区几何保留", $"({panel2Reloaded.X},{panel2Reloaded.Y},{panel2Reloaded.Width},{panel2Reloaded.Height})");
     Check(panel2Reloaded.ItemIds.SequenceEqual(panel2.ItemIds), "重启后分区成员关联保留");
-    Check(workspace2.Groups.First(g => g.Id == group2.Id).ItemIds.Contains(goneItem.Id),
-        "重启后分类成员关联保留");
+    Check(!workspace2.Groups.First(g => g.Id == group2.Id).ItemIds.Contains(goneItem.Id),
+        "重启后被清除项目的分类归属也已清理");
     Check(workspace2.Settings.LayoutMode == LayoutMode.FreePanels, "重启后布局模式保留");
     Check(workspace2.IsDismissedPath(itemB.FullPath), "重启后忽略列表保留（移除项不回归）");
     Check(File.Exists(Path.Combine(wsRoot, "library.json")), "配置文件已写入磁盘");
@@ -614,10 +613,10 @@ try
     Check(nav.HasNoItems && nav.Items.Count == 0, "空分类进入空状态");
     Check(!string.IsNullOrEmpty(nav.EmptyStateText), "空分类有提示文案");
 
-    // 选中已有分类（group2 内有失效项目 goneItem）
+    // 选中已有分类（group2 里原来的项目已被自动清除）
     CategoryNodeViewModel group2Node = nav.Categories.First(c => c.Group?.Id == group2.Id);
     nav.SelectedCategory = group2Node;
-    Check(nav.Items.Count == 1 && !nav.HasNoItems, "选中分类展示其项目",
+    Check(nav.Items.Count == 0 && nav.HasNoItems, "分类里已删除的项目不再展示",
         $"项目数 {nav.Items.Count}");
 
     // 未分组节点
@@ -908,15 +907,14 @@ try
     Check(syncWorkspace.Items.Count == countBeforeRename, "重命名不产生重复条目",
         $"{syncWorkspace.Items.Count} / {countBeforeRename}");
 
-    // ---- 12.5 删除：标记失效但保留配置 ----
+    // ---- 12.5 删除：阶段 14 自动清除 ----
     File.Delete(renamedFile);
     await WaitForSyncAsync(syncService);
     DesktopItem? removed = renamed is null
         ? null
         : syncWorkspace.Items.FirstOrDefault(i => i.Id == renamed.Id);
-    Check(removed is not null, "删除后项目仍保留在库中（用户配置不丢）");
-    Check(removed is not null && !removed.IsAvailable, "删除后项目标记为失效");
-    Check(removed is not null && keepGroup.ItemIds.Contains(removed.Id), "失效项目的分类关联保留");
+    Check(removed is null, "桌面上已删除的项目被自动清除");
+    Check(renamed is null || !keepGroup.ItemIds.Contains(renamed.Id), "自动清除时分类归属一并摘掉");
 
     // ---- 12.6 快速连续创建多个项目 ----
     int countBeforeBurst = syncWorkspace.Items.Count;
@@ -1000,7 +998,8 @@ try
         },
     });
     await syncWorkspace.MergeScanAsync(fullScan);
-    Check(victimItem is not null && !victimItem.IsAvailable, "全量扫描后已删除的项目被正确标记失效");
+    Check(victimItem is not null && !syncWorkspace.Items.Contains(victimItem),
+        "全量扫描后确实已删除的项目被自动清除");
 
     // ---- 12.10 重命名迁移的安全边界（无法确定时不猜测） ----
     int noSource = syncWorkspace.ApplyPathMigrations(new List<PathMigration>
@@ -2514,11 +2513,13 @@ Console.WriteLine("== 23. 图标缓存轮次回归（文件反复增删时不会
         Check(counts.All(c => c <= IconService.DefaultMaxCachedIcons),
             "每一轮都没突破上限（不只是最后一轮）");
 
-        // ---- 关键一步：用户把失效项清理掉之后，缓存要真的往回落 ----
-        //      旧实现没有裁剪入口，这里会一直停在累计值。
+        // ---- 阶段 14：文件消失后项目被自动清除，图标缓存每轮已跟着裁剪 ----
+        //      旧实现要"用户手动清理失效项"才回落，现在不再有失效项堆积。
         List<DesktopItem> staleItems = churnWs.Items.Where(i => !i.IsAvailable).ToList();
-        Check(staleItems.Count > 0, "删除文件后项目被标记为失效（仍留在库中）",
+        Check(staleItems.Count == 0, "文件消失后项目被自动清除（不再留下失效项）",
             $"失效 {staleItems.Count} 个");
+        Check(churnWs.Items.Count == perRound, "工作区只剩当前这一轮真实存在的项目",
+            $"{churnWs.Items.Count} / {perRound}");
 
         foreach (DesktopItem item in staleItems)
         {
@@ -2526,7 +2527,7 @@ Console.WriteLine("== 23. 图标缓存轮次回归（文件反复增删时不会
         }
 
         int removed = churnIcons.PruneExcept(churnWs.Items.Select(i => i.FullPath));
-        Check(removed > 0, "清理失效项后裁剪确实摘掉了条目", $"摘掉 {removed} 个");
+        Check(removed == 0, "每轮已自动裁剪，无需再靠清理失效项回落", $"再摘掉 {removed} 个");
         Check(churnIcons.CachedIconCount <= perRound, "缓存回落到当前项目量级（不是只增不减）",
             $"{churnIcons.CachedIconCount} <= {perRound}");
 
@@ -2959,6 +2960,108 @@ Console.WriteLine("== 26. 大桌面：项目数超过图标缓存上限时的表
         "340x48 的异常工作区被识别为不可收缩", "");
     Check(MonitorService.IsWorkAreaSane(new System.Windows.Size(2560, 1440), 620, 420),
         "正常显示器工作区允许收缩", "");
+}
+
+// ---------------------------------------------------------------- 28. 阶段 14：分组与失效项清理
+{
+    // 28.1 分类导航的「文件夹 / 软件」分区
+    Check(new DesktopItem { Kind = DesktopItemKind.Folder }.KindGroup == "文件夹"
+          && new DesktopItem { Kind = DesktopItemKind.Shortcut }.KindGroup == "软件"
+          && new DesktopItem { Kind = DesktopItemKind.File }.KindGroup == "软件",
+        "项目按文件夹/软件分成两组", "");
+
+    string deskRoot = Path.Combine(Path.GetTempPath(), "DeskLanesP14_" + Guid.NewGuid().ToString("N"));
+    string p14CfgRoot = deskRoot + "_cfg";
+    Directory.CreateDirectory(deskRoot);
+    Directory.CreateDirectory(p14CfgRoot);
+    try
+    {
+        var ws14 = new WorkspaceService(new LibraryStore(p14CfgRoot), new ConfigStore(p14CfgRoot),
+            new ShortcutResolver());
+        string gone = Path.Combine(deskRoot, "已删除软件.lnk");
+        File.WriteAllText(gone, "x");
+
+        DesktopItem MakeItem() => new()
+        {
+            Name = "已删除软件", FullPath = gone,
+            Kind = DesktopItemKind.Shortcut, Origin = ItemOrigin.UserDesktop,
+        };
+
+        await ws14.MergeScanAsync(new ScanResult
+        {
+            Items = new[] { MakeItem() }, ScopeDirectories = new[] { deskRoot },
+        });
+        Check(ws14.Items.Count == 1, "首次扫描把桌面项目合并进库", ws14.Items.Count.ToString());
+
+        // 桌面上确实删掉了 -> 自动清除，且不能写进忽略列表
+        File.Delete(gone);
+        ScanMergeOutcome cleared = await ws14.MergeScanAsync(new ScanResult
+        {
+            ScopeDirectories = new[] { deskRoot },
+        });
+        Check(cleared.Removed == 1 && ws14.Items.Count == 0,
+            "桌面已确实不存在的项目被自动清除",
+            $"removed={cleared.Removed}, left={ws14.Items.Count}");
+        Check(!ws14.IsDismissedPath(gone),
+            "自动清除不写忽略列表（软件放回桌面还能加回来）", "");
+
+        File.WriteAllText(gone, "x");
+        ScanMergeOutcome addedBack = await ws14.MergeScanAsync(new ScanResult
+        {
+            Items = new[] { MakeItem() }, ScopeDirectories = new[] { deskRoot },
+        });
+        Check(addedBack.Added == 1 && ws14.Items.Count == 1,
+            "软件放回桌面后无需手动操作即可重新出现",
+            $"added={addedBack.Added}, left={ws14.Items.Count}");
+
+        // 不在本次扫描范围内的目录，不能被误删
+        ScanMergeOutcome unrelated = await ws14.MergeScanAsync(new ScanResult
+        {
+            ScopeDirectories = new[] { Path.Combine(deskRoot, "未扫描的子目录") },
+        });
+        Check(unrelated.Removed == 0 && ws14.Items.Count == 1,
+            "不在本次扫描范围的目录不会被误删",
+            $"removed={unrelated.Removed}, left={ws14.Items.Count}");
+
+        // 28.2 分类导航两个区域真的把项目分流了
+        await ws14.MergeScanAsync(new ScanResult
+        {
+            Items = new[]
+            {
+                new DesktopItem
+                {
+                    Name = "演示文件夹", FullPath = Path.Combine(deskRoot, "演示文件夹"),
+                    Kind = DesktopItemKind.Folder, Origin = ItemOrigin.UserDesktop,
+                },
+                new DesktopItem
+                {
+                    Name = "演示软件", FullPath = Path.Combine(deskRoot, "演示软件.lnk"),
+                    Kind = DesktopItemKind.Shortcut, Origin = ItemOrigin.UserDesktop,
+                },
+            },
+            ScopeDirectories = new[] { deskRoot },
+        });
+        var navVm = new CategoryNavViewModel(ws14, new ConsoleDialogService(), launchService,
+            new ShellState());
+        Check(navVm.FolderItems.Count == 1
+              && navVm.FolderItems.All(i => i.Kind == DesktopItemKind.Folder)
+              && navVm.AppItems.Count >= 1
+              && navVm.AppItems.All(i => i.Kind != DesktopItemKind.Folder),
+            "分类导航把文件夹与软件拆成两个区域",
+            $"文件夹 {navVm.FolderItems.Count} / 软件 {navVm.AppItems.Count}");
+    }
+    finally
+    {
+        try
+        {
+            Directory.Delete(deskRoot, true);
+            Directory.Delete(p14CfgRoot, true);
+        }
+        catch
+        {
+            // 临时目录清理失败不影响结果
+        }
+    }
 }
 
 // ---------------------------------------------------------------- 汇总
