@@ -627,9 +627,10 @@ public sealed class AppController : IDisposable
     {
         switch (mode)
         {
+            // 阶段 22：切换时先让新窗口显示出来，最后才隐藏旧窗口。
+            // 原来三个分支都是先 Hide 另外两个再 Show 当前窗口，中间有一帧
+            // 桌面完全露出来，肉眼就是「明显闪一下」。
             case WindowMode.Floating:
-                _mainWindow?.Hide();
-                _sidebarWindow?.Hide();
                 if (_floatingWindow is not null)
                 {
                     if (activate)
@@ -647,11 +648,11 @@ public sealed class AppController : IDisposable
                 // 呼出不触发，显示器拔插或换分辨率后窗口可能仍停在已经不存在的坐标上。
                 _floatingWindow?.ApplyScreenConstraints();
                 ClampWindowsToScreen();
+                _mainWindow?.Hide();
+                _sidebarWindow?.Hide();
                 break;
 
             case WindowMode.Sidebar:
-                _mainWindow?.Hide();
-                _floatingWindow?.Hide();
                 if (_sidebarWindow is not null)
                 {
                     // ShowDocked() 内部已经 Show + Activate；这里不再叠加前台强制，
@@ -661,15 +662,23 @@ public sealed class AppController : IDisposable
 
                 // 同上：每次停靠都钳一次，而不是只在显示器配置变化时。
                 ClampWindowsToScreen();
+                _mainWindow?.Hide();
+                _floatingWindow?.Hide();
                 break;
 
             default:
-                _floatingWindow?.Hide();
-                _sidebarWindow?.Hide();
                 if (_mainWindow is not null)
                 {
                     // 切过来之前窗口是隐藏的吗？用来区分「刚切进全屏模式」与「重复进入」
                     bool fromOtherMode = !_mainWindow.IsVisible;
+
+                    if (fromOtherMode)
+                    {
+                        // 阶段 22：WPF 按窗口当前所在屏最大化，用户把悬浮窗拖到主屏
+                        // 也不会带着全屏走。显示之前先移到鼠标所在屏再最大化，
+                        // 这样既不会落错屏，也不会先闪一帧普通尺寸窗口。
+                        _mainWindow.PlaceOnCursorMonitor();
+                    }
 
                     _mainWindow.Show();
                     if (activate)
@@ -687,6 +696,8 @@ public sealed class AppController : IDisposable
                     _mainWindow.BeginFullMode(fromOtherMode);
                 }
 
+                _floatingWindow?.Hide();
+                _sidebarWindow?.Hide();
                 break;
         }
 

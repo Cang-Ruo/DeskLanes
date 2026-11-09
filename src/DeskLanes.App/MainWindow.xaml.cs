@@ -1,6 +1,8 @@
 using System;
 using System.ComponentModel;
 using System.Windows;
+using DeskLanes.Core;
+using System.Windows.Interop;
 using System.Windows.Input;
 using DeskLanes.App.Services;
 using DeskLanes.App.ViewModels;
@@ -72,6 +74,31 @@ public partial class MainWindow : Window
         }
 
         EnsureFitsOnScreen();
+    }
+
+    /// <summary>
+    /// 阶段 22：切到全屏前，把窗口移到「用户当前操作的那块显示器」再最大化。
+    /// WPF 是按窗口当前所在屏最大化的，用户把悬浮窗拖到主屏不会带着全屏走；
+    /// 用鼠标所在屏（点按钮/托盘时鼠标就在目标屏）最符合直觉。
+    /// 坐标全用物理像素 + SetWindowPos，避开混合 DPI 下 DIP 位置换算不准的问题。
+    /// </summary>
+    public void PlaceOnCursorMonitor()
+    {
+        IntPtr hwnd = new WindowInteropHelper(this).Handle;
+        if (hwnd == IntPtr.Zero ||
+            !MonitorInterop.TryGetWorkAreaForCursor(out MonitorInterop.RECT work, out _))
+        {
+            return;
+        }
+
+        if (WindowState == WindowState.Maximized)
+        {
+            WindowState = WindowState.Normal;
+        }
+
+        MonitorInterop.SetWindowPos(hwnd, IntPtr.Zero, work.Left, work.Top, 0, 0,
+            MonitorInterop.SwpNoSize | MonitorInterop.SwpNoZOrder | MonitorInterop.SwpNoActivate);
+        WindowState = WindowState.Maximized;
     }
 
     /// <summary>
