@@ -66,6 +66,15 @@ public sealed class CategoryNavViewModel : ObservableObject
     /// <summary>当前选中分类的项目（按搜索词过滤）。</summary>
     public ObservableCollection<DesktopItem> Items { get; } = new();
 
+    /// <summary>阶段 14：把选中分类的项目按「文件夹 / 软件」拆成两个区域显示。</summary>
+    public ObservableCollection<DesktopItem> FolderItems { get; } = new();
+
+    public ObservableCollection<DesktopItem> AppItems { get; } = new();
+
+    public bool HasFolderItems => FolderItems.Count > 0;
+
+    public bool HasAppItems => AppItems.Count > 0;
+
     public CategoryNodeViewModel? SelectedCategory
     {
         get => _selectedCategory;
@@ -294,6 +303,8 @@ public sealed class CategoryNavViewModel : ObservableObject
     private void ApplyItems()
     {
         Items.Clear();
+        FolderItems.Clear();
+        AppItems.Clear();
 
         IEnumerable<DesktopItem> source = _selectedCategory?.Group is ShortcutGroup group
             ? group.ItemIds.Where(id => _itemsById.ContainsKey(id)).Select(id => _itemsById[id])
@@ -310,10 +321,13 @@ public sealed class CategoryNavViewModel : ObservableObject
         foreach (DesktopItem item in source)
         {
             Items.Add(item);
+            (item.Kind == DesktopItemKind.Folder ? FolderItems : AppItems).Add(item);
         }
 
         OnPropertyChanged(nameof(HasNoItems));
         OnPropertyChanged(nameof(HasItems));
+        OnPropertyChanged(nameof(HasFolderItems));
+        OnPropertyChanged(nameof(HasAppItems));
         OnPropertyChanged(nameof(EmptyStateText));
         OnPropertyChanged(nameof(SearchHint));
         OnPropertyChanged(nameof(HasSearchHint));

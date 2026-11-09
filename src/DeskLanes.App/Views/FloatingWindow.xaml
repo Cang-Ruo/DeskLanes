@@ -156,9 +156,6 @@
                     </DataTemplate>
                 </ListBox.ItemTemplate>
                 <ListBox.InputBindings>
-                    <MouseBinding Gesture="LeftDoubleClick"
-                                  Command="{Binding OpenItemCommand}"
-                                  CommandParameter="{Binding SelectedItem, RelativeSource={RelativeSource AncestorType=ListBox}}" />
                     <KeyBinding Key="Enter"
                                 Command="{Binding OpenItemCommand}"
                                 CommandParameter="{Binding SelectedItem, RelativeSource={RelativeSource AncestorType=ListBox}}" />

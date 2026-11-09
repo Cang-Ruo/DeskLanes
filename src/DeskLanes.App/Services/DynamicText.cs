@@ -149,11 +149,14 @@ public sealed class DynamicTextService
     public void CaptureDesktop()
     {
         _diagnostics = Environment.GetEnvironmentVariable("DESKLANES_DIAG_TEXT") == "1";
-        // 诊断/回退开关：跳过桌面抓帧与自适应，界面退回阶段 9 的静态浅色字。
-        // 用来把"启动时那一次抓屏"的成本与其它因素分开量。
-        if (Environment.GetEnvironmentVariable("DESKLANES_NO_DYNAMIC_TEXT") == "1")
+        // 阶段 14（用户明确要求）：全部窗口固定深色底 + 浅色字，不再随壁纸变化。
+        // 名字牌有时变成浅底/白字、刷新也回不到黑底，用户认为"没有必要、很难看"。
+        // 现在默认就是固定黑底；只有显式设 DESKLANES_DYNAMIC_TEXT=1 才恢复旧的自适应，
+        // 便于做 A/B 对照或回滚。DESKLANES_NO_DYNAMIC_TEXT=1 保留为兼容写法。
+        if (Environment.GetEnvironmentVariable("DESKLANES_NO_DYNAMIC_TEXT") == "1"
+            || Environment.GetEnvironmentVariable("DESKLANES_DYNAMIC_TEXT") != "1")
         {
-            _luminanceSource = "disabled";
+            _luminanceSource = "fixed_dark";
             return;
         }
         // 原生材质被诊断开关强制关掉时，窗口是实心底色，不需要也不应该动态变色。
