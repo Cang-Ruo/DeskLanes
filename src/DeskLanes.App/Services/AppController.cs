@@ -83,6 +83,10 @@ public sealed class AppController : IDisposable
     private bool _disposed;
     private bool _initialized;
     private Task? _initializationTask;
+    // 阶段 14：从后台切回（离开超过阈值）时自动重扫桌面
+    private DateTime _deactivatedAtUtc = DateTime.MinValue;
+    private DateTime _lastReturnScanUtc = DateTime.MinValue;
+    private const double ReturnScanIdleSeconds = 60;
 
     public AppController(
         IDesktopScanner scanner,
@@ -137,6 +141,14 @@ public sealed class AppController : IDisposable
 
         // ---- 消息宿主窗口（热键与单实例唤起的消息都要落到 UI 线程） ----
         CreateMessageHost();
+
+        // 阶段 14：一段时间没打开软件、从后台切回来时自动扫一次桌面。
+        // 用 Deactivated→Activated 的间隔判断"离开了一阵"，避免每次 Alt+Tab 都扫。
+        if (Application.Current is { } app)
+        {
+            app.Deactivated += (_, _) => _deactivatedAtUtc = DateTime.UtcNow;
+            app.Activated += (_, _) => ScanOnReturnIfIdle();
+        }
 
         // ---- 三个窗口（只创建，不一定显示） ----
         _mainWindow = new MainWindow(_mainViewModel, this) { DataContext = _mainViewModel };
@@ -534,6 +546,38 @@ public sealed class AppController : IDisposable
                 _logger?.Log(SyncLogLevel.Warning, $"恢复后重扫失败：{ex.Message}");
             }
         }));
+    }
+
+    /// <summary>
+    /// 从后台切回且确实离开了一段时间时，触发一次全量重扫。
+    /// 这样桌面上新装 / 已删的软件不用手动点刷新就能同步（阶段 14）。
+    /// </summary>
+    private void ScanOnReturnIfIdle()
+    {
+        if (_disposed || _deactivatedAtUtc == DateTime.MinValue)
+        {
+            return;
+        }
+
+        TimeSpan away = DateTime.UtcNow - _deactivatedAtUtc;
+        if (away.TotalSeconds < ReturnScanIdleSeconds
+            || DateTime.UtcNow - _lastReturnScanUtc < TimeSpan.FromSeconds(30))
+        {
+            return;
+        }
+
+        _lastReturnScanUtc = DateTime.UtcNow;
+        _logger?.Log(SyncLogLevel.Info,
+            $"从后台切回（离开 {away.TotalSeconds:F0} 秒）：触发一次全量重扫");
+
+        if (_syncService?.IsRunning == true)
+        {
+            _ = _syncService.SyncNowAsync();
+        }
+        else
+        {
+            _ = _mainViewModel?.RefreshAsync();
+        }
     }
 
     /// <summary>托盘菜单命令分发。</summary>

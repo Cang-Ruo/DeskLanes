@@ -6,6 +6,22 @@
     <UserControl.Resources>
         <local:BindingProxy x:Key="VM" Data="{Binding}" />
         <BooleanToVisibilityConverter x:Key="BoolToVis" />
+        <!-- 阶段 14：两个分区共用的项目样式（右键菜单仍按项自身取参数） -->
+        <Style x:Key="CategoryItemStyle" TargetType="ListBoxItem"
+               BasedOn="{StaticResource {x:Type ListBoxItem}}">
+            <Setter Property="ContextMenu">
+                <Setter.Value>
+                    <ContextMenu>
+                        <MenuItem Header="打开"
+                                  Command="{Binding Data.OpenItemCommand, Source={StaticResource VM}}"
+                                  CommandParameter="{Binding PlacementTarget.DataContext, RelativeSource={RelativeSource AncestorType=ContextMenu}}" />
+                        <MenuItem Header="从工作区移除"
+                                  Command="{Binding Data.RemoveItemCommand, Source={StaticResource VM}}"
+                                  CommandParameter="{Binding PlacementTarget.DataContext, RelativeSource={RelativeSource AncestorType=ContextMenu}}" />
+                    </ContextMenu>
+                </Setter.Value>
+            </Setter>
+        </Style>
     </UserControl.Resources>
 
     <Grid>
@@ -74,48 +90,58 @@
                            Visibility="{Binding HasSearchHint, Converter={StaticResource BoolToVis}}" />
             </StackPanel>
 
-            <!-- 项目网格（选中/悬停反馈由主题的 ListBoxItem 隐式样式提供） -->
-            <ListBox Grid.Row="1"
-                     ItemsSource="{Binding Items}"
-                     Background="Transparent" BorderThickness="0"
-                     ScrollViewer.HorizontalScrollBarVisibility="Disabled"
-                     ScrollViewer.VerticalScrollBarVisibility="Auto"
-                     Visibility="{Binding HasItems, Converter={StaticResource BoolToVis}}">
-                <ListBox.ItemsPanel>
-                    <ItemsPanelTemplate>
-                        <WrapPanel Orientation="Horizontal" />
-                    </ItemsPanelTemplate>
-                </ListBox.ItemsPanel>
-                <ListBox.ItemContainerStyle>
-                    <Style TargetType="ListBoxItem" BasedOn="{StaticResource {x:Type ListBoxItem}}">
-                        <Setter Property="ContextMenu">
-                            <Setter.Value>
-                                <ContextMenu>
-                                    <MenuItem Header="打开"
-                                              Command="{Binding Data.OpenItemCommand, Source={StaticResource VM}}"
-                                              CommandParameter="{Binding PlacementTarget.DataContext, RelativeSource={RelativeSource AncestorType=ContextMenu}}" />
-                                    <MenuItem Header="从工作区移除"
-                                              Command="{Binding Data.RemoveItemCommand, Source={StaticResource VM}}"
-                                              CommandParameter="{Binding PlacementTarget.DataContext, RelativeSource={RelativeSource AncestorType=ContextMenu}}" />
-                                </ContextMenu>
-                            </Setter.Value>
-                        </Setter>
-                    </Style>
-                </ListBox.ItemContainerStyle>
-                <ListBox.ItemTemplate>
-                    <DataTemplate>
-                        <local:ItemTile />
-                    </DataTemplate>
-                </ListBox.ItemTemplate>
-                <ListBox.InputBindings>
-                    <MouseBinding Gesture="LeftDoubleClick"
-                                  Command="{Binding Data.OpenItemCommand, Source={StaticResource VM}}"
-                                  CommandParameter="{Binding SelectedItem, RelativeSource={RelativeSource AncestorType=ListBox}}" />
-                    <KeyBinding Key="Enter"
-                                Command="{Binding Data.OpenItemCommand, Source={StaticResource VM}}"
-                                CommandParameter="{Binding SelectedItem, RelativeSource={RelativeSource AncestorType=ListBox}}" />
-                </ListBox.InputBindings>
-            </ListBox>
+            <!-- 项目区：文件夹 / 软件 两个区域，各自横向铺开。
+                 用两个 ListBox 而不是 CollectionViewSource 分组：分组面板拿不到可用宽度时
+                 会退化成单列，直接给两个 WrapPanel 更可控。 -->
+            <ScrollViewer Grid.Row="1" VerticalScrollBarVisibility="Auto"
+                          HorizontalScrollBarVisibility="Disabled"
+                          Visibility="{Binding HasItems, Converter={StaticResource BoolToVis}}">
+                <StackPanel Orientation="Vertical">
+                    <StackPanel Visibility="{Binding HasFolderItems, Converter={StaticResource BoolToVis}}">
+                        <Border Margin="2,10,0,6" Padding="7,3" HorizontalAlignment="Left"
+                                Background="{StaticResource BrushLabelScrim}" CornerRadius="3">
+                            <TextBlock Text="文件夹" FontSize="12" FontWeight="SemiBold"
+                                       Foreground="{StaticResource BrushTextPrimary}" />
+                        </Border>
+                        <ListBox ItemsSource="{Binding FolderItems}" Background="Transparent" BorderThickness="0"
+                                 ScrollViewer.HorizontalScrollBarVisibility="Disabled"
+                                 ScrollViewer.VerticalScrollBarVisibility="Disabled"
+                                 ItemContainerStyle="{StaticResource CategoryItemStyle}">
+                            <ListBox.ItemsPanel>
+                                <ItemsPanelTemplate><WrapPanel Orientation="Horizontal" /></ItemsPanelTemplate>
+                            </ListBox.ItemsPanel>
+                            <ListBox.ItemTemplate><DataTemplate><local:ItemTile /></DataTemplate></ListBox.ItemTemplate>
+                            <ListBox.InputBindings>
+                                <KeyBinding Key="Enter"
+                                            Command="{Binding Data.OpenItemCommand, Source={StaticResource VM}}"
+                                            CommandParameter="{Binding SelectedItem, RelativeSource={RelativeSource AncestorType=ListBox}}" />
+                            </ListBox.InputBindings>
+                        </ListBox>
+                    </StackPanel>
+
+                    <StackPanel Visibility="{Binding HasAppItems, Converter={StaticResource BoolToVis}}">
+                        <Border Margin="2,10,0,6" Padding="7,3" HorizontalAlignment="Left"
+                                Background="{StaticResource BrushLabelScrim}" CornerRadius="3">
+                            <TextBlock Text="软件" FontSize="12" FontWeight="SemiBold"
+                                       Foreground="{StaticResource BrushTextPrimary}" />
+                        </Border>
+                        <ListBox ItemsSource="{Binding AppItems}" Background="Transparent" BorderThickness="0"
+                                 ScrollViewer.HorizontalScrollBarVisibility="Disabled"
+                                 ScrollViewer.VerticalScrollBarVisibility="Disabled"
+                                 ItemContainerStyle="{StaticResource CategoryItemStyle}">
+                            <ListBox.ItemsPanel>
+                                <ItemsPanelTemplate><WrapPanel Orientation="Horizontal" /></ItemsPanelTemplate>
+                            </ListBox.ItemsPanel>
+                            <ListBox.ItemTemplate><DataTemplate><local:ItemTile /></DataTemplate></ListBox.ItemTemplate>
+                            <ListBox.InputBindings>
+                                <KeyBinding Key="Enter"
+                                            Command="{Binding Data.OpenItemCommand, Source={StaticResource VM}}"
+                                            CommandParameter="{Binding SelectedItem, RelativeSource={RelativeSource AncestorType=ListBox}}" />
+                            </ListBox.InputBindings>
+                        </ListBox>
+                    </StackPanel>
+                </StackPanel>
+            </ScrollViewer>
 
             <!-- 空分类 / 无搜索结果 -->
             <TextBlock Grid.Row="1" Text="{Binding EmptyStateText}" FontSize="13"

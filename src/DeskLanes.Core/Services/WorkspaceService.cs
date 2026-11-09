@@ -103,13 +103,15 @@ public sealed class WorkspaceService : IWorkspaceService
             added++;
         }
 
-        // 扫描中消失的旧项目：保留在库中并标记失效，不清除用户配置与成员关系
-        int marked = MarkUnavailable(existingByKey.Values, scan.ScopeDirectories);
+        // 阶段 14：桌面上确实已经不存在的项目自动清除（用户明确要求，不再需要手动删）。
+        // 只在"文件确实不存在、且它所在目录仍可访问"时才删；目录整体不可访问时
+        // 只标记失效，避免桌面临时掉线把整个库清空。
+        (int marked, int removed) = ReconcileMissing(existingByKey.Values, scan.ScopeDirectories);
 
         SettingsData.LastScanAt = now;
         Save();
         OnChanged();
-        return Task.FromResult(new ScanMergeOutcome(added, updated, marked, false, null));
+        return Task.FromResult(new ScanMergeOutcome(added, updated, marked, false, null, removed));
     }
 
     /// <summary>
@@ -200,7 +202,13 @@ public sealed class WorkspaceService : IWorkspaceService
     /// 目录没被扫到（临时不可访问 / 局部重扫未覆盖）时不改变其可用状态；
     /// 自定义项不在桌面上是常态，按磁盘实际存在性校正，绝不因为"不在桌面上"就判失效。
     /// </summary>
-    private static int MarkUnavailable(IEnumerable<DesktopItem> leftovers, IReadOnlyList<string> scopeDirectories)
+    /// <summary>
+    /// 处理"本次扫描没见到"的旧项目。阶段 14：桌面来源项若文件确实不存在就自动清除，
+    /// 不再只是标记失效让用户手动删；但父目录都不可访问时只标记失效，防止桌面临时
+    /// 掉线把整个库清空。自定义项保留原来的"按磁盘存在性校正"语义，不自动删除。
+    /// </summary>
+    private (int Marked, int Removed) ReconcileMissing(
+        IEnumerable<DesktopItem> leftovers, IReadOnlyList<string> scopeDirectories)
     {
         var scope = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
         foreach (string directory in scopeDirectories)
@@ -213,43 +221,83 @@ public sealed class WorkspaceService : IWorkspaceService
         }
 
         int marked = 0;
-        foreach (DesktopItem item in leftovers)
+        int removed = 0;
+        foreach (DesktopItem item in leftovers.ToList())
         {
             bool inScope = scope.Count == 0
                 // 未声明扫描范围（兼容旧调用/全量扫描）：桌面来源项按"扫描未见即失效"
                 ? item.Origin != ItemOrigin.Custom
                 : IsDirectoryInScope(item.FullPath, scope);
 
-            if (inScope)
+            // 不在本次扫描范围内：桌面来源项保持原状；自定义项按磁盘存在性校正。
+            if (!inScope)
             {
-                if (item.IsAvailable)
+                if (item.Origin != ItemOrigin.Custom)
                 {
-                    item.IsAvailable = false;
-                    marked++;
+                    continue;
+                }
+
+                bool customExists = ExistsOnDisk(item.FullPath);
+                if (item.IsAvailable != customExists)
+                {
+                    item.IsAvailable = customExists;
+                    if (!customExists)
+                    {
+                        marked++;
+                    }
                 }
 
                 continue;
             }
 
-            // 不在本次扫描范围内的桌面来源项：保持原状
-            if (item.Origin != ItemOrigin.Custom)
+            // 自定义项：只校正可用性，不自动删除（用户手动加的东西不该被静默清掉）
+            if (item.Origin == ItemOrigin.Custom)
             {
+                bool exists = ExistsOnDisk(item.FullPath);
+                if (item.IsAvailable != exists)
+                {
+                    item.IsAvailable = exists;
+                    if (!exists)
+                    {
+                        marked++;
+                    }
+                }
+
                 continue;
             }
 
-            // 自定义项：按磁盘实际存在性校正（文件被删则失效，重新出现则恢复）
-            bool exists = ExistsOnDisk(item.FullPath);
-            if (item.IsAvailable != exists)
+            string? parent = null;
+            try
             {
-                item.IsAvailable = exists;
-                if (!exists)
-                {
-                    marked++;
-                }
+                parent = Path.GetDirectoryName(item.FullPath);
+            }
+            catch
+            {
+                // 路径非法：按"无法确认"处理，不删
+            }
+
+            bool parentReachable = !string.IsNullOrEmpty(parent) && Directory.Exists(parent);
+            bool itemExists = ExistsOnDisk(item.FullPath);
+
+            if (!itemExists && parentReachable)
+            {
+                // 不写 DismissedPaths：以后用户把这个软件放回桌面，还能自动加回来。
+                // DetachFromAllContainers 会清掉它在分类 / 面板里的归属。
+                DetachFromAllContainers(item.Id);
+                Items.Remove(item);
+                removed++;
+                continue;
+            }
+
+            // 文件还在（本次没扫到）或目录整体不可访问：保留并标记失效
+            if (item.IsAvailable)
+            {
+                item.IsAvailable = false;
+                marked++;
             }
         }
 
-        return marked;
+        return (marked, removed);
     }
 
     private static bool IsDirectoryInScope(string fullPath, HashSet<string> scope)

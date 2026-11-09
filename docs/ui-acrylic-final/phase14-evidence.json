@@ -1,0 +1,57 @@
+{
+  "purpose": "阶段 14：按用户反馈改交互、配色与扫描语义",
+  "user_choices": {
+    "issue_location": "DeskLanes 窗口内的项目",
+    "color_scope": "全部窗口固定黑底浅字",
+    "deleted_items": "确实不存在就自动删除"
+  },
+  "changes": {
+    "fixed_dark": {
+      "detail": "DynamicTextService 默认不启用；DESKLANES_DYNAMIC_TEXT=1 才恢复旧自适应；BrushLabelScrim 30%->55% 黑",
+      "note": "历史像素对比度证据描述的是旧默认外观；审计工具需显式开关才能复现"
+    },
+    "double_click": {
+      "detail": "ItemTile 自己处理 MouseDoubleClick，参数用自身 DataContext；删除 5 处依赖 SelectedItem 的 MouseBinding，保留 KeyBinding Enter",
+      "verified": "编译+代码路径；未在真实实例点击验证"
+    },
+    "missing_items": {
+      "detail": "MergeScanAsync 调 ReconcileMissing；父目录可访问且文件不存在则从库移除并清分类/分区归属；不写 DismissedPaths",
+      "safety": "目录整体不可访问或不在本次扫描范围时保留并标记失效"
+    },
+    "scan_on_return": {
+      "detail": "AppController 订阅 Deactivated/Activated，离开>60s 切回触发一次 SyncNowAsync，30s 内不重复"
+    },
+    "startup_and_refresh": "原本就扫描（InitializeAsync/RefreshCommand -> RefreshAsync -> ScanAsync+MergeScanAsync），无需改代码",
+    "category_split": {
+      "detail": "CategoryNavViewModel 暴露 FolderItems/AppItems + HasFolderItems/HasAppItems；XAML 两个带标题的 WrapPanel 列表",
+      "abandoned": "CollectionViewSource+GroupStyle 组内 WrapPanel 拿不到宽度退化成单列，已弃用"
+    }
+  },
+  "regression": {
+    "release": "0 warning / 0 error",
+    "smoke": "472/472",
+    "updated_old_assertions": "15 条按旧「保留失效项」语义写的断言改成新语义",
+    "visual": [
+      "docs/ui-acrylic-final/phase14-floating.png",
+      "docs/ui-acrylic-final/phase14-category.png"
+    ],
+    "not_run": [
+      "三屏端到端",
+      "启动探针",
+      "真实实例双击点击"
+    ]
+  },
+  "build": {
+    "portable_md5": "6e0eda1f0e49a26b15f7f0c589532780",
+    "selfcontained_formal_md5_OLD": "ec53018c14ba9f46c3461c678ca8d44d",
+    "selfcontained_next_md5": "c05f01884cdcf571dda418c885710564",
+    "installed_matches": false,
+    "install_note": "正式 selfcontained exe 被 24h soak 进程占用；等跑完再覆盖安装"
+  },
+  "pending": [
+    "重启软件后确认双击/配色/分区",
+    "热插拔修复复测",
+    "24h soak 结论",
+    "悬浮窗是否也要分区（按用户措辞暂未做）"
+  ]
+}
