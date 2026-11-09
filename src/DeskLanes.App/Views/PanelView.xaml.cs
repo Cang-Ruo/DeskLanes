@@ -131,6 +131,50 @@ public partial class PanelView : UserControl
         ViewModel.Height += e.VerticalChange / scale;
     }
 
+    /// <summary>阶段 21：四边 / 四角按方向调整面板的 X/Y/Width/Height。</summary>
+    private void OnEdgeResizeDragDelta(object sender, DragDeltaEventArgs e)
+    {
+        if (ViewModel is null || sender is not Thumb thumb)
+        {
+            return;
+        }
+
+        string dir = thumb.Tag as string ?? string.Empty;
+        double scale = Math.Max(Scale, 0.01);
+        double dx = e.HorizontalChange / scale;
+        double dy = e.VerticalChange / scale;
+        double minW = WorkspacePanel.MinWidth;
+        double minH = WorkspacePanel.MinHeight;
+
+        if (dir.Contains("Left"))
+        {
+            double width = ViewModel.Width - dx;
+            if (width >= minW)
+            {
+                ViewModel.X += dx;
+                ViewModel.Width = width;
+            }
+        }
+        else if (dir.Contains("Right"))
+        {
+            ViewModel.Width += dx;
+        }
+
+        if (dir.Contains("Top"))
+        {
+            double height = ViewModel.Height - dy;
+            if (height >= minH)
+            {
+                ViewModel.Y += dy;
+                ViewModel.Height = height;
+            }
+        }
+        else if (dir.Contains("Bottom"))
+        {
+            ViewModel.Height += dy;
+        }
+    }
+
     private void OnItemDragOver(object sender, DragEventArgs e)
     {
         e.Effects = DragDropFormats.GetItemId(e.Data) is null ? DragDropEffects.None : DragDropEffects.Move;

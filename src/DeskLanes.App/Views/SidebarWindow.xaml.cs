@@ -53,10 +53,25 @@ public partial class SidebarWindow : Window
     /// <summary>显示窗口并放置到停靠侧。</summary>
     public void ShowDocked()
     {
+        // 阶段 21：上次收起过的话，直接切回来会出现「宽窗口 + 只剩一个 ◀ 按钮」的
+        // 空白灰块（IsExpanded=false 但 Width 还停在展开宽度）。切到侧边栏模式时
+        // 一律以展开态呈现，保证分类与项目一定看得见。
+        if (!_viewModel.IsExpanded)
+        {
+            _viewModel.IsExpanded = true;
+        }
+
         ApplyWindowWidth();
         PlaceOnDockedSide();
         Show();
         Activate();
+
+        // Show/Activate 之后 WPF 才完成布局；再同步一次尺寸，避免渲染时序把宽度落回旧值。
+        Dispatcher.BeginInvoke(new Action(() =>
+        {
+            ApplyWindowWidth();
+            PlaceOnDockedSide();
+        }), System.Windows.Threading.DispatcherPriority.Loaded);
     }
 
     /// <summary>展开时用设置里的宽度，收起时只留窄条。</summary>
