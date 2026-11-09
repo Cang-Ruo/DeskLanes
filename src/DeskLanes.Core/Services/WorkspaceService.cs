@@ -676,6 +676,7 @@ public sealed class WorkspaceService : IWorkspaceService
             // Group.ItemIds 是权威，先回写，避免下面镜像时把这次拖入覆盖掉
             ShortcutGroup? paired = PairedGroup(panel);
             paired?.ItemIds.Add(item.Id);
+            AutoGrowPanel(panel);   // 阶段 20：成员变多时边框跟着长大
         }
         EnsurePairedContainers();
         Save();
@@ -872,6 +873,33 @@ public sealed class WorkspaceService : IWorkspaceService
         }
 
         SortByOrder(Panels, p => p.Order);
+    }
+
+    /// <summary>
+    /// 阶段 20：按成员数量把分区边框放大到能装下所有磁贴，避免拖进去的软件挤在
+    /// 固定的 320×240 里看不见。只放大不缩小，且不超过虚拟画布边界。
+    /// </summary>
+    private static void AutoGrowPanel(WorkspacePanel panel)
+    {
+        const double tileWidth = 120;
+        const double tileHeight = 116;
+        const double headerHeight = 46;
+        const double padding = 20;
+
+        int perRow = Math.Max(1, (int)((panel.Width - padding) / tileWidth));
+        int rows = Math.Max(1, (panel.ItemIds.Count + perRow - 1) / perRow);
+        double neededHeight = headerHeight + rows * tileHeight + padding;
+
+        if (panel.ItemIds.Count > perRow * rows && panel.Width < 480)
+        {
+            panel.Width = Math.Min(480, WorkspacePanel.CanvasWidth - panel.X);
+        }
+
+        if (neededHeight > panel.Height)
+        {
+            double maxHeight = Math.Max(panel.Height, WorkspacePanel.CanvasHeight - panel.Y - 8);
+            panel.Height = Math.Min(neededHeight, maxHeight);
+        }
     }
 
     private WorkspacePanel? PairedPanel(ShortcutGroup group)

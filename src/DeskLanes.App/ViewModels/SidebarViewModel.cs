@@ -132,9 +132,7 @@ public sealed class SidebarViewModel : ObservableObject
 
     /// <summary>
     /// 空状态文案。
-    /// 注意：侧边栏**不伪造分类**（没有用户分类时 Categories 就是空的，有冒烟断言守着）。
-    /// 但只说"这个分类还没有项目"会让人以为数据丢了 —— 所以这里区分两种情况：
-    /// 根本没有分类 vs 分类里没有项目。
+    /// 阶段 20：侧边栏第一个节点固定是「全部」；没有用户分类时就只显示它。
     /// </summary>
     public string EmptyStateText
     {
@@ -145,9 +143,7 @@ public sealed class SidebarViewModel : ObservableObject
                 return $"没有包含“{_shellState.SearchText.Trim()}”的项目。";
             }
 
-            return Categories.Count == 0
-                ? "还没有分类。\n在主窗口「分类」里新建一个，这里会跟着显示。\n（桌面上的文件不会被移动）"
-                : "这个分类还没有项目。";
+            return "没有项目。\n桌面上的项目会自动出现在这里。";
         }
     }
 
@@ -210,6 +206,8 @@ public sealed class SidebarViewModel : ObservableObject
 
         string? selectedId = _selectedCategory?.GroupId;
         Categories.Clear();
+        // 阶段 20：「全部」固定占第一位，后面才是用户分类（游戏、其他…）
+        Categories.Add(new SidebarCategoryViewModel(null, _workspace.Items.Count));
         foreach (ShortcutGroup group in _workspace.Groups.OrderBy(g => g.Order))
         {
             Categories.Add(new SidebarCategoryViewModel(group));
@@ -228,7 +226,7 @@ public sealed class SidebarViewModel : ObservableObject
 
         IEnumerable<DesktopItem> source = _selectedCategory?.Group is ShortcutGroup group
             ? group.ItemIds.Where(id => _itemsById.ContainsKey(id)).Select(id => _itemsById[id])
-            : Enumerable.Empty<DesktopItem>();
+            : _workspace.Items;   // 「全部」显示所有项目
 
         string keyword = _shellState.SearchText.Trim();
         if (keyword.Length > 0)
@@ -238,7 +236,7 @@ public sealed class SidebarViewModel : ObservableObject
                 item.FullPath.Contains(keyword, StringComparison.OrdinalIgnoreCase));
         }
 
-        foreach (DesktopItem item in source)
+        foreach (DesktopItem item in source.OrderBy(i => i.Name, StringComparer.CurrentCultureIgnoreCase))
         {
             Items.Add(item);
         }
@@ -252,16 +250,19 @@ public sealed class SidebarViewModel : ObservableObject
 /// <summary>侧边栏的分类选项。</summary>
 public sealed class SidebarCategoryViewModel : ObservableObject
 {
-    public SidebarCategoryViewModel(ShortcutGroup group)
+    private readonly int _allCount;
+
+    public SidebarCategoryViewModel(ShortcutGroup? group, int allCount = 0)
     {
-        Group = group ?? throw new ArgumentNullException(nameof(group));
+        Group = group;   // null 表示「全部」
+        _allCount = allCount;
     }
 
-    public ShortcutGroup Group { get; }
+    public ShortcutGroup? Group { get; }
 
-    public string GroupId => Group.Id;
+    public string? GroupId => Group?.Id;
 
-    public string Name => Group.Name;
+    public string Name => Group?.Name ?? "全部";
 
-    public int ItemCount => Group.ItemIds.Count;
+    public int ItemCount => Group?.ItemIds.Count ?? _allCount;
 }

@@ -187,33 +187,44 @@
                     </StackPanel>
                 </ScrollViewer>
 
-                <!-- ② 文件夹视图：只显示分组卡片，不把里面的文件平铺出来 -->
-                <ListBox ItemsSource="{Binding GroupCards}" Background="Transparent" BorderThickness="0"
-                         ScrollViewer.HorizontalScrollBarVisibility="Disabled"
-                         Visibility="{Binding IsGroupCardsVisible, Converter={StaticResource BoolToVis}}">
-                    <ListBox.ItemsPanel>
-                        <ItemsPanelTemplate><WrapPanel Orientation="Horizontal" /></ItemsPanelTemplate>
-                    </ListBox.ItemsPanel>
-                    <ListBox.ItemContainerStyle>
-                        <Style TargetType="ListBoxItem" BasedOn="{StaticResource {x:Type ListBoxItem}}" />
-                    </ListBox.ItemContainerStyle>
-                    <ListBox.ItemTemplate>
-                        <DataTemplate>
-                            <Button Padding="10,8" Margin="0,0,8,8" MinWidth="120" MinHeight="64"
-                                    Command="{Binding Data.OpenFolderCommand, RelativeSource={RelativeSource AncestorType=ListBox}}"
-                                    CommandParameter="{Binding}">
-                                <StackPanel>
-                                    <TextBlock Text="📁" FontSize="22" HorizontalAlignment="Center" />
-                                    <TextBlock Text="{Binding Name}" FontSize="13" HorizontalAlignment="Center"
-                                               TextTrimming="CharacterEllipsis" />
-                                    <TextBlock Text="{Binding ItemCount, StringFormat={}{0} 个项目}" FontSize="11"
-                                               HorizontalAlignment="Center"
-                                               Foreground="{StaticResource BrushTextSecondary}" />
-                                </StackPanel>
-                            </Button>
-                        </DataTemplate>
-                    </ListBox.ItemTemplate>
-                </ListBox>
+                <!-- ② 文件夹视图：每个分组一个带边框的框，框里直接列出软件 -->
+                <ScrollViewer VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled"
+                              Visibility="{Binding IsGroupCardsVisible, Converter={StaticResource BoolToVis}}">
+                    <StackPanel Orientation="Vertical">
+                        <ItemsControl ItemsSource="{Binding GroupCards}">
+                            <ItemsControl.ItemTemplate>
+                                <DataTemplate>
+                                    <Border BorderBrush="{StaticResource BrushBorderGlass}" BorderThickness="1"
+                                            Background="{StaticResource BrushCardGlass}" CornerRadius="10"
+                                            Padding="10,8" Margin="0,0,0,10">
+                                        <StackPanel Orientation="Vertical">
+                                            <Grid Margin="0,0,0,6">
+                                                <TextBlock Text="{Binding Name}" FontSize="13" FontWeight="SemiBold"
+                                                           Foreground="{StaticResource BrushTextPrimary}"
+                                                           HorizontalAlignment="Left" />
+                                                <TextBlock Text="{Binding ItemCount, StringFormat={}{0} 个项目}" FontSize="11"
+                                                           Foreground="{StaticResource BrushTextSecondary}"
+                                                           HorizontalAlignment="Right" />
+                                            </Grid>
+                                            <ItemsControl ItemsSource="{Binding Items}">
+                                                <ItemsControl.ItemsPanel>
+                                                    <ItemsPanelTemplate><WrapPanel Orientation="Horizontal" /></ItemsPanelTemplate>
+                                                </ItemsControl.ItemsPanel>
+                                                <ItemsControl.ItemTemplate>
+                                                    <DataTemplate><local:ItemTile /></DataTemplate>
+                                                </ItemsControl.ItemTemplate>
+                                            </ItemsControl>
+                                        </StackPanel>
+                                    </Border>
+                                </DataTemplate>
+                            </ItemsControl.ItemTemplate>
+                        </ItemsControl>
+                        <TextBlock Text="还没有分组。在分类导航里新建后，这里会自动出现。"
+                                   FontSize="12" Foreground="{StaticResource BrushTextSecondary}"
+                                   Margin="2,8,0,0"
+                                   Visibility="{Binding HasNoGroupCards, Converter={StaticResource BoolToVis}}" />
+                    </StackPanel>
+                </ScrollViewer>
 
                 <!-- ③ 点开某个文件夹：列出里面的项目 -->
                 <StackPanel Orientation="Vertical"

@@ -1507,8 +1507,14 @@ try
 
     var sideShell = new ShellState();
     var sidebar = new SidebarViewModel(sideWorkspace, dialogService, launchService, sideShell);
-    Check(sidebar.Categories.Count == 1 && sidebar.SelectedCategory == sidebar.Categories[0], "侧边栏默认选中第一个分类");
-    Check(sidebar.Items.Count == 1, "侧边栏显示当前分类的项目");
+    // 阶段 20：侧边栏第一个节点固定是「全部」，后面才是用户分类
+    Check(sidebar.Categories.Count == 2 && sidebar.Categories[0].Name == "全部"
+          && sidebar.SelectedCategory == sidebar.Categories[0],
+        "侧边栏默认选中「全部」且后接用户分类", sidebar.Categories.Count.ToString());
+    Check(sidebar.Items.Count == sideWorkspace.Items.Count, "「全部」显示所有项目",
+        $"{sidebar.Items.Count}/{sideWorkspace.Items.Count}");
+    sidebar.SelectedCategory = sidebar.Categories[1];
+    Check(sidebar.Items.Count == 1, "点用户分类只显示该分类项目");
     Check(sidebar.ExpandedWidth == sideWorkspace.Settings.SidebarWidth, "展开宽度来自设置");
     Check(sidebar.IsDockedRight && sidebar.DockToggleText == "停靠到左侧", "默认停靠右侧");
 
@@ -1709,7 +1715,10 @@ try
     var shareFloating = new FloatingWindowViewModel(shareWorkspace, dialogService, launchService, shareShell);
     var shareSidebar = new SidebarViewModel(shareWorkspace, dialogService, launchService, shareShell);
     Check(shareFloating.Items.Count == 1 && shareWorkspace.Items.Count == 1, "悬浮窗直接读工作区数据（无副本）");
-    Check(shareSidebar.Categories.Count == 0, "无分类时侧边栏分类为空（不伪造数据）");
+    Check(shareSidebar.Categories.Count == 1 && shareSidebar.Categories[0].Name == "全部"
+          && shareSidebar.Items.Count == 1,
+        "无用户分组时侧边栏只显示「全部」且能看到项目",
+        $"{shareSidebar.Categories.Count}/{shareSidebar.Items.Count}");
 
     shareShell.SearchText = "共享";
     Check(
@@ -3138,15 +3147,36 @@ Console.WriteLine("== 26. 大桌面：项目数超过图标缓存上限时的表
             "悬浮窗默认「全部」视图且分两区", "");
         float19.ToggleViewModeCommand.Execute(null);
         Check(float19.IsFolderView && float19.GroupCards.Count == 1
-              && float19.GroupCards[0].Name == "游戏" && float19.GroupCards[0].ItemCount == 2,
-            "切到文件夹视图只显示分组卡片（不是 4 个文件）",
-            $"cards={float19.GroupCards.Count}");
-        float19.OpenFolderCommand.Execute(float19.GroupCards[0]);
-        Check(float19.IsOpenedFolderVisible && float19.Items.Count == 2
-              && float19.OpenedFolderTitle == "游戏",
-            "点开文件夹才列出里面的 2 个项目", float19.Items.Count.ToString());
-        float19.BackToFoldersCommand.Execute(null);
-        Check(float19.IsGroupCardsVisible && float19.Items.Count == 0, "返回文件夹列表", "");
+              && float19.GroupCards[0].Name == "游戏"
+              && float19.GroupCards[0].Items.Count == 2,
+            "文件夹视图直接给带框分组，框里就是那 2 个软件（不用点开）",
+            $"cards={float19.GroupCards.Count} items={float19.GroupCards[0].Items.Count}");
+        Check(float19.IsGroupCardsVisible && float19.Items.Count == 0,
+            "分组框视图不额外平铺一份项目", "");
+
+        // 阶段 20：拖到画布空白处自动建面板 + 拖入后边框自动长大
+        fp19.CreatePanelAt(zFolder, 600, 300);
+        WorkspacePanel? droppedPanel = ws19.Panels.FirstOrDefault(p => p.Title == "新文件夹");
+        Check(droppedPanel is not null && droppedPanel.ItemIds.Contains(zFolder.Id)
+              && droppedPanel.X > 400,
+            "拖到画布空白处会在落点新建面板并收下项目",
+            droppedPanel is null ? "没建出来" : $"X={droppedPanel.X}");
+        if (droppedPanel is not null)
+        {
+            double heightBefore = droppedPanel.Height;
+            for (int k = 0; k < 6; k++)
+            {
+                var extra = new DesktopItem
+                {
+                    Name = "额外" + k, FullPath = Path.Combine(p19Root, "额外" + k),
+                    Kind = DesktopItemKind.Shortcut, Origin = ItemOrigin.UserDesktop,
+                };
+                ws19.Items.Add(extra);
+                ws19.AssignItemToPanel(extra, droppedPanel);
+            }
+            Check(droppedPanel.Height > heightBefore,
+                "项目变多时分区边框自动放大", $"{heightBefore} -> {droppedPanel.Height}");
+        }
     }
     finally
     {

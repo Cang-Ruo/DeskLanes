@@ -100,6 +100,7 @@
                  分区卡片再叠 25% 就到 50% 了，玻璃被压成半实心。这里交还给窗口基底。 -->
             <Border x:Name="CanvasBorder" Width="1600" Height="900" CornerRadius="10"
                     Background="Transparent" BorderBrush="{StaticResource BrushBorderGlass}" BorderThickness="1"
+                    AllowDrop="True" Drop="OnCanvasDrop" DragOver="OnCanvasDragOver"
                     HorizontalAlignment="Left" VerticalAlignment="Top">
                 <Border.RenderTransform>
                     <TransformGroup>
