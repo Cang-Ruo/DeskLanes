@@ -45,8 +45,76 @@ public static class MonitorInterop
         public uint dwFlags;
     }
 
+    [StructLayout(LayoutKind.Sequential)]
+    public struct POINT
+    {
+        public int X;
+
+        public int Y;
+    }
+
     [DllImport("user32.dll")]
     public static extern IntPtr MonitorFromWindow(IntPtr hwnd, uint dwFlags);
+
+    [DllImport("user32.dll")]
+    [return: MarshalAs(UnmanagedType.Bool)]
+    public static extern bool GetCursorPos(out POINT lpPoint);
+
+    [DllImport("user32.dll")]
+    public static extern IntPtr MonitorFromPoint(POINT pt, uint dwFlags);
+
+    [DllImport("user32.dll")]
+    [return: MarshalAs(UnmanagedType.Bool)]
+    public static extern bool SetWindowPos(IntPtr hWnd, IntPtr hWndInsertAfter,
+        int X, int Y, int cx, int cy, uint uFlags);
+
+    [DllImport("user32.dll")]
+    public static extern int GetSystemMetrics(int nIndex);
+
+    public const uint SwpNoSize = 0x0001;
+    public const uint SwpNoZOrder = 0x0004;
+    public const uint SwpNoActivate = 0x0010;
+
+    /// <summary>取指定物理坐标所在显示器的工作区（物理像素）。</summary>
+    public static bool TryGetWorkAreaForPoint(POINT pt, out RECT work, out uint dpi)
+    {
+        work = default;
+        dpi = 96;
+        IntPtr monitor = MonitorFromPoint(pt, MONITOR_DEFAULTTONEAREST);
+        if (monitor == IntPtr.Zero)
+        {
+            return false;
+        }
+
+        var info = new MONITORINFO { cbSize = Marshal.SizeOf<MONITORINFO>() };
+        if (!GetMonitorInfo(monitor, ref info) || info.rcWork.Width <= 0)
+        {
+            return false;
+        }
+
+        work = info.rcWork;
+        GetDpiForMonitor(monitor, MdtEffectiveDpi, out dpi, out _);
+        return true;
+    }
+
+    /// <summary>取鼠标当前所在显示器的工作区（全屏切模式时用）。</summary>
+    public static bool TryGetWorkAreaForCursor(out RECT work, out uint dpi)
+    {
+        work = default;
+        dpi = 96;
+        return GetCursorPos(out POINT pt) && TryGetWorkAreaForPoint(pt, out work, out dpi);
+    }
+
+    /// <summary>取停靠侧（虚拟屏最左 / 最右）那块显示器的工作区，不依赖窗口句柄。</summary>
+    public static bool TryGetWorkAreaForDockedSide(bool right, out RECT work, out uint dpi)
+    {
+        int vx = GetSystemMetrics(76);
+        int vy = GetSystemMetrics(77);
+        int vw = GetSystemMetrics(78);
+        int vh = GetSystemMetrics(79);
+        var pt = new POINT { X = right ? vx + vw - 1 : vx, Y = vy + vh / 2 };
+        return TryGetWorkAreaForPoint(pt, out work, out dpi);
+    }
 
     [DllImport("user32.dll", CharSet = CharSet.Unicode)]
     [return: MarshalAs(UnmanagedType.Bool)]

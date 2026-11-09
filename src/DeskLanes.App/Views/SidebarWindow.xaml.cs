@@ -65,13 +65,6 @@ public partial class SidebarWindow : Window
         PlaceOnDockedSide();
         Show();
         Activate();
-
-        // Show/Activate 之后 WPF 才完成布局；再同步一次尺寸，避免渲染时序把宽度落回旧值。
-        Dispatcher.BeginInvoke(new Action(() =>
-        {
-            ApplyWindowWidth();
-            PlaceOnDockedSide();
-        }), System.Windows.Threading.DispatcherPriority.Loaded);
     }
 
     /// <summary>展开时用设置里的宽度，收起时只留窄条。</summary>
@@ -98,10 +91,11 @@ public partial class SidebarWindow : Window
         Left = _viewModel.IsDockedRight ? screenLeft + screenWidth - Width : screenLeft;
         Top = screenTop;
 
-        IntPtr hwnd = new WindowInteropHelper(this).Handle;
-        if (hwnd != IntPtr.Zero
-            && MonitorInterop.TryGetWorkArea(hwnd, out MonitorInterop.RECT work, out uint dpi)
-            && work.Height > 0)
+        // 阶段 22：Show 之前 HWND 可能还没创建，不能靠 MonitorFromWindow。
+        // 直接按停靠侧（虚拟屏最左 / 最右）取那块屏的工作区，一次定位到位，
+        // 不需要显示后再补一次（那正是切换时「跳一下」的来源）。
+        if (MonitorInterop.TryGetWorkAreaForDockedSide(_viewModel.IsDockedRight,
+                out MonitorInterop.RECT work, out uint dpi) && work.Height > 0)
         {
             double scale = Math.Max(dpi / 96.0, 0.01);
             Height = Math.Max(MinHeight, work.Height / scale);
