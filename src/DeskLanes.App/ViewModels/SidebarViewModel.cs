@@ -65,6 +65,15 @@ public sealed class SidebarViewModel : ObservableObject
     /// <summary>当前分类中的项目（按共享搜索词过滤）。</summary>
     public ObservableCollection<DesktopItem> Items { get; } = new();
 
+    /// <summary>阶段 21：软件区（在上）与文件夹区（在下）。</summary>
+    public ObservableCollection<DesktopItem> SoftwareItems { get; } = new();
+
+    public ObservableCollection<DesktopItem> FolderItems { get; } = new();
+
+    public bool HasSoftwareItems => SoftwareItems.Count > 0;
+
+    public bool HasFolderItems => FolderItems.Count > 0;
+
     public SidebarCategoryViewModel? SelectedCategory
     {
         get => _selectedCategory;
@@ -223,6 +232,8 @@ public sealed class SidebarViewModel : ObservableObject
     private void ApplyItems()
     {
         Items.Clear();
+        SoftwareItems.Clear();
+        FolderItems.Clear();
 
         IEnumerable<DesktopItem> source = _selectedCategory?.Group is ShortcutGroup group
             ? group.ItemIds.Where(id => _itemsById.ContainsKey(id)).Select(id => _itemsById[id])
@@ -239,8 +250,11 @@ public sealed class SidebarViewModel : ObservableObject
         foreach (DesktopItem item in source.OrderBy(i => i.Name, StringComparer.CurrentCultureIgnoreCase))
         {
             Items.Add(item);
+            (item.Kind == DesktopItemKind.Folder ? FolderItems : SoftwareItems).Add(item);
         }
 
+        OnPropertyChanged(nameof(HasSoftwareItems));
+        OnPropertyChanged(nameof(HasFolderItems));
         OnPropertyChanged(nameof(HasItems));
         OnPropertyChanged(nameof(HasNoItems));
         OnPropertyChanged(nameof(EmptyStateText));

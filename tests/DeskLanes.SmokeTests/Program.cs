@@ -3192,6 +3192,66 @@ Console.WriteLine("== 26. 大桌面：项目数超过图标缓存上限时的表
     }
 }
 
+// ---------------------------------------------------------------- 30. 阶段 21：侧边栏软件 / 文件夹两区
+{
+    string p21Root = Path.Combine(Path.GetTempPath(), "DeskLanesP21_" + Guid.NewGuid().ToString("N"));
+    string p21Cfg = p21Root + "_cfg";
+    Directory.CreateDirectory(p21Root);
+    Directory.CreateDirectory(p21Cfg);
+    try
+    {
+        var ws21 = new WorkspaceService(new LibraryStore(p21Cfg), new ConfigStore(p21Cfg),
+            new ShortcutResolver());
+        DesktopItem Make21(string name, DesktopItemKind kind) => new()
+        {
+            Name = name, FullPath = Path.Combine(p21Root, name),
+            Kind = kind, Origin = ItemOrigin.UserDesktop,
+        };
+        await ws21.MergeScanAsync(new ScanResult
+        {
+            Items = new[]
+            {
+                Make21("Zeta 软件", DesktopItemKind.Shortcut),
+                Make21("Alpha 软件", DesktopItemKind.Shortcut),
+                Make21("Zeta 文件夹", DesktopItemKind.Folder),
+                Make21("Alpha 文件夹", DesktopItemKind.Folder),
+            },
+            ScopeDirectories = new[] { p21Root },
+        });
+
+        var side21 = new SidebarViewModel(ws21, new ConsoleDialogService(), launchService,
+            new ShellState());
+        Check(side21.Categories[0].Name == "全部"
+              && side21.SoftwareItems.Count == 2 && side21.FolderItems.Count == 2,
+            "侧边栏「全部」拆成软件 / 文件夹两区",
+            $"{side21.SoftwareItems.Count}/{side21.FolderItems.Count}");
+        Check(side21.SoftwareItems.All(i => i.Kind != DesktopItemKind.Folder)
+              && side21.FolderItems.All(i => i.Kind == DesktopItemKind.Folder),
+            "两区按 Kind 正确分流", "");
+        Check(side21.SoftwareItems.Select(i => i.Name).SequenceEqual(new[] { "Alpha 软件", "Zeta 软件" })
+              && side21.FolderItems.Select(i => i.Name).SequenceEqual(new[] { "Alpha 文件夹", "Zeta 文件夹" }),
+            "两区各自 A-Z 排序", "");
+
+        ShortcutGroup game21 = ws21.CreateGroup("游戏");
+        ws21.AssignItemToGroup(side21.SoftwareItems[0], game21);
+        side21.SelectedCategory = side21.Categories.First(c => c.GroupId == game21.Id);
+        Check(side21.SoftwareItems.Count == 1 && side21.FolderItems.Count == 0,
+            "点「游戏」只显示该分类的软件", $"{side21.SoftwareItems.Count}/{side21.FolderItems.Count}");
+    }
+    finally
+    {
+        try
+        {
+            Directory.Delete(p21Root, true);
+            Directory.Delete(p21Cfg, true);
+        }
+        catch
+        {
+            // 临时目录清理失败不影响结果
+        }
+    }
+}
+
 // ---------------------------------------------------------------- 汇总
 Console.WriteLine();
 Console.WriteLine($"===== 冒烟测试结果：通过 {passed} 项，失败 {failed} 项 =====");
