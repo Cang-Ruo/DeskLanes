@@ -8,7 +8,7 @@
         Title="DeskLanes 快速启动"
         Width="780" Height="540" MinWidth="420" MinHeight="360"
         WindowStyle="None" Background="Transparent"
-        Topmost="True" ShowInTaskbar="False"
+        Topmost="False" ShowInTaskbar="False"
         WindowStartupLocation="Manual"
         KeyDown="OnWindowKeyDown">
     <!--

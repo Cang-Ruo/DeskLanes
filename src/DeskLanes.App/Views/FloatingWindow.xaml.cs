@@ -9,7 +9,8 @@ using DeskLanes.Core.Models;
 namespace DeskLanes.App.Views;
 
 /// <summary>
-/// 悬浮窗（快速启动）。置顶、无任务栏按钮、Esc 隐藏、失焦可配置是否自动隐藏。
+/// 悬浮窗（快速启动）。呼出时强制前台，但不常驻置顶（否则会挡住其他软件）；
+/// 无任务栏按钮、Esc 隐藏、失焦可配置是否自动隐藏。
 /// 窗口本身只负责呈现与键盘/焦点行为，全部数据来自共享视图模型。
 /// <para>
 /// <c>WindowStyle=None</c> 的非分层窗口（WindowChrome 接管系统行为）：

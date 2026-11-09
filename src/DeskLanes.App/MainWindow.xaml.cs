@@ -1,6 +1,7 @@
 using System;
 using System.ComponentModel;
 using System.Windows;
+using System.Windows.Input;
 using DeskLanes.App.Services;
 using DeskLanes.App.ViewModels;
 using DeskLanes.Core.Models;
@@ -167,6 +168,19 @@ public partial class MainWindow : Window
 
     /// <summary>最小化到托盘（与"退出"区分：应用继续运行，热键与监听仍然有效）。</summary>
     private void OnMinimizeToTray(object sender, RoutedEventArgs e) => Hide();
+
+    /// <summary>
+    /// 无边框全屏没有系统关闭按钮，Esc 必须能退出（隐藏到托盘，应用继续运行）。
+    /// 与顶部「⌄ 托盘」按钮、Ctrl+Alt+Space 切模式互为兜底。
+    /// </summary>
+    private void OnWindowKeyDown(object sender, KeyEventArgs e)
+    {
+        if (e.Key == Key.Escape)
+        {
+            Hide();
+            e.Handled = true;
+        }
+    }
 
     private void ApplyWindowPreferences()
     {
