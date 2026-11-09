@@ -103,16 +103,44 @@
                 </TextBlock.Style>
             </TextBlock>
 
-            <!-- 右下角缩放手柄 -->
-            <Thumb Grid.Row="1" HorizontalAlignment="Right" VerticalAlignment="Bottom"
-                   Width="16" Height="16" Cursor="SizeNWSE" DragDelta="OnResizeDragDelta">
+            <!-- 阶段 21：像窗口一样，四条边 + 四个角都能拖动调整大小。
+                 统一走 OnEdgeResizeDragDelta，用 Tag 区分方向；透明但可命中。 -->
+            <Thumb Grid.RowSpan="2" HorizontalAlignment="Left" VerticalAlignment="Stretch"
+                   Width="7" Cursor="SizeWE" Tag="Left" DragDelta="OnEdgeResizeDragDelta">
+                <Thumb.Template><ControlTemplate TargetType="Thumb"><Border Background="Transparent" /></ControlTemplate></Thumb.Template>
+            </Thumb>
+            <Thumb Grid.RowSpan="2" HorizontalAlignment="Right" VerticalAlignment="Stretch"
+                   Width="7" Cursor="SizeWE" Tag="Right" DragDelta="OnEdgeResizeDragDelta">
+                <Thumb.Template><ControlTemplate TargetType="Thumb"><Border Background="Transparent" /></ControlTemplate></Thumb.Template>
+            </Thumb>
+            <Thumb Grid.RowSpan="2" HorizontalAlignment="Stretch" VerticalAlignment="Top"
+                   Height="7" Cursor="SizeNS" Tag="Top" DragDelta="OnEdgeResizeDragDelta">
+                <Thumb.Template><ControlTemplate TargetType="Thumb"><Border Background="Transparent" /></ControlTemplate></Thumb.Template>
+            </Thumb>
+            <Thumb Grid.RowSpan="2" HorizontalAlignment="Stretch" VerticalAlignment="Bottom"
+                   Height="7" Cursor="SizeNS" Tag="Bottom" DragDelta="OnEdgeResizeDragDelta">
+                <Thumb.Template><ControlTemplate TargetType="Thumb"><Border Background="Transparent" /></ControlTemplate></Thumb.Template>
+            </Thumb>
+            <Thumb Grid.RowSpan="2" HorizontalAlignment="Left" VerticalAlignment="Top"
+                   Width="14" Height="14" Cursor="SizeNWSE" Tag="TopLeft" DragDelta="OnEdgeResizeDragDelta">
+                <Thumb.Template><ControlTemplate TargetType="Thumb"><Border Background="Transparent" /></ControlTemplate></Thumb.Template>
+            </Thumb>
+            <Thumb Grid.RowSpan="2" HorizontalAlignment="Right" VerticalAlignment="Top"
+                   Width="14" Height="14" Cursor="SizeNESW" Tag="TopRight" DragDelta="OnEdgeResizeDragDelta">
+                <Thumb.Template><ControlTemplate TargetType="Thumb"><Border Background="Transparent" /></ControlTemplate></Thumb.Template>
+            </Thumb>
+            <Thumb Grid.RowSpan="2" HorizontalAlignment="Left" VerticalAlignment="Bottom"
+                   Width="14" Height="14" Cursor="SizeNESW" Tag="BottomLeft" DragDelta="OnEdgeResizeDragDelta">
+                <Thumb.Template><ControlTemplate TargetType="Thumb"><Border Background="Transparent" /></ControlTemplate></Thumb.Template>
+            </Thumb>
+            <Thumb Grid.RowSpan="2" HorizontalAlignment="Right" VerticalAlignment="Bottom"
+                   Width="16" Height="16" Cursor="SizeNWSE" Tag="BottomRight" DragDelta="OnEdgeResizeDragDelta">
                 <Thumb.Template>
                     <ControlTemplate TargetType="Thumb">
                         <Border Background="Transparent">
-                        <Path Data="M 14 2 L 2 14 M 14 8 L 8 14 M 14 14 L 14 14"
-                              Stroke="#59FFFFFF" StrokeThickness="1.5"
-                              HorizontalAlignment="Right" VerticalAlignment="Bottom"
-                              Margin="0,0,3,3" />
+                            <Path Data="M 14 2 L 2 14 M 14 8 L 8 14 M 14 14 L 14 14"
+                                  Stroke="#59FFFFFF" StrokeThickness="1.5"
+                                  HorizontalAlignment="Right" VerticalAlignment="Bottom" Margin="0,0,3,3" />
                         </Border>
                     </ControlTemplate>
                 </Thumb.Template>
