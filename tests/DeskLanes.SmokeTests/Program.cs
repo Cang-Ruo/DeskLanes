@@ -3322,6 +3322,60 @@ Console.WriteLine("== 26. 大桌面：项目数超过图标缓存上限时的表
     }
 }
 
+// ---------------------------------------------------------------- 32. 阶段 24：底部「全部」两区 / 拖动收起状态
+{
+    string p24Root = Path.Combine(Path.GetTempPath(), "DeskLanesP24_" + Guid.NewGuid().ToString("N"));
+    string p24Cfg = p24Root + "_cfg";
+    Directory.CreateDirectory(p24Root);
+    Directory.CreateDirectory(p24Cfg);
+    try
+    {
+        var ws24 = new WorkspaceService(new LibraryStore(p24Cfg), new ConfigStore(p24Cfg),
+            new ShortcutResolver());
+        DesktopItem Make24(string name, DesktopItemKind kind) => new()
+        {
+            Name = name, FullPath = Path.Combine(p24Root, name),
+            Kind = kind, Origin = ItemOrigin.UserDesktop,
+        };
+        await ws24.MergeScanAsync(new ScanResult
+        {
+            Items = new[]
+            {
+                Make24("Zeta 软件", DesktopItemKind.Shortcut),
+                Make24("Alpha 软件", DesktopItemKind.Shortcut),
+                Make24("Zeta 文件夹", DesktopItemKind.Folder),
+                Make24("Alpha 文件夹", DesktopItemKind.Folder),
+            },
+            ScopeDirectories = new[] { p24Root },
+        });
+
+        var fp24 = new FreePanelsViewModel(ws24, new ConsoleDialogService(), launchService,
+            new ShellState());
+        Check(fp24.PoolAppItems.Count == 2 && fp24.PoolFolderItems.Count == 2,
+            "底部「全部」按软件 / 文件夹分流", $"{fp24.PoolAppItems.Count}/{fp24.PoolFolderItems.Count}");
+        Check(fp24.PoolAppItems.Select(i => i.Name).SequenceEqual(new[] { "Alpha 软件", "Zeta 软件" })
+              && fp24.PoolFolderItems.Select(i => i.Name).SequenceEqual(new[] { "Alpha 文件夹", "Zeta 文件夹" }),
+            "底部两区各自 A-Z 排序", "");
+        Check(!fp24.IsDraggingItem, "平时不处于拖拽态", "");
+        DragState.BeginDrag();
+        Check(fp24.IsDraggingItem, "开始拖项目时覆盖层收到收起信号", "");
+        DragState.EndDrag();
+        Check(!fp24.IsDraggingItem, "拖放结束后恢复", "");
+    }
+    finally
+    {
+        try
+        {
+            Directory.Delete(p24Root, true);
+            Directory.Delete(p24Cfg, true);
+        }
+        catch
+        {
+            // 临时目录清理失败不影响结果
+        }
+    }
+}
+
 // ---------------------------------------------------------------- 汇总
 Console.WriteLine();
 Console.WriteLine($"===== 冒烟测试结果：通过 {passed} 项，失败 {failed} 项 =====");

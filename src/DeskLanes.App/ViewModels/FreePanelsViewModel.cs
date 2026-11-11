@@ -87,7 +87,9 @@ public sealed class FreePanelsViewModel : ObservableObject
 
     public string SelectedPanelTitle => SelectedPanel?.Title ?? string.Empty;
 
-    private double _poolPanelHeight = 170;
+    // 阶段 24：默认高一点，让「软件」「文件夹」两区都能一眼看到；
+    // 高度仍可拖动，且底部区是覆盖层，不会压缩上方面布。
+    private double _poolPanelHeight = 250;
 
     /// <summary>阶段 23：底部「全部」区高度，可由上边界的分隔条拖动调整。</summary>
     public double PoolPanelHeight

@@ -1,4 +1,5 @@
 using System.Windows;
+using DeskLanes.Core;
 using System.Windows.Controls;
 using System.Windows.Input;
 using System.Windows.Media;
@@ -24,6 +25,8 @@ public partial class ItemTile : UserControl
 {
     private Point _startPoint;
     private bool _pendingDrag;
+    // 阶段 24：拖拽时跟随鼠标的软件图标幽灵窗口
+    private Window? _dragGhost;
 
     public ItemTile()
     {
@@ -98,8 +101,23 @@ public partial class ItemTile : UserControl
         _pendingDrag = false;
         try
         {
-            // 通知全局：此刻有项目在拖。底部移除区据此显示。
+            // 通知全局：此刻有项目在拖。底部移除区据此显示，
+            // 底部「全部」覆盖层也会暂时淡出让开画布。
             DragState.BeginDrag();
+
+            // 阶段 24：拖起来时跟着一个带软件图标的小窗口，
+            // 不再只有系统默认的空白拖拽反馈。
+            try
+            {
+                _dragGhost = CreateDragGhost();
+                GiveFeedback += OnGiveFeedback;
+            }
+            catch
+            {
+                // 幽灵窗口创建失败（极少数 COM/DWM 场景）不影响拖放本身
+                _dragGhost = null;
+            }
+
             DragDrop.DoDragDrop(this, DragDropFormats.CreateDataObject(Item.Id), DragDropEffects.Move);
         }
         catch
@@ -108,10 +126,98 @@ public partial class ItemTile : UserControl
         }
         finally
         {
+            GiveFeedback -= OnGiveFeedback;
+            if (_dragGhost is not null)
+            {
+                try
+                {
+                    _dragGhost.Close();
+                }
+                catch
+                {
+                    // 关闭失败不影响后续
+                }
+
+                _dragGhost = null;
+            }
+
             // DoDragDrop 是同步阻塞的，返回即代表拖拽结束
             DragState.EndDrag();
         }
     }
 
     private void OnMouseLeave(object sender, MouseEventArgs e) => _pendingDrag = false;
+    /// <summary>拖动过程中把幽灵窗口挪到鼠标旁（物理像素换算成 DIP）。</summary>
+    private void PositionGhost(Window ghost)
+    {
+        if (!MonitorInterop.GetCursorPos(out MonitorInterop.POINT pt))
+        {
+            return;
+        }
+
+        double scale = PresentationSource.FromVisual(this)?.CompositionTarget?.TransformFromDevice.M11 ?? 1.0;
+        ghost.Left = pt.X * scale + 16;
+        ghost.Top = pt.Y * scale + 14;
+    }
+
+    private void OnGiveFeedback(object sender, GiveFeedbackEventArgs e)
+    {
+        if (_dragGhost is not null)
+        {
+            PositionGhost(_dragGhost);
+        }
+
+        e.Handled = true;
+    }
+
+    /// <summary>创建跟随鼠标的拖拽图标（图标 + 名称），鼠标可穿透、不抢焦点。</summary>
+    private Window CreateDragGhost()
+    {
+        var row = new StackPanel { Orientation = Orientation.Horizontal };
+        if (Item?.Icon is ImageSource icon)
+        {
+            row.Children.Add(new Image
+            {
+                Source = icon,
+                Width = 32,
+                Height = 32,
+                Margin = new Thickness(0, 0, 8, 0),
+            });
+        }
+
+        row.Children.Add(new TextBlock
+        {
+            Text = Item?.Name ?? string.Empty,
+            Foreground = Brushes.White,
+            FontSize = 12,
+            MaxWidth = 160,
+            VerticalAlignment = VerticalAlignment.Center,
+            TextTrimming = TextTrimming.CharacterEllipsis,
+        });
+
+        var ghost = new Window
+        {
+            WindowStyle = WindowStyle.None,
+            AllowsTransparency = true,
+            Background = Brushes.Transparent,
+            Topmost = true,
+            ShowInTaskbar = false,
+            ShowActivated = false,
+            IsHitTestVisible = false,
+            SizeToContent = SizeToContent.WidthAndHeight,
+            Opacity = 0.92,
+            Content = new Border
+            {
+                Background = new SolidColorBrush(Color.FromArgb(0xE6, 0x2B, 0x2B, 0x2B)),
+                CornerRadius = new CornerRadius(6),
+                Padding = new Thickness(8, 5, 10, 5),
+                Child = row,
+            },
+        };
+
+        PositionGhost(ghost);
+        ghost.Show();
+        return ghost;
+    }
+
 }

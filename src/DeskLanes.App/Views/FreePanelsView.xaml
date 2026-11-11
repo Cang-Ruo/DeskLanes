@@ -6,6 +6,38 @@
     <UserControl.Resources>
         <local:BindingProxy x:Key="VM" Data="{Binding}" />
         <BooleanToVisibilityConverter x:Key="BoolToVis" />
+        <!-- 阶段 24：底部「全部」两区共用的项目列表样式 -->
+        <Style x:Key="PoolListStyle" TargetType="ListBox">
+            <Setter Property="Background" Value="Transparent" />
+            <Setter Property="BorderThickness" Value="0" />
+            <Setter Property="ScrollViewer.HorizontalScrollBarVisibility" Value="Disabled" />
+            <Setter Property="ItemsPanel">
+                <Setter.Value>
+                    <ItemsPanelTemplate><WrapPanel Orientation="Horizontal" /></ItemsPanelTemplate>
+                </Setter.Value>
+            </Setter>
+            <Setter Property="ItemContainerStyle">
+                <Setter.Value>
+                    <Style TargetType="ListBoxItem" BasedOn="{StaticResource {x:Type ListBoxItem}}">
+                        <Setter Property="ContextMenu">
+                            <Setter.Value>
+                                <ContextMenu>
+                                    <MenuItem Header="打开"
+                                              Command="{Binding Data.OpenItemCommand, Source={StaticResource VM}}"
+                                              CommandParameter="{Binding PlacementTarget.DataContext, RelativeSource={RelativeSource AncestorType=ContextMenu}}" />
+                                    <MenuItem Header="从工作区移除"
+                                              Command="{Binding Data.RemoveItemCommand, Source={StaticResource VM}}"
+                                              CommandParameter="{Binding PlacementTarget.DataContext, RelativeSource={RelativeSource AncestorType=ContextMenu}}" />
+                                </ContextMenu>
+                            </Setter.Value>
+                        </Setter>
+                    </Style>
+                </Setter.Value>
+            </Setter>
+            <Setter Property="ItemTemplate">
+                <Setter.Value><DataTemplate><local:ItemTile /></DataTemplate></Setter.Value>
+            </Setter>
+        </Style>
     </UserControl.Resources>
 
     <DockPanel>
@@ -32,82 +64,7 @@
             </TextBlock>
         </StackPanel>
 
-        <!-- 底部：「全部」项目 + 移除区（阶段 19）
-             （必须在画布之前声明并停靠底部：画布 Grid 是最后子元素、填充剩余空间；
-               若画布在池区之前声明，它会按默认 Left 停靠占满全高，把池区挤成 0 高度） -->
-        <StackPanel DockPanel.Dock="Bottom">
-            <!-- 阶段 23：拖这条上边界，把「全部」区往上拉高 / 往下压矮 -->
-            <Thumb Height="9" Cursor="SizeNS" DragDelta="OnPoolResizeDragDelta"
-                   ToolTip="按住向上拖动可放大「全部」区" Margin="0,0,0,2">
-                <Thumb.Template>
-                    <ControlTemplate TargetType="Thumb">
-                        <Border Background="Transparent" Padding="0,3">
-                            <Border Background="{StaticResource BrushBorderGlass}" Height="2" CornerRadius="1" />
-                        </Border>
-                    </ControlTemplate>
-                </Thumb.Template>
-            </Thumb>
-            <Border Style="{StaticResource DropZone}" Margin="0,0,0,8"
-                    Height="{Binding PoolPanelHeight}"
-                    AllowDrop="True" Drop="OnPoolDrop" DragOver="OnPoolDragOver">
-                <DockPanel>
-                    <TextBlock DockPanel.Dock="Top" Text="{Binding PoolHeaderText}"
-                               FontSize="12" FontWeight="SemiBold" Foreground="{StaticResource BrushTextPrimary}"
-                               dt:DynamicText.Tone="Primary" Margin="2,0,0,6" />
-                    <ListBox ItemsSource="{Binding PoolItems}"
-                             Background="Transparent" BorderThickness="0"
-                             ScrollViewer.HorizontalScrollBarVisibility="Disabled"
-                             ScrollViewer.VerticalScrollBarVisibility="Auto"
-                             Visibility="{Binding HasPoolItems, Converter={StaticResource BoolToVis}}">
-                        <ListBox.ItemsPanel>
-                            <ItemsPanelTemplate>
-                                <WrapPanel Orientation="Horizontal" />
-                            </ItemsPanelTemplate>
-                        </ListBox.ItemsPanel>
-                        <ListBox.ItemContainerStyle>
-                            <Style TargetType="ListBoxItem" BasedOn="{StaticResource {x:Type ListBoxItem}}">
-                                <Setter Property="ContextMenu">
-                                    <Setter.Value>
-                                        <ContextMenu>
-                                            <MenuItem Header="打开"
-                                                      Command="{Binding Data.OpenItemCommand, Source={StaticResource VM}}"
-                                                      CommandParameter="{Binding PlacementTarget.DataContext, RelativeSource={RelativeSource AncestorType=ContextMenu}}" />
-                                            <MenuItem Header="从工作区移除"
-                                                      Command="{Binding Data.RemoveItemCommand, Source={StaticResource VM}}"
-                                                      CommandParameter="{Binding PlacementTarget.DataContext, RelativeSource={RelativeSource AncestorType=ContextMenu}}" />
-                                        </ContextMenu>
-                                    </Setter.Value>
-                                </Setter>
-                            </Style>
-                        </ListBox.ItemContainerStyle>
-                        <ListBox.ItemTemplate>
-                            <DataTemplate>
-                                <local:ItemTile />
-                            </DataTemplate>
-                        </ListBox.ItemTemplate>
-                        <ListBox.InputBindings>
-                            <KeyBinding Key="Enter"
-                                        Command="{Binding OpenItemCommand}"
-                                        CommandParameter="{Binding SelectedItem, RelativeSource={RelativeSource AncestorType=ListBox}}" />
-                        </ListBox.InputBindings>
-                    </ListBox>
-                    <TextBlock Text="全部项目都显示在这里（含已加入分区的）；把项目拖到上方分区即可加入。"
-                               Style="{StaticResource HintText}"
-                               Visibility="{Binding HasNoPoolItems, Converter={StaticResource BoolToVis}}" />
-                </DockPanel>
-            </Border>
-
-            <!-- 移除区：只在拖拽项目时出现。
-                 平时一条常驻的红色横条会不停抢视觉焦点，与「低存在感」冲突；
-                 拖拽行为与安全规则本身完全不变。 -->
-            <Border Style="{StaticResource DangerZone}"
-                    AllowDrop="True" Drop="OnRemoveDrop" DragOver="OnRemoveDragOver"
-                    Visibility="{Binding IsDraggingItem, Converter={StaticResource BoolToVis}}">
-                <TextBlock Text="🗑 把项目拖到这里，从工作区移除（不会删除桌面文件）"
-                           FontSize="12" Foreground="{StaticResource BrushDangerText}" HorizontalAlignment="Center" />
-            </Border>
-        </StackPanel>
-
+        <Grid>
         <!-- 虚拟画布：1600×900，用 ScaleTransform 等比缩放到可用空间
              （不用 Viewbox：Viewbox 与 RenderTargetBitmap 截图不兼容，且对动态内容有渲染怪癖） -->
         <Grid x:Name="CanvasHost" ClipToBounds="True" SizeChanged="OnCanvasHostSizeChanged">
@@ -150,6 +107,86 @@
                     </ItemsControl.ItemTemplate>
                 </ItemsControl>
             </Border>
+        </Grid>
+        <!-- 底部：「全部」项目 + 移除区（阶段 19）
+             （必须在画布之前声明并停靠底部：画布 Grid 是最后子元素、填充剩余空间；
+               若画布在池区之前声明，它会按默认 Left 停靠占满全高，把池区挤成 0 高度） -->
+        <!-- 阶段 24：底部「全部」浮在画布之上，不参与 DockPanel 尺寸分配。
+             拖高只会盖住画布下部，画布/分区的尺寸与位置不变（「示例范围」）。 -->
+        <StackPanel x:Name="BottomOverlay" VerticalAlignment="Bottom" Panel.ZIndex="2">
+            <StackPanel.Style>
+                <Style TargetType="StackPanel">
+                    <Setter Property="Opacity" Value="1" />
+                    <Setter Property="IsHitTestVisible" Value="True" />
+                    <Style.Triggers>
+                        <!-- 拖软件时暂时收起：淡出并穿透，落点直接落到画布/分区 -->
+                        <DataTrigger Binding="{Binding IsDraggingItem}" Value="True">
+                            <Setter Property="Opacity" Value="0.12" />
+                            <Setter Property="IsHitTestVisible" Value="False" />
+                        </DataTrigger>
+                    </Style.Triggers>
+                </Style>
+            </StackPanel.Style>
+            <!-- 阶段 23：拖这条上边界，把「全部」区往上拉高 / 往下压矮 -->
+            <Thumb Height="9" Cursor="SizeNS" DragDelta="OnPoolResizeDragDelta"
+                   ToolTip="按住向上拖动可放大「全部」区" Margin="0,0,0,2">
+                <Thumb.Template>
+                    <ControlTemplate TargetType="Thumb">
+                        <Border Background="Transparent" Padding="0,3">
+                            <Border Background="{StaticResource BrushBorderGlass}" Height="2" CornerRadius="1" />
+                        </Border>
+                    </ControlTemplate>
+                </Thumb.Template>
+            </Thumb>
+            <Border Style="{StaticResource DropZone}" Margin="0,0,0,8"
+                    Height="{Binding PoolPanelHeight}"
+                    AllowDrop="True" Drop="OnPoolDrop" DragOver="OnPoolDragOver">
+                <DockPanel>
+                    <TextBlock DockPanel.Dock="Top" Text="{Binding PoolHeaderText}"
+                               FontSize="12" FontWeight="SemiBold" Foreground="{StaticResource BrushTextPrimary}"
+                               dt:DynamicText.Tone="Primary" Margin="2,0,0,6" />
+                    <!-- 阶段 24：「全部」按软件 / 文件夹分成左右两栏，各自 A-Z、各自滚动，
+                         两个标题始终可见（上下堆叠时软件会把文件夹挤到滚动区外）。 -->
+                    <Grid Visibility="{Binding HasPoolItems, Converter={StaticResource BoolToVis}}">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="2*" />
+                            <ColumnDefinition Width="*" />
+                        </Grid.ColumnDefinitions>
+                        <DockPanel Grid.Column="0" Margin="0,0,8,0">
+                            <Border DockPanel.Dock="Top" Background="{StaticResource BrushLabelScrim}"
+                                    CornerRadius="3" Padding="6,2" Margin="2,0,0,4" HorizontalAlignment="Left">
+                                <TextBlock Text="软件" FontSize="11" FontWeight="SemiBold"
+                                           Foreground="{StaticResource BrushTextPrimary}" />
+                            </Border>
+                            <ListBox ItemsSource="{Binding PoolAppItems}" Style="{StaticResource PoolListStyle}"
+                                     ScrollViewer.VerticalScrollBarVisibility="Auto" />
+                        </DockPanel>
+                        <DockPanel Grid.Column="1">
+                            <Border DockPanel.Dock="Top" Background="{StaticResource BrushLabelScrim}"
+                                    CornerRadius="3" Padding="6,2" Margin="2,0,0,4" HorizontalAlignment="Left">
+                                <TextBlock Text="文件夹" FontSize="11" FontWeight="SemiBold"
+                                           Foreground="{StaticResource BrushTextPrimary}" />
+                            </Border>
+                            <ListBox ItemsSource="{Binding PoolFolderItems}" Style="{StaticResource PoolListStyle}"
+                                     ScrollViewer.VerticalScrollBarVisibility="Auto" />
+                        </DockPanel>
+                    </Grid>
+                    <TextBlock Text="全部项目都显示在这里（含已加入分区的）；把项目拖到上方分区即可加入。"
+                               Style="{StaticResource HintText}"
+                               Visibility="{Binding HasNoPoolItems, Converter={StaticResource BoolToVis}}" />
+                </DockPanel>
+            </Border>
+
+            <!-- 移除区：只在拖拽项目时出现。
+                 平时一条常驻的红色横条会不停抢视觉焦点，与「低存在感」冲突；
+                 拖拽行为与安全规则本身完全不变。 -->
+            <Border Style="{StaticResource DangerZone}"
+                    AllowDrop="True" Drop="OnRemoveDrop" DragOver="OnRemoveDragOver"
+                    Visibility="{Binding IsDraggingItem, Converter={StaticResource BoolToVis}}">
+                <TextBlock Text="🗑 把项目拖到这里，从工作区移除（不会删除桌面文件）"
+                           FontSize="12" Foreground="{StaticResource BrushDangerText}" HorizontalAlignment="Center" />
+            </Border>
+        </StackPanel>
         </Grid>
     </DockPanel>
 </UserControl>
