@@ -20,7 +20,7 @@ public sealed class FloatingWindowViewModel : ObservableObject
     private readonly Dictionary<string, DesktopItem> _itemsById = new(StringComparer.Ordinal);
 
     private FloatingCategoryViewModel? _selectedCategory;
-    private string _statusText = "就绪";
+    private string _statusText = string.Empty;
     // 阶段 19：悬浮窗两种视图 + 文件夹视图里当前打开的分组
     private FloatingViewMode _viewMode = FloatingViewMode.All;
     private ShortcutGroup? _openedFolder;
@@ -160,10 +160,19 @@ public sealed class FloatingWindowViewModel : ObservableObject
         : $"{(_selectedCategory?.Name ?? "当前分类")} 还没有项目。";
 
     /// <summary>状态栏文字（启动结果 / 项目数）。</summary>
+    /// <summary>阶段 23：平时不显示状态栏，只有启动失败等真正需要提示时才出现。</summary>
+    public bool HasStatusText => !string.IsNullOrEmpty(StatusText);
+
     public string StatusText
     {
         get => _statusText;
-        private set => SetProperty(ref _statusText, value);
+        private set
+        {
+            if (SetProperty(ref _statusText, value))
+            {
+                OnPropertyChanged(nameof(HasStatusText));
+            }
+        }
     }
 
     /// <summary>失焦时是否自动隐藏（可在设置里关闭）。</summary>
@@ -186,9 +195,8 @@ public sealed class FloatingWindowViewModel : ObservableObject
         }
 
         LaunchResult result = _launchService.Launch(item);
-        StatusText = result.Success
-            ? $"已启动：{item.Name}"
-            : (result.ErrorMessage ?? "启动失败。");
+        // 阶段 23：启动成功不再往左下角写「已启动：xxx」，失败才提示。
+        StatusText = result.Success ? string.Empty : (result.ErrorMessage ?? "启动失败。");
     }
 
     private void Rebuild()

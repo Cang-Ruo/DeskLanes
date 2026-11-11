@@ -35,6 +35,7 @@ public sealed class FreePanelsViewModel : ObservableObject
         _itemsById = new Dictionary<string, DesktopItem>(StringComparer.Ordinal);
 
         NewPanelCommand = new RelayCommand(_ => CreatePanel());
+        ArrangePanelsCommand = new RelayCommand(_ => ArrangePanels());
         RenamePanelCommand = new RelayCommand(_ => RenamePanel(), _ => SelectedPanel is not null);
         DeletePanelCommand = new RelayCommand(_ => DeletePanel(), _ => SelectedPanel is not null);
         MovePanelUpCommand = new RelayCommand(_ => MovePanel(-1), _ => CanMove(-1));
@@ -86,6 +87,19 @@ public sealed class FreePanelsViewModel : ObservableObject
 
     public string SelectedPanelTitle => SelectedPanel?.Title ?? string.Empty;
 
+    private double _poolPanelHeight = 170;
+
+    /// <summary>阶段 23：底部「全部」区高度，可由上边界的分隔条拖动调整。</summary>
+    public double PoolPanelHeight
+    {
+        get => _poolPanelHeight;
+        set
+        {
+            double bounded = Math.Max(120, Math.Min(600, value));
+            SetProperty(ref _poolPanelHeight, bounded);
+        }
+    }
+
     public string PoolHeaderText => $"全部（{PoolItems.Count}）";
 
     public bool HasPoolItems => PoolItems.Count > 0;
@@ -93,6 +107,8 @@ public sealed class FreePanelsViewModel : ObservableObject
     public bool HasNoPoolItems => PoolItems.Count == 0;
 
     public RelayCommand NewPanelCommand { get; }
+
+    public RelayCommand ArrangePanelsCommand { get; }
 
     public RelayCommand RenamePanelCommand { get; }
 
@@ -144,6 +160,31 @@ public sealed class FreePanelsViewModel : ObservableObject
         _workspace.UpdatePanelLayout(panel, px, py, panel.Width, panel.Height);
         _workspace.AssignItemToPanel(item, panel);
         SelectedPanel = Panels.FirstOrDefault(p => p.Model.Id == panel.Id);
+    }
+
+    /// <summary>阶段 23：把已有面板按网格重新排一遍，修掉历史上重叠的布局。</summary>
+    private void ArrangePanels()
+    {
+        const double gap = 16;
+        double x = WorkspacePanel.DefaultX;
+        double y = WorkspacePanel.DefaultY;
+        double rowHeight = 0;
+
+        foreach (WorkspacePanel panel in _workspace.Panels.OrderBy(p => p.Order).ToList())
+        {
+            double w = Math.Max(panel.Width, WorkspacePanel.MinWidth);
+            double h = Math.Max(panel.Height, WorkspacePanel.MinHeight);
+            if (x + w > WorkspacePanel.CanvasWidth)
+            {
+                x = WorkspacePanel.DefaultX;
+                y += rowHeight + gap;
+                rowHeight = 0;
+            }
+
+            _workspace.UpdatePanelLayout(panel, x, y, panel.Width, panel.Height);
+            x += w + gap;
+            rowHeight = Math.Max(rowHeight, h);
+        }
     }
 
     /// <summary>按 Id 查找项目（拖拽放置时用）；找不到返回 null。</summary>

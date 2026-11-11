@@ -3252,6 +3252,76 @@ Console.WriteLine("== 26. 大桌面：项目数超过图标缓存上限时的表
     }
 }
 
+// ---------------------------------------------------------------- 31. 阶段 23：状态栏 / 面板避让 / 全部区高度
+{
+    string p23Root = Path.Combine(Path.GetTempPath(), "DeskLanesP23_" + Guid.NewGuid().ToString("N"));
+    string p23Cfg = p23Root + "_cfg";
+    Directory.CreateDirectory(p23Root);
+    Directory.CreateDirectory(p23Cfg);
+    try
+    {
+        var ws23 = new WorkspaceService(new LibraryStore(p23Cfg), new ConfigStore(p23Cfg),
+            new ShortcutResolver());
+        var state23 = new ShellState();
+        var dlg23 = new ConsoleDialogService();
+
+        // 连建 5 个分区，两两不得相交
+        for (int i = 0; i < 5; i++)
+        {
+            ws23.CreatePanel("分区" + i);
+        }
+
+        bool Overlaps(WorkspacePanel a, WorkspacePanel b)
+            => a.X < b.X + b.Width && a.X + a.Width > b.X
+               && a.Y < b.Y + b.Height && a.Y + a.Height > b.Y;
+
+        bool anyOverlap = ws23.Panels
+            .SelectMany((a, i) => ws23.Panels.Skip(i + 1).Select(b => Overlaps(a, b)))
+            .Any(x => x);
+        Check(!anyOverlap, "连续新建 5 个分区互不重叠",
+            string.Join(" ", ws23.Panels.Select(p => $"({p.X},{p.Y})")));
+
+        // 「整理」命令能修掉历史重叠
+        var fp23 = new FreePanelsViewModel(ws23, dlg23, launchService, state23);
+        WorkspacePanel first = ws23.Panels[0];
+        WorkspacePanel second = ws23.Panels[1];
+        ws23.UpdatePanelLayout(second, first.X, first.Y, second.Width, second.Height);
+        Check(Overlaps(first, second), "先人为造出重叠（验证用例有效）", "");
+        fp23.ArrangePanelsCommand.Execute(null);
+        bool stillOverlapping = ws23.Panels
+            .SelectMany((a, i) => ws23.Panels.Skip(i + 1).Select(b => Overlaps(a, b)))
+            .Any(x => x);
+        Check(!stillOverlapping, "点「整理」把已有分区重新排开", "");
+
+        // 底部「全部」区高度可拖动，且有上下限
+        fp23.PoolPanelHeight = 320;
+        Check(fp23.PoolPanelHeight == 320, "「全部」区高度可增大", fp23.PoolPanelHeight.ToString());
+        fp23.PoolPanelHeight = 20;
+        Check(fp23.PoolPanelHeight >= 120, "「全部」区高度有下限", fp23.PoolPanelHeight.ToString());
+        fp23.PoolPanelHeight = 9999;
+        Check(fp23.PoolPanelHeight <= 600, "「全部」区高度有上限", fp23.PoolPanelHeight.ToString());
+
+        // 状态栏平时为空，不再显示「就绪 / 已启动」
+        var float23 = new FloatingWindowViewModel(ws23, dlg23, launchService, state23);
+        var side23 = new SidebarViewModel(ws23, dlg23, launchService, state23);
+        Check(string.IsNullOrEmpty(float23.StatusText) && !float23.HasStatusText
+              && string.IsNullOrEmpty(side23.StatusText) && !side23.HasStatusText,
+            "左下角状态栏平时为空（不再有「已启动」）", "");
+    }
+    finally
+    {
+        try
+        {
+            Directory.Delete(p23Root, true);
+            Directory.Delete(p23Cfg, true);
+        }
+        catch
+        {
+            // 临时目录清理失败不影响结果
+        }
+    }
+}
+
 // ---------------------------------------------------------------- 汇总
 Console.WriteLine();
 Console.WriteLine($"===== 冒烟测试结果：通过 {passed} 项，失败 {failed} 项 =====");

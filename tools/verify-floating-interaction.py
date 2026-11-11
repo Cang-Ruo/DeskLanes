@@ -98,6 +98,10 @@ class RECT(ctypes.Structure):
     _fields_ = [("left", ctypes.c_long), ("top", ctypes.c_long),
                 ("right", ctypes.c_long), ("bottom", ctypes.c_long)]
 
+class MONITORINFO(ctypes.Structure):
+    _fields_ = [("cbSize", wintypes.DWORD), ("rcMonitor", RECT),
+                ("rcWork", RECT), ("dwFlags", wintypes.DWORD)]
+
 
 class WINDOWPLACEMENT(ctypes.Structure):
     _fields_ = [("length", wintypes.UINT), ("flags", wintypes.UINT),
@@ -479,13 +483,23 @@ try:
         style = u.GetWindowLongW(hwnd, -16) & 0xFFFFFFFF  # GWL_STYLE
         has_caption = bool(style & 0x00C00000)             # WS_CAPTION
         has_thickframe = bool(style & 0x00040000)          # WS_THICKFRAME
-        primary_w = u.GetSystemMetrics(SM_CXSCREEN)
-        say("borderless fullscreen: no system chrome and covers the primary monitor",
+        # 阶段 22 起全屏按「鼠标所在屏」最大化，可能是主屏也可能是左竖屏，
+        # 因此和窗口实际所在那块屏的宽度比较，而不是硬编码主屏宽。
+        u.MonitorFromWindow.argtypes = [wintypes.HWND, wintypes.DWORD]
+        u.MonitorFromWindow.restype = ctypes.c_void_p
+        u.GetMonitorInfoW.argtypes = [ctypes.c_void_p, ctypes.POINTER(MONITORINFO)]
+        u.GetMonitorInfoW.restype = wintypes.BOOL
+        mi = MONITORINFO()
+        mi.cbSize = ctypes.sizeof(MONITORINFO)
+        monitor = u.MonitorFromWindow(hwnd, 2)  # MONITOR_DEFAULTTONEAREST
+        got_monitor = bool(monitor) and bool(u.GetMonitorInfoW(monitor, ctypes.byref(mi)))
+        target_w = (mi.rcMonitor.right - mi.rcMonitor.left) if got_monitor else u.GetSystemMetrics(SM_CXSCREEN)
+        say("borderless fullscreen: no system chrome and covers its monitor",
             not has_caption and not has_thickframe
             and get_showcmd(hwnd) == SW_MAXIMIZE
-            and w0 >= primary_w - 30,
-            "style=0x%08X caption=%s thickframe=%s showCmd=%d size=%dx%d primary=%d"
-            % (style, has_caption, has_thickframe, get_showcmd(hwnd), w0, h0, primary_w))
+            and w0 >= target_w - 30,
+            "style=0x%08X caption=%s thickframe=%s showCmd=%d size=%dx%d monitor=%d"
+            % (style, has_caption, has_thickframe, get_showcmd(hwnd), w0, h0, target_w))
 
         # Same message the restore button sends. Going through the real message matters:
         # it is what flips the "user restored" flag and triggers the fit.

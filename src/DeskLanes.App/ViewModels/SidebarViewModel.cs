@@ -19,7 +19,7 @@ public sealed class SidebarViewModel : ObservableObject
 
     private SidebarCategoryViewModel? _selectedCategory;
     private bool _isExpanded;
-    private string _statusText = "就绪";
+    private string _statusText = string.Empty;
 
     public SidebarViewModel(
         IWorkspaceService workspace,
@@ -156,10 +156,19 @@ public sealed class SidebarViewModel : ObservableObject
         }
     }
 
+    /// <summary>阶段 23：平时不显示状态栏，只有启动失败等真正需要提示时才出现。</summary>
+    public bool HasStatusText => !string.IsNullOrEmpty(StatusText);
+
     public string StatusText
     {
         get => _statusText;
-        private set => SetProperty(ref _statusText, value);
+        private set
+        {
+            if (SetProperty(ref _statusText, value))
+            {
+                OnPropertyChanged(nameof(HasStatusText));
+            }
+        }
     }
 
     public RelayCommand OpenItemCommand { get; }
@@ -202,7 +211,8 @@ public sealed class SidebarViewModel : ObservableObject
         }
 
         LaunchResult result = _launchService.Launch(item);
-        StatusText = result.Success ? $"已启动：{item.Name}" : (result.ErrorMessage ?? "启动失败。");
+        // 阶段 23：启动成功不提示，失败才提示。
+        StatusText = result.Success ? string.Empty : (result.ErrorMessage ?? "启动失败。");
     }
 
     private void Rebuild()
