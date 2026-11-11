@@ -1,5 +1,6 @@
 using System;
 using System.Windows;
+using System.Windows.Controls;
 using System.Windows.Controls.Primitives;
 using System.Windows.Input;
 using DeskLanes.App.Services;
@@ -224,4 +225,14 @@ public partial class FloatingWindow : Window
         double height = SystemParameters.VirtualScreenHeight;
         return left >= x - 24 && left < x + width - 60 && top >= y - 24 && top < y + height - 40;
     }
+    /// <summary>阶段 26：整个内容区都能用滚轮滚动。</summary>
+    private void OnOuterPreviewMouseWheel(object sender, MouseWheelEventArgs e)
+    {
+        if (sender is ScrollViewer viewer)
+        {
+            viewer.ScrollToVerticalOffset(viewer.VerticalOffset - e.Delta / 3.0);
+            e.Handled = true;
+        }
+    }
+
 }

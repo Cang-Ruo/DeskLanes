@@ -532,6 +532,9 @@ public sealed class PanelViewModel : ObservableObject
         OnPropertyChanged(nameof(ItemCount));
     }
 
+    /// <summary>阶段 26：拖动/缩放结束时补一次落盘（过程中已节流）。</summary>
+    public void FlushGeometry() => _workspace.Save();
+
     private void UpdateLayout(double x, double y, double width, double height)
     {
         // 拖拽/缩放高频路径：直接写模型并持久化，不触发 Changed 重建

@@ -123,4 +123,14 @@ public partial class SidebarWindow : Window
         }
     }
 
+    /// <summary>阶段 26：整个项目区都能用滚轮滚动，不再只有右侧滚动条可滚。</summary>
+    private void OnOuterPreviewMouseWheel(object sender, MouseWheelEventArgs e)
+    {
+        if (sender is ScrollViewer viewer)
+        {
+            viewer.ScrollToVerticalOffset(viewer.VerticalOffset - e.Delta / 3.0);
+            e.Handled = true;
+        }
+    }
+
 }

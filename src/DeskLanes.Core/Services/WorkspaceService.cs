@@ -31,6 +31,13 @@ public sealed class WorkspaceService : IWorkspaceService
         loadWarnings.AddRange(_configStore.Warnings);
         LoadWarnings = loadWarnings;
 
+        // 阶段 26：侧栏旧默认 280 偏宽，缩到 220；只迁移等于旧默认值的配置，
+        // 用户自己调过的宽度保留。
+        if (Math.Abs(SettingsData.SidebarWidth - 280) < 0.5)
+        {
+            SettingsData.SidebarWidth = 220;
+        }
+
         // 加载后保证排序稳定（防止手工编辑的配置顺序错乱）
         SortByOrder(Groups, g => g.Order);
         SortByOrder(Panels, p => p.Order);
@@ -40,6 +47,8 @@ public sealed class WorkspaceService : IWorkspaceService
         // 这里不补建缺失的一边，避免改变已有集合数量；切换布局时才补全。
         EnsurePairedContainers(createMissing: false);
     }
+
+    private DateTime _lastGeometrySaveUtc = DateTime.MinValue;
 
     private LibraryData Library => _libraryStore.Data;
 
@@ -651,8 +660,15 @@ public sealed class WorkspaceService : IWorkspaceService
         panel.Width = finalWidth;
         panel.Height = finalHeight;
 
-        // 拖拽/缩放过程中高频调用：只持久化，不触发 Changed 避免界面重建
-        Save();
+        // 阶段 26：DragDelta 每帧都会走这里，原先每次都序列化整个 library.json，
+        // 拖动明显卡顿。改成 200ms 节流；拖动结束由 PanelView 的 DragCompleted
+        // 调 Save() 收尾，保证最后一次几何一定落盘。
+        DateTime now = DateTime.UtcNow;
+        if ((now - _lastGeometrySaveUtc).TotalMilliseconds >= 200)
+        {
+            _lastGeometrySaveUtc = now;
+            Save();
+        }
     }
 
     public OperationResult AssignItemToPanel(DesktopItem item, WorkspacePanel? panel)
@@ -679,7 +695,7 @@ public sealed class WorkspaceService : IWorkspaceService
             // Group.ItemIds 是权威，先回写，避免下面镜像时把这次拖入覆盖掉
             ShortcutGroup? paired = PairedGroup(panel);
             paired?.ItemIds.Add(item.Id);
-            AutoGrowPanel(panel);   // 阶段 20：成员变多时边框跟着长大
+            AutoFitPanel(panel);   // 阶段 26：按成员数自适应，所有软件都显示得下
         }
         EnsurePairedContainers();
         Save();
@@ -837,8 +853,15 @@ public sealed class WorkspaceService : IWorkspaceService
             }
 
             panel.Title = group.Name;
+            int previousCount = panel.ItemIds.Count;
             panel.ItemIds.Clear();
             panel.ItemIds.AddRange(group.ItemIds);
+            // 阶段 26：只在成员数真的变化时才重算尺寸，避免启动加载时把用户
+            // 手动拖过的框大小覆盖掉。
+            if (panel.ItemIds.Count != previousCount)
+            {
+                AutoFitPanel(panel);
+            }
         }
 
         // 每个分区面板都要有一个分类（用户先在自由分区建面板的场景）
@@ -877,30 +900,28 @@ public sealed class WorkspaceService : IWorkspaceService
     }
 
     /// <summary>
-    /// 阶段 20：按成员数量把分区边框放大到能装下所有磁贴，避免拖进去的软件挤在
-    /// 固定的 320×240 里看不见。只放大不缩小，且不超过虚拟画布边界。
+    /// 阶段 26：按成员数精确自适应分区尺寸，保证所有软件都显示得下；
+    /// 可增可减（移出软件后框也会缩小），并向上取整到整数格保持间距整齐。
     /// </summary>
-    private static void AutoGrowPanel(WorkspacePanel panel)
+    private void AutoFitPanel(WorkspacePanel panel)
     {
         const double tileWidth = 120;
         const double tileHeight = 116;
         const double headerHeight = 46;
         const double padding = 20;
 
-        int perRow = Math.Max(1, (int)((panel.Width - padding) / tileWidth));
-        int rows = Math.Max(1, (panel.ItemIds.Count + perRow - 1) / perRow);
-        double neededHeight = headerHeight + rows * tileHeight + padding;
+        int count = panel.ItemIds.Count;
+        int columns = Math.Clamp((int)Math.Ceiling(Math.Sqrt(Math.Max(1, count))), 2, 5);
+        int rows = Math.Max(1, (count + columns - 1) / columns);
+        double grid = Math.Max(8, SettingsData.PanelGridSize);
 
-        if (panel.ItemIds.Count > perRow * rows && panel.Width < 480)
-        {
-            panel.Width = Math.Min(480, WorkspacePanel.CanvasWidth - panel.X);
-        }
+        double wantedWidth = SnapToGrid(columns * tileWidth + padding, grid, roundUp: true);
+        double wantedHeight = SnapToGrid(headerHeight + rows * tileHeight + padding, grid, roundUp: true);
 
-        if (neededHeight > panel.Height)
-        {
-            double maxHeight = Math.Max(panel.Height, WorkspacePanel.CanvasHeight - panel.Y - 8);
-            panel.Height = Math.Min(neededHeight, maxHeight);
-        }
+        double maxWidth = Math.Max(WorkspacePanel.MinWidth, WorkspacePanel.CanvasWidth - panel.X);
+        double maxHeight = Math.Max(WorkspacePanel.MinHeight, WorkspacePanel.CanvasHeight - panel.Y);
+        panel.Width = Math.Clamp(wantedWidth, WorkspacePanel.MinWidth, maxWidth);
+        panel.Height = Math.Clamp(wantedHeight, WorkspacePanel.MinHeight, maxHeight);
     }
 
     /// <summary>

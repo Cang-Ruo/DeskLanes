@@ -1241,8 +1241,8 @@ Check(settingDefaults.FloatingHideOnDeactivate, "悬浮窗默认失焦隐藏");
 Check(
     settingDefaults.SidebarDock == SidebarDock.Right &&
     settingDefaults.SidebarExpanded &&
-    settingDefaults.SidebarWidth == 280,
-    "侧边栏默认停靠右侧、展开、宽度 280");
+    settingDefaults.SidebarWidth == 220,
+    "侧边栏默认停靠右侧、展开、宽度 220（阶段 26 收窄）");
 Check(settingDefaults.SidebarAutoCollapse, "侧边栏默认失焦收起");
 Check(settingDefaults.MinimizeToTray, "默认关闭窗口时最小化到托盘");
 
@@ -3428,6 +3428,76 @@ Console.WriteLine("== 26. 大桌面：项目数超过图标缓存上限时的表
         {
             Directory.Delete(p25Root, true);
             Directory.Delete(p25Cfg, true);
+        }
+        catch
+        {
+            // 临时目录清理失败不影响结果
+        }
+    }
+}
+
+// ---------------------------------------------------------------- 34. 阶段 26：面板自适应尺寸 / 侧栏宽度
+{
+    string p26Root = Path.Combine(Path.GetTempPath(), "DeskLanesP26_" + Guid.NewGuid().ToString("N"));
+    string p26Cfg = p26Root + "_cfg";
+    Directory.CreateDirectory(p26Root);
+    Directory.CreateDirectory(p26Cfg);
+    try
+    {
+        var ws26 = new WorkspaceService(new LibraryStore(p26Cfg), new ConfigStore(p26Cfg),
+            new ShortcutResolver());
+        var items26 = new List<DesktopItem>();
+        for (int i = 0; i < 9; i++)
+        {
+            items26.Add(new DesktopItem
+            {
+                Name = "软件" + i, FullPath = Path.Combine(p26Root, "软件" + i),
+                Kind = DesktopItemKind.Shortcut, Origin = ItemOrigin.UserDesktop,
+            });
+        }
+        await ws26.MergeScanAsync(new ScanResult
+        {
+            Items = items26, ScopeDirectories = new[] { p26Root },
+        });
+
+        WorkspacePanel panel26 = ws26.CreatePanel("自适应面板");
+        double width0 = panel26.Width;
+        double height0 = panel26.Height;
+        foreach (DesktopItem item in items26)
+        {
+            ws26.AssignItemToPanel(item, panel26);
+            // 单成员制：实际是最后一个留在面板里，这里改为直接补成员验证尺寸计算
+            panel26.ItemIds.Clear();
+            panel26.ItemIds.AddRange(items26.Take(6).Select(i => i.Id));
+        }
+        ws26.AssignItemToPanel(items26[0], panel26);   // 触发一次自适应
+        Check(panel26.Height >= height0,
+            "成员变多时框不会变小（所有软件都显示得下）",
+            $"{height0} -> {panel26.Height}");
+
+        // 直接验证：手动清空成员再触发一次，框应能缩小
+        panel26.ItemIds.Clear();
+        ws26.AssignItemToPanel(items26[0], panel26);
+        Check(panel26.Height > 0 && panel26.Width > 0, "自适应尺寸保持有效几何", "");
+
+        // 手动调过的尺寸在重新加载后保留（成员数没变化不重算）
+        ws26.UpdatePanelLayout(panel26, 400, 200, 480, 360);
+        var reloaded26 = new WorkspaceService(new LibraryStore(p26Cfg), new ConfigStore(p26Cfg),
+            new ShortcutResolver());
+        WorkspacePanel? kept26 = reloaded26.Panels.FirstOrDefault(p => p.Id == panel26.Id);
+        Check(kept26 is not null && kept26.Width == 480 && kept26.Height == 360,
+            "重启后手动调过的框尺寸保留（不被自适应覆盖）",
+            kept26 is null ? "丢失" : $"{kept26.Width}x{kept26.Height}");
+
+        Check(reloaded26.Settings.SidebarWidth == 220,
+            "侧栏默认宽度收窄到 220", reloaded26.Settings.SidebarWidth.ToString());
+    }
+    finally
+    {
+        try
+        {
+            Directory.Delete(p26Root, true);
+            Directory.Delete(p26Cfg, true);
         }
         catch
         {

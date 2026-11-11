@@ -111,6 +111,7 @@
 
                 <!-- 阶段 21：软件在上、文件夹在下，各自 A-Z -->
                 <ScrollViewer Grid.Row="2" VerticalScrollBarVisibility="Auto"
+                              PreviewMouseWheel="OnOuterPreviewMouseWheel"
                               HorizontalScrollBarVisibility="Disabled"
                               Visibility="{Binding HasItems, Converter={StaticResource BoolToVis}}">
                     <StackPanel Orientation="Vertical">
@@ -137,7 +138,8 @@
                                                 <Border Background="{StaticResource BrushLabelScrim}" CornerRadius="3"
                                                         Padding="3,0" VerticalAlignment="Center">
                                                     <TextBlock Text="{Binding Name}" FontSize="12"
-                                                               TextTrimming="CharacterEllipsis" MaxWidth="200" />
+                                                               TextTrimming="CharacterEllipsis" MaxWidth="150"
+                                                   ToolTip="{Binding TooltipText}" />
                                                 </Border>
                                             </StackPanel>
                                         </Border>
@@ -170,7 +172,8 @@
                                                 <Border Background="{StaticResource BrushLabelScrim}" CornerRadius="3"
                                                         Padding="3,0" VerticalAlignment="Center">
                                                     <TextBlock Text="{Binding Name}" FontSize="12"
-                                                               TextTrimming="CharacterEllipsis" MaxWidth="200" />
+                                                               TextTrimming="CharacterEllipsis" MaxWidth="150"
+                                                   ToolTip="{Binding TooltipText}" />
                                                 </Border>
                                             </StackPanel>
                                         </Border>

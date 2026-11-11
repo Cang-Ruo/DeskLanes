@@ -380,7 +380,7 @@ public sealed class AppSettings : IVersionedData
     public bool SidebarExpanded { get; set; } = true;
 
     /// <summary>侧边栏宽度（展开时）。</summary>
-    public double SidebarWidth { get; set; } = 280;
+    public double SidebarWidth { get; set; } = 220;
 
     /// <summary>失去焦点时是否自动收起（可关闭，避免操作过程中意外消失）。</summary>
     public bool SidebarAutoCollapse { get; set; } = true;

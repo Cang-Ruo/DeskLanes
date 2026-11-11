@@ -148,6 +148,7 @@
             <Grid Grid.Row="2">
                 <!-- ① 全部视图：文件夹 / 软件两区，各自 A-Z -->
                 <ScrollViewer VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled"
+                              PreviewMouseWheel="OnOuterPreviewMouseWheel"
                               Visibility="{Binding IsAllView, Converter={StaticResource BoolToVis}}">
                     <StackPanel Orientation="Vertical">
                         <StackPanel Visibility="{Binding HasDesktopFolderItems, Converter={StaticResource BoolToVis}}">
@@ -191,6 +192,7 @@
 
                 <!-- ② 文件夹视图：每个分组一个带边框的框，框里直接列出软件 -->
                 <ScrollViewer VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled"
+                              PreviewMouseWheel="OnOuterPreviewMouseWheel"
                               Visibility="{Binding IsGroupCardsVisible, Converter={StaticResource BoolToVis}}">
                     <StackPanel Orientation="Vertical">
                         <ItemsControl ItemsSource="{Binding GroupCards}">

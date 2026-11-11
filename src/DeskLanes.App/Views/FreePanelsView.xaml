@@ -58,14 +58,9 @@
                     ToolTip="把已有分区按网格重新排开，消除重叠（不会删任何项目）"
                     Command="{Binding ArrangePanelsCommand}" />
             <!-- 阶段 25：底部「全部」默认收起，点这里弹出 / 收起 -->
-            <Button Content="{Binding PoolToggleText}" Padding="12,4" Margin="0,0,6,0" FontSize="12"
+            <Button Content="{Binding PoolToggleText}" Padding="12,4" Margin="0,0,14,0" FontSize="12"
                     ToolTip="展开或收起底部「全部」项目区"
                     Command="{Binding TogglePoolCommand}" />
-            <TextBlock Text="方格" FontSize="12" Foreground="{StaticResource BrushTextSecondary}"
-                       VerticalAlignment="Center" Margin="0,0,4,0" />
-            <ComboBox ItemsSource="{Binding GridSizeOptions}" SelectedItem="{Binding PanelGridSize}"
-                      Width="72" FontSize="12" Margin="0,0,14,0" VerticalAlignment="Center"
-                      ToolTip="画布方格大小；分区的位置与尺寸会吸附到整数格" />
             <TextBlock FontSize="12" Foreground="{StaticResource BrushTextSecondary}" VerticalAlignment="Center"
                        TextTrimming="CharacterEllipsis">
                 <Run Text="当前分区：" />
