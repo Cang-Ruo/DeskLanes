@@ -157,7 +157,8 @@
                                            Foreground="{StaticResource BrushTextPrimary}" />
                             </Border>
                             <ListBox ItemsSource="{Binding DesktopFolderItems}" Background="Transparent"
-                                     BorderThickness="0" ScrollViewer.HorizontalScrollBarVisibility="Disabled">
+                                     BorderThickness="0" ScrollViewer.HorizontalScrollBarVisibility="Disabled"
+                                     ScrollViewer.VerticalScrollBarVisibility="Disabled">
                                 <ListBox.ItemsPanel>
                                     <ItemsPanelTemplate><WrapPanel Orientation="Horizontal" /></ItemsPanelTemplate>
                                 </ListBox.ItemsPanel>
@@ -174,7 +175,8 @@
                                            Foreground="{StaticResource BrushTextPrimary}" />
                             </Border>
                             <ListBox ItemsSource="{Binding SoftwareItems}" Background="Transparent"
-                                     BorderThickness="0" ScrollViewer.HorizontalScrollBarVisibility="Disabled">
+                                     BorderThickness="0" ScrollViewer.HorizontalScrollBarVisibility="Disabled"
+                                     ScrollViewer.VerticalScrollBarVisibility="Disabled">
                                 <ListBox.ItemsPanel>
                                     <ItemsPanelTemplate><WrapPanel Orientation="Horizontal" /></ItemsPanelTemplate>
                                 </ListBox.ItemsPanel>

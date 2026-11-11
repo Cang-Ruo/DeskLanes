@@ -483,8 +483,14 @@ try
     Check(panel1.ItemIds.Count == 0 && panel2.ItemIds.Count == 1, "单成员制：跨分区调整只归属一个分区");
 
     workspace.UpdatePanelLayout(panel2, 100, 200, 400, 300);
-    Check(panel2.X == 100 && panel2.Y == 200 && panel2.Width == 400 && panel2.Height == 300,
-        "分区位置与尺寸更新");
+    // 阶段 25：几何吸附到整数方格，不再停在任意像素
+    double p25Grid = workspace.Settings.PanelGridSize;
+    Check(panel2.X % p25Grid == 0 && panel2.Y % p25Grid == 0
+          && panel2.Width % p25Grid == 0 && panel2.Height % p25Grid == 0
+          && Math.Abs(panel2.X - 100) <= p25Grid && Math.Abs(panel2.Y - 200) <= p25Grid
+          && Math.Abs(panel2.Width - 400) <= p25Grid && Math.Abs(panel2.Height - 300) <= p25Grid,
+        "分区位置与尺寸按方格吸附",
+        $"X={panel2.X} Y={panel2.Y} W={panel2.Width} H={panel2.Height} grid={p25Grid}");
 
     workspace.UpdatePanelLayout(panel2, -500, 99999, 5, 5);
     Check(panel2.X == 0 && panel2.Width == WorkspacePanel.MinWidth,
@@ -960,10 +966,12 @@ try
     Check(syncWorkspace.Groups.Any(g => g.Id == keepGroup.Id),
         "同步后分类仍在（不被重建）",
         $"groups={syncWorkspace.Groups.Count}");
+    double syncGrid = syncWorkspace.Settings.PanelGridSize;
     Check(syncWorkspace.Panels.Any(p => p.Id == keepPanel.Id)
-          && keepPanel.X == 111 && keepPanel.Width == 333,
-        "同步后分区几何保留",
-        $"X={keepPanel.X} W={keepPanel.Width} panels={syncWorkspace.Panels.Count}");
+          && keepPanel.X % syncGrid == 0 && keepPanel.Width % syncGrid == 0
+          && keepPanel.X > 0 && keepPanel.Width > 0,
+        "同步后分区几何保留（已吸附到方格）",
+        $"X={keepPanel.X} W={keepPanel.Width} grid={syncGrid}");
     Check(keepPanel.ItemIds.Contains(panelTarget.Id), "同步后分区成员关系保留");
     WorkspacePanel? mirrored = syncWorkspace.Panels.FirstOrDefault(p => p.GroupId == keepGroup.Id);
     Check(mirrored is not null && mirrored.ItemIds.Count == keepGroup.ItemIds.Count,
@@ -3368,6 +3376,58 @@ Console.WriteLine("== 26. 大桌面：项目数超过图标缓存上限时的表
         {
             Directory.Delete(p24Root, true);
             Directory.Delete(p24Cfg, true);
+        }
+        catch
+        {
+            // 临时目录清理失败不影响结果
+        }
+    }
+}
+
+// ---------------------------------------------------------------- 33. 阶段 25：全部弹出 / 方格可调
+{
+    string p25Root = Path.Combine(Path.GetTempPath(), "DeskLanesP25_" + Guid.NewGuid().ToString("N"));
+    string p25Cfg = p25Root + "_cfg";
+    Directory.CreateDirectory(p25Root);
+    Directory.CreateDirectory(p25Cfg);
+    try
+    {
+        var ws25 = new WorkspaceService(new LibraryStore(p25Cfg), new ConfigStore(p25Cfg),
+            new ShortcutResolver());
+        var fp25 = new FreePanelsViewModel(ws25, new ConsoleDialogService(), launchService,
+            new ShellState());
+
+        Check(!fp25.IsPoolOpen && fp25.PoolToggleText == "全部",
+            "底部「全部」默认收起（平常只显示上方面布）", fp25.PoolToggleText);
+        fp25.TogglePoolCommand.Execute(null);
+        Check(fp25.IsPoolOpen && fp25.PoolToggleText == "收起全部",
+            "点「全部」弹出", fp25.PoolToggleText);
+
+        // 拖拽不应改变展开状态（只有点收起才收起）
+        DragState.BeginDrag();
+        Check(fp25.IsPoolOpen, "拖软件时「全部」保持展开", "");
+        DragState.EndDrag();
+        Check(fp25.IsPoolOpen, "放好软件后仍保持展开", "");
+        fp25.TogglePoolCommand.Execute(null);
+        Check(!fp25.IsPoolOpen, "点「收起全部」才收起", "");
+
+        // 方格大小可切换，且几何按新格吸附
+        Check(fp25.GridSizeOptions.Count >= 3, "提供多个方格尺寸可选", "");
+        fp25.PanelGridSize = 60;
+        WorkspacePanel gridPanel = ws25.CreatePanel("网格面板");
+        ws25.UpdatePanelLayout(gridPanel, 97, 133, 317, 243);
+        Check(gridPanel.X % 60 == 0 && gridPanel.Y % 60 == 0
+              && gridPanel.Width % 60 == 0 && gridPanel.Height % 60 == 0,
+            "切换方格大小后几何按新格吸附",
+            $"X={gridPanel.X} Y={gridPanel.Y} W={gridPanel.Width} H={gridPanel.Height}");
+        Check(ws25.Settings.PanelGridSize == 60, "方格大小写入配置", "");
+    }
+    finally
+    {
+        try
+        {
+            Directory.Delete(p25Root, true);
+            Directory.Delete(p25Cfg, true);
         }
         catch
         {

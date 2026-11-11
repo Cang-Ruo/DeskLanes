@@ -54,9 +54,18 @@
             <Button Content="下移" Padding="12,4" Margin="0,0,6,0" FontSize="12"
                     Command="{Binding MovePanelDownCommand}" />
             <!-- 阶段 23：把历史重叠的面板按网格重新排开 -->
-            <Button Content="整理" Padding="12,4" Margin="0,0,14,0" FontSize="12"
+            <Button Content="整理" Padding="12,4" Margin="0,0,6,0" FontSize="12"
                     ToolTip="把已有分区按网格重新排开，消除重叠（不会删任何项目）"
                     Command="{Binding ArrangePanelsCommand}" />
+            <!-- 阶段 25：底部「全部」默认收起，点这里弹出 / 收起 -->
+            <Button Content="{Binding PoolToggleText}" Padding="12,4" Margin="0,0,6,0" FontSize="12"
+                    ToolTip="展开或收起底部「全部」项目区"
+                    Command="{Binding TogglePoolCommand}" />
+            <TextBlock Text="方格" FontSize="12" Foreground="{StaticResource BrushTextSecondary}"
+                       VerticalAlignment="Center" Margin="0,0,4,0" />
+            <ComboBox ItemsSource="{Binding GridSizeOptions}" SelectedItem="{Binding PanelGridSize}"
+                      Width="72" FontSize="12" Margin="0,0,14,0" VerticalAlignment="Center"
+                      ToolTip="画布方格大小；分区的位置与尺寸会吸附到整数格" />
             <TextBlock FontSize="12" Foreground="{StaticResource BrushTextSecondary}" VerticalAlignment="Center"
                        TextTrimming="CharacterEllipsis">
                 <Run Text="当前分区：" />
@@ -116,12 +125,16 @@
         <StackPanel x:Name="BottomOverlay" VerticalAlignment="Bottom" Panel.ZIndex="2">
             <StackPanel.Style>
                 <Style TargetType="StackPanel">
-                    <Setter Property="Opacity" Value="1" />
+                    <!-- 阶段 25：平常不显示底部区，只显示上方面布；点「全部」才弹出。
+                         只有点「收起全部」才收起，不随拖拽自动变化。 -->
+                    <Setter Property="Visibility" Value="Collapsed" />
                     <Setter Property="IsHitTestVisible" Value="True" />
                     <Style.Triggers>
-                        <!-- 拖软件时暂时收起：淡出并穿透，落点直接落到画布/分区 -->
+                        <DataTrigger Binding="{Binding IsPoolOpen}" Value="True">
+                            <Setter Property="Visibility" Value="Visible" />
+                        </DataTrigger>
+                        <!-- 外观保持不变，只让鼠标穿透，落点仍能落到下面的画布/分区 -->
                         <DataTrigger Binding="{Binding IsDraggingItem}" Value="True">
-                            <Setter Property="Opacity" Value="0.12" />
                             <Setter Property="IsHitTestVisible" Value="False" />
                         </DataTrigger>
                     </Style.Triggers>
@@ -138,7 +151,8 @@
                     </ControlTemplate>
                 </Thumb.Template>
             </Thumb>
-            <Border Style="{StaticResource DropZone}" Margin="0,0,0,8"
+            <Border Style="{StaticResource DropZone}" Background="{StaticResource BrushPoolSolid}"
+                    Margin="0,0,0,8"
                     Height="{Binding PoolPanelHeight}"
                     AllowDrop="True" Drop="OnPoolDrop" DragOver="OnPoolDragOver">
                 <DockPanel>

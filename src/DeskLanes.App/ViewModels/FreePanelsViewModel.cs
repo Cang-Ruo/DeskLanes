@@ -20,6 +20,11 @@ public sealed class FreePanelsViewModel : ObservableObject
     private readonly Dictionary<string, DesktopItem> _itemsById;
 
     private PanelViewModel? _selectedPanel;
+    // 阶段 25：底部「全部」默认收起，点工具栏按钮才弹出
+    private bool _isPoolOpen;
+
+    /// <summary>仅供界面快照工具强制展开用；产品运行时为 null，默认收起。</summary>
+    public static bool? ForcePoolOpenForSnapshot { get; set; }
 
     public FreePanelsViewModel(
         IWorkspaceService workspace,
@@ -36,6 +41,7 @@ public sealed class FreePanelsViewModel : ObservableObject
 
         NewPanelCommand = new RelayCommand(_ => CreatePanel());
         ArrangePanelsCommand = new RelayCommand(_ => ArrangePanels());
+        TogglePoolCommand = new RelayCommand(_ => IsPoolOpen = !IsPoolOpen);
         RenamePanelCommand = new RelayCommand(_ => RenamePanel(), _ => SelectedPanel is not null);
         DeletePanelCommand = new RelayCommand(_ => DeletePanel(), _ => SelectedPanel is not null);
         MovePanelUpCommand = new RelayCommand(_ => MovePanel(-1), _ => CanMove(-1));
@@ -52,6 +58,11 @@ public sealed class FreePanelsViewModel : ObservableObject
                 ApplyPool();
             }
         };
+
+        if (ForcePoolOpenForSnapshot == true)
+        {
+            _isPoolOpen = true;
+        }
 
         Rebuild();
     }
@@ -89,6 +100,41 @@ public sealed class FreePanelsViewModel : ObservableObject
 
     // 阶段 24：默认高一点，让「软件」「文件夹」两区都能一眼看到；
     // 高度仍可拖动，且底部区是覆盖层，不会压缩上方面布。
+    /// <summary>阶段 25：底部「全部」是否展开。默认 false —— 平常只显示上方面布。</summary>
+    public bool IsPoolOpen
+    {
+        get => _isPoolOpen;
+        set
+        {
+            if (SetProperty(ref _isPoolOpen, value))
+            {
+                OnPropertyChanged(nameof(PoolToggleText));
+            }
+        }
+    }
+
+    public string PoolToggleText => IsPoolOpen ? "收起全部" : "全部";
+
+    /// <summary>可选方格大小（虚拟单位）。</summary>
+    public IReadOnlyList<double> GridSizeOptions { get; } = new[] { 20.0, 40.0, 60.0, 80.0 };
+
+    /// <summary>当前方格大小；改动后分区位置/尺寸按新格吸附。</summary>
+    public double PanelGridSize
+    {
+        get => _workspace.Settings.PanelGridSize;
+        set
+        {
+            if (value <= 0 || _workspace.Settings.PanelGridSize == value)
+            {
+                return;
+            }
+
+            _workspace.Settings.PanelGridSize = value;
+            _workspace.Save();
+            OnPropertyChanged(nameof(PanelGridSize));
+        }
+    }
+
     private double _poolPanelHeight = 250;
 
     /// <summary>阶段 23：底部「全部」区高度，可由上边界的分隔条拖动调整。</summary>
@@ -111,6 +157,8 @@ public sealed class FreePanelsViewModel : ObservableObject
     public RelayCommand NewPanelCommand { get; }
 
     public RelayCommand ArrangePanelsCommand { get; }
+
+    public RelayCommand TogglePoolCommand { get; }
 
     public RelayCommand RenamePanelCommand { get; }
 
