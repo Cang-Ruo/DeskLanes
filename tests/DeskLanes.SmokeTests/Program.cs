@@ -3307,7 +3307,8 @@ Console.WriteLine("== 26. 大桌面：项目数超过图标缓存上限时的表
         fp23.PoolPanelHeight = 20;
         Check(fp23.PoolPanelHeight >= 120, "「全部」区高度有下限", fp23.PoolPanelHeight.ToString());
         fp23.PoolPanelHeight = 9999;
-        Check(fp23.PoolPanelHeight <= 600, "「全部」区高度有上限", fp23.PoolPanelHeight.ToString());
+        Check(fp23.PoolPanelHeight <= 2000, "「全部」区高度有上限（阶段 27 放开到可拉满）",
+            fp23.PoolPanelHeight.ToString());
 
         // 状态栏平时为空，不再显示「就绪 / 已启动」
         var float23 = new FloatingWindowViewModel(ws23, dlg23, launchService, state23);
@@ -3498,6 +3499,44 @@ Console.WriteLine("== 26. 大桌面：项目数超过图标缓存上限时的表
         {
             Directory.Delete(p26Root, true);
             Directory.Delete(p26Cfg, true);
+        }
+        catch
+        {
+            // 临时目录清理失败不影响结果
+        }
+    }
+}
+
+// ---------------------------------------------------------------- 35. 阶段 27：宽度实时通知 / 全部可拉满
+{
+    string p27Root = Path.Combine(Path.GetTempPath(), "DeskLanesP27_" + Guid.NewGuid().ToString("N"));
+    string p27Cfg = p27Root + "_cfg";
+    Directory.CreateDirectory(p27Root);
+    Directory.CreateDirectory(p27Cfg);
+    try
+    {
+        var ws27 = new WorkspaceService(new LibraryStore(p27Cfg), new ConfigStore(p27Cfg),
+            new ShortcutResolver());
+        var side27 = new SidebarViewModel(ws27, new ConsoleDialogService(), launchService,
+            new ShellState());
+        var fp27 = new FreePanelsViewModel(ws27, new ConsoleDialogService(), launchService,
+            new ShellState());
+
+        ws27.Settings.SidebarWidth = 340;
+        ws27.NotifySettingsChanged();
+        Check(side27.SidebarWidth == 340 && side27.ExpandedWidth == 340,
+            "设置里改宽度后侧栏立即拿到新值", $"{side27.SidebarWidth}");
+
+        fp27.PoolPanelHeight = 1500;
+        Check(fp27.PoolPanelHeight >= 1400,
+            "「全部」可一直拉到接近铺满", fp27.PoolPanelHeight.ToString());
+    }
+    finally
+    {
+        try
+        {
+            Directory.Delete(p27Root, true);
+            Directory.Delete(p27Cfg, true);
         }
         catch
         {

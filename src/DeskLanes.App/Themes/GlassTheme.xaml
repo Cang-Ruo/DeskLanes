@@ -50,11 +50,13 @@
          不透明对照 -0.108），空白区均值 83.9 → 82.0，明暗起伏 std 没变小
          —— 壁纸的明暗变化仍然透得出来。再往上加就回到"深灰块"了，别动。 -->
     <SolidColorBrush x:Key="BrushWindowBaseGlass" Color="#4A20334A" />
+    <!-- 阶段 27：侧边栏用更淡的浅玻璃，不再压出浓重的暗红底色 -->
+    <SolidColorBrush x:Key="BrushSidebarBaseGlass" Color="#32E8EEF5" />
     <SolidColorBrush x:Key="BrushNavGlass" Color="#4D17283B" />
     <SolidColorBrush x:Key="BrushPanelGlass" Color="#3320334A" />
     <!-- 阶段 25：底部「全部」覆盖层用不透明实底，不再透出下面的画布/壁纸。
          文字是浅色（ColorTextPrimary），深实底正好托住。 -->
-    <SolidColorBrush x:Key="BrushPoolSolid" Color="#FF2B3240" />
+    <SolidColorBrush x:Key="BrushPoolSolid" Color="#FF3B4452" />
     <SolidColorBrush x:Key="BrushCardGlass" Color="#4020334A" />
     <!-- 输入控件底色。
          原来是 7.8% 白：亮壁纸下输入框本身发亮，浅色文字压上去等于白底白字（实测 3.0）。
@@ -70,7 +72,7 @@
          能透出一点壁纸的深色半透明标签，配白字。
          取 45% 黑：比 30% 黑可读（亮壁纸上白字对比约 4.6，30% 只有 ~3.0），
          又比 55%/90% 明显更透。不随壁纸变化。 -->
-    <SolidColorBrush x:Key="BrushLabelScrim" Color="#73000000" />
+    <SolidColorBrush x:Key="BrushLabelScrim" Color="#61000000" />
 
     <!-- 交互反馈 -->
     <SolidColorBrush x:Key="BrushHoverGlass" Color="#0FFFFFFF" />
@@ -521,7 +523,7 @@
     </Style>
 
     <Style x:Key="ItemNameText" TargetType="TextBlock">
-        <Setter Property="FontSize" Value="13" />
+        <Setter Property="FontSize" Value="11.5" />
         <Setter Property="Foreground" Value="{StaticResource BrushTextPrimary}" />
         <Setter Property="TextTrimming" Value="CharacterEllipsis" />
         <Setter Property="TextAlignment" Value="Center" />

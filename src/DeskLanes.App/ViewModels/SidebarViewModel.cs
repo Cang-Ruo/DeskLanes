@@ -107,6 +107,9 @@ public sealed class SidebarViewModel : ObservableObject
     /// <summary>展开时的宽度（来自设置）。</summary>
     public double ExpandedWidth => _workspace.Settings.SidebarWidth;
 
+    /// <summary>阶段 27：供窗口在设置变更时实时重算宽度。</summary>
+    public double SidebarWidth => _workspace.Settings.SidebarWidth;
+
     /// <summary>展开/收起按钮文字。</summary>
     public string ExpandToggleText => IsExpanded ? "收起" : "展开";
 
@@ -236,6 +239,8 @@ public sealed class SidebarViewModel : ObservableObject
             ? Categories.FirstOrDefault()
             : Categories.FirstOrDefault(c => c.GroupId == selectedId) ?? Categories.FirstOrDefault();
         OnPropertyChanged(nameof(SelectedCategory));
+        OnPropertyChanged(nameof(SidebarWidth));
+        OnPropertyChanged(nameof(ExpandedWidth));
         ApplyItems();
     }
 

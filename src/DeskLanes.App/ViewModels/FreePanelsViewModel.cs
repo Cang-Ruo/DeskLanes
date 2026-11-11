@@ -143,7 +143,8 @@ public sealed class FreePanelsViewModel : ObservableObject
         get => _poolPanelHeight;
         set
         {
-            double bounded = Math.Max(120, Math.Min(600, value));
+            // 阶段 27：允许一直往上拉到接近铺满内容区，不再卡在 600
+            double bounded = Math.Max(120, Math.Min(2000, value));
             SetProperty(ref _poolPanelHeight, bounded);
         }
     }
