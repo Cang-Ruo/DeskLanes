@@ -19,8 +19,12 @@
                     Command="{Binding DeletePanelCommand}" />
             <Button Content="上移" Padding="12,4" Margin="0,0,6,0" FontSize="12"
                     Command="{Binding MovePanelUpCommand}" />
-            <Button Content="下移" Padding="12,4" Margin="0,0,14,0" FontSize="12"
+            <Button Content="下移" Padding="12,4" Margin="0,0,6,0" FontSize="12"
                     Command="{Binding MovePanelDownCommand}" />
+            <!-- 阶段 23：把历史重叠的面板按网格重新排开 -->
+            <Button Content="整理" Padding="12,4" Margin="0,0,14,0" FontSize="12"
+                    ToolTip="把已有分区按网格重新排开，消除重叠（不会删任何项目）"
+                    Command="{Binding ArrangePanelsCommand}" />
             <TextBlock FontSize="12" Foreground="{StaticResource BrushTextSecondary}" VerticalAlignment="Center"
                        TextTrimming="CharacterEllipsis">
                 <Run Text="当前分区：" />
@@ -32,7 +36,19 @@
              （必须在画布之前声明并停靠底部：画布 Grid 是最后子元素、填充剩余空间；
                若画布在池区之前声明，它会按默认 Left 停靠占满全高，把池区挤成 0 高度） -->
         <StackPanel DockPanel.Dock="Bottom">
+            <!-- 阶段 23：拖这条上边界，把「全部」区往上拉高 / 往下压矮 -->
+            <Thumb Height="9" Cursor="SizeNS" DragDelta="OnPoolResizeDragDelta"
+                   ToolTip="按住向上拖动可放大「全部」区" Margin="0,0,0,2">
+                <Thumb.Template>
+                    <ControlTemplate TargetType="Thumb">
+                        <Border Background="Transparent" Padding="0,3">
+                            <Border Background="{StaticResource BrushBorderGlass}" Height="2" CornerRadius="1" />
+                        </Border>
+                    </ControlTemplate>
+                </Thumb.Template>
+            </Thumb>
             <Border Style="{StaticResource DropZone}" Margin="0,0,0,8"
+                    Height="{Binding PoolPanelHeight}"
                     AllowDrop="True" Drop="OnPoolDrop" DragOver="OnPoolDragOver">
                 <DockPanel>
                     <TextBlock DockPanel.Dock="Top" Text="{Binding PoolHeaderText}"
@@ -40,8 +56,8 @@
                                dt:DynamicText.Tone="Primary" Margin="2,0,0,6" />
                     <ListBox ItemsSource="{Binding PoolItems}"
                              Background="Transparent" BorderThickness="0"
-                             MaxHeight="150"
                              ScrollViewer.HorizontalScrollBarVisibility="Disabled"
+                             ScrollViewer.VerticalScrollBarVisibility="Auto"
                              Visibility="{Binding HasPoolItems, Converter={StaticResource BoolToVis}}">
                         <ListBox.ItemsPanel>
                             <ItemsPanelTemplate>

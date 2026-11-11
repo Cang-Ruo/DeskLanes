@@ -257,7 +257,8 @@
 
             <!-- 底部状态栏：主窗口早就有 StatusBarScrim，这里补齐一致性 -->
             <Border Grid.Row="3" Style="{StaticResource StatusBarScrim}" dt:DynamicText.Scrim="True"
-                    HorizontalAlignment="Left" Margin="0,8,0,0">
+                    HorizontalAlignment="Left"
+                    Visibility="{Binding HasStatusText, Converter={StaticResource BoolToVis}}" Margin="0,8,0,0">
                 <TextBlock Text="{Binding StatusText}" FontSize="11"
                            Foreground="{StaticResource BrushTextPrimary}" TextTrimming="CharacterEllipsis" />
             </Border>
