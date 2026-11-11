@@ -524,17 +524,15 @@ public sealed class WorkspaceService : IWorkspaceService
     {
         string finalTitle = string.IsNullOrWhiteSpace(title) ? "新分区" : title.Trim();
 
-        // 层叠摆放，避免新面板与已有面板完全重叠
-        int step = Panels.Count % 6;
-        double offset = step * 32;
-        double maxX = Math.Max(0, WorkspacePanel.CanvasWidth - WorkspacePanel.DefaultWidth);
-        double maxY = Math.Max(0, WorkspacePanel.CanvasHeight - WorkspacePanel.DefaultHeight);
+        // 阶段 23：按网格找第一个不与任何现有面板相交的位置。
+        // 原来用 step*32 层叠，新建的分区必然互相盖住。
+        (double slotX, double slotY) = FindFreePanelSlot();
 
         var panel = new WorkspacePanel
         {
             Title = finalTitle,
-            X = Math.Min(WorkspacePanel.DefaultX + offset, maxX),
-            Y = Math.Min(WorkspacePanel.DefaultY + offset, maxY),
+            X = slotX,
+            Y = slotY,
             Width = WorkspacePanel.DefaultWidth,
             Height = WorkspacePanel.DefaultHeight,
             Order = NextPanelOrder(),
@@ -816,15 +814,13 @@ public sealed class WorkspaceService : IWorkspaceService
                         continue;
                     }
 
-                    double offset = (Panels.Count % 6) * 32;
+                    (double slotX, double slotY) = FindFreePanelSlot();
                     panel = new WorkspacePanel
                     {
                         Title = group.Name,
                         GroupId = group.Id,
-                        X = Math.Min(WorkspacePanel.DefaultX + offset,
-                            Math.Max(0, WorkspacePanel.CanvasWidth - WorkspacePanel.DefaultWidth)),
-                        Y = Math.Min(WorkspacePanel.DefaultY + offset,
-                            Math.Max(0, WorkspacePanel.CanvasHeight - WorkspacePanel.DefaultHeight)),
+                        X = slotX,
+                        Y = slotY,
                         Width = WorkspacePanel.DefaultWidth,
                         Height = WorkspacePanel.DefaultHeight,
                         Order = NextPanelOrder(),
@@ -901,6 +897,36 @@ public sealed class WorkspaceService : IWorkspaceService
             panel.Height = Math.Min(neededHeight, maxHeight);
         }
     }
+
+    /// <summary>
+    /// 阶段 23：在 1600×900 虚拟画布上按网格找第一个放得下、且不与现有面板相交的位置。
+    /// 画布实在放满时才退回层叠偏移（至少不会完全重合）。
+    /// </summary>
+    private (double X, double Y) FindFreePanelSlot()
+    {
+        const double gap = 16;
+        double w = WorkspacePanel.DefaultWidth;
+        double h = WorkspacePanel.DefaultHeight;
+
+        for (double y = WorkspacePanel.DefaultY; y + h <= WorkspacePanel.CanvasHeight; y += h + gap)
+        {
+            for (double x = WorkspacePanel.DefaultX; x + w <= WorkspacePanel.CanvasWidth; x += w + gap)
+            {
+                bool occupied = Panels.Any(p => Intersects(x, y, w, h, p));
+                if (!occupied)
+                {
+                    return (x, y);
+                }
+            }
+        }
+
+        double offset = (Panels.Count % 6) * 32;
+        return (Math.Min(WorkspacePanel.DefaultX + offset, WorkspacePanel.CanvasWidth - w),
+                Math.Min(WorkspacePanel.DefaultY + offset, WorkspacePanel.CanvasHeight - h));
+    }
+
+    private static bool Intersects(double x, double y, double w, double h, WorkspacePanel p)
+        => x < p.X + p.Width && x + w > p.X && y < p.Y + p.Height && y + h > p.Y;
 
     private WorkspacePanel? PairedPanel(ShortcutGroup group)
         => Panels.FirstOrDefault(p => p.GroupId == group.Id);

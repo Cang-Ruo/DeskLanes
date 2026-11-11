@@ -1,5 +1,6 @@
 using System.Windows;
 using System.Windows.Controls;
+using System.Windows.Controls.Primitives;
 using DeskLanes.App.ViewModels;
 using DeskLanes.Core.Models;
 
@@ -111,6 +112,15 @@ public partial class FreePanelsView : UserControl
         double y = (hostPoint.Y - CanvasOffset.Y) / scale;
         viewModel.CreatePanelAt(item, x, y);
         e.Handled = true;
+    }
+
+    /// <summary>阶段 23：向上拖动分隔条时增大「全部」区高度。</summary>
+    private void OnPoolResizeDragDelta(object sender, DragDeltaEventArgs e)
+    {
+        if (DataContext is FreePanelsViewModel viewModel)
+        {
+            viewModel.PoolPanelHeight -= e.VerticalChange;
+        }
     }
 
 }

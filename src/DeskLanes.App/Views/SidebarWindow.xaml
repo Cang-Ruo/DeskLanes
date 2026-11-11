@@ -186,7 +186,8 @@
                            Visibility="{Binding HasNoItems, Converter={StaticResource BoolToVis}}" />
 
                 <Border Grid.Row="3" Style="{StaticResource StatusBarScrim}" dt:DynamicText.Scrim="True"
-                        HorizontalAlignment="Left" Margin="0,6,0,0">
+                        HorizontalAlignment="Left"
+                    Visibility="{Binding HasStatusText, Converter={StaticResource BoolToVis}}" Margin="0,6,0,0">
                     <TextBlock Text="{Binding StatusText}" FontSize="10"
                                Foreground="{StaticResource BrushTextPrimary}" TextTrimming="CharacterEllipsis" />
                 </Border>
