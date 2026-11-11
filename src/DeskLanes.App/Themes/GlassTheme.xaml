@@ -52,6 +52,9 @@
     <SolidColorBrush x:Key="BrushWindowBaseGlass" Color="#4A20334A" />
     <SolidColorBrush x:Key="BrushNavGlass" Color="#4D17283B" />
     <SolidColorBrush x:Key="BrushPanelGlass" Color="#3320334A" />
+    <!-- 阶段 25：底部「全部」覆盖层用不透明实底，不再透出下面的画布/壁纸。
+         文字是浅色（ColorTextPrimary），深实底正好托住。 -->
+    <SolidColorBrush x:Key="BrushPoolSolid" Color="#FF2B3240" />
     <SolidColorBrush x:Key="BrushCardGlass" Color="#4020334A" />
     <!-- 输入控件底色。
          原来是 7.8% 白：亮壁纸下输入框本身发亮，浅色文字压上去等于白底白字（实测 3.0）。

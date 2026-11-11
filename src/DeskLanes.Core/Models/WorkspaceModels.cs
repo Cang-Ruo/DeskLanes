@@ -385,6 +385,12 @@ public sealed class AppSettings : IVersionedData
     /// <summary>失去焦点时是否自动收起（可关闭，避免操作过程中意外消失）。</summary>
     public bool SidebarAutoCollapse { get; set; } = true;
 
+    /// <summary>
+    /// 阶段 25：自由分区画布的网格单元（虚拟单位）。分区的位置与尺寸都吸附到它，
+    /// 用户可在工具栏切换 20 / 40 / 60 / 80。默认 40。
+    /// </summary>
+    public double PanelGridSize { get; set; } = 40;
+
     // ---------- 托盘与窗口行为 ----------
 
     /// <summary>关闭窗口时最小化到系统托盘而不是退出。</summary>

@@ -53,7 +53,7 @@ namespace DeskLanes.UiSnapshot;
 public static class Program
 {
     private static readonly string[] Modes =
-        { "category", "panels", "floating", "floatingfolders", "sidebar", "settings", "dialog",
+        { "category", "panels", "panelspool", "floating", "floatingfolders", "sidebar", "settings", "dialog",
           "perf", "reference", "perf200", "mem", "memtoggle", "toggle" };
 
     /// <summary>进程启动时刻：用来量"从双击到首屏可用"的端到端时间。</summary>
@@ -118,6 +118,12 @@ public static class Program
     private static async Task RunAsync(string mode, string output, bool demo, bool keepTop,
                                        bool screen = false, bool keepSize = false, int holdMs = 0)
     {
+        // 快照钩子必须在 MainViewModel / FreePanelsViewModel 构造之前设置
+        if (mode == "panelspool")
+        {
+            FreePanelsViewModel.ForcePoolOpenForSnapshot = true;
+        }
+
         // 1. 复制真实配置到临时目录（只读使用，不污染真实配置）；--demo 时不复制
         string realDir = Path.Combine(
             Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "DeskLanes");
@@ -168,7 +174,7 @@ public static class Program
                 SeedDemoItems(workspace, tempDir, bulk);
             }
 
-            if (mode == "panels")
+            if (mode == "panels" || mode == "panelspool")
             {
                 workspace.SetLayoutMode(LayoutMode.FreePanels);
                 SeedPanels(workspace);
