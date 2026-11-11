@@ -23,19 +23,31 @@ public partial class FreePanelsView : UserControl
     /// <summary>画布宿主尺寸变化时重算缩放（虚拟 1600×900 → 实际像素，居中放置）。</summary>
     private void OnCanvasHostSizeChanged(object sender, SizeChangedEventArgs e)
     {
-        double scaleX = CanvasHost.ActualWidth / WorkspacePanel.CanvasWidth;
-        double scaleY = CanvasHost.ActualHeight / WorkspacePanel.CanvasHeight;
-        double scale = Math.Min(scaleX, scaleY);
+        double hostWidth = CanvasHost.ActualWidth;
+        double hostHeight = CanvasHost.ActualHeight;
+        if (hostWidth <= 0 || hostHeight <= 0)
+        {
+            return;
+        }
+
+        double scaleX = hostWidth / WorkspacePanel.CanvasWidth;
+        double scaleY = hostHeight / WorkspacePanel.CanvasHeight;
+        // 阶段 26：内容区高度通常比 16:9 矮，等比 min() 会让两侧留白很大。
+        // 适度放大 12% 用满一点宽度；超出的是画布底部空白（面板都在上半部）。
+        // 同时把边框虚拟高度压到正好铺满宿主物理高度，边框仍完整可见。
+        double scale = Math.Min(scaleX, scaleY * 1.12);
         if (double.IsNaN(scale) || scale <= 0)
         {
             scale = 0.01;
         }
 
+        CanvasBorder.Height = Math.Max(400,
+            Math.Min(WorkspacePanel.CanvasHeight, hostHeight / scale));
         CanvasScaleFactor = scale;
         CanvasScale.ScaleX = scale;
         CanvasScale.ScaleY = scale;
-        CanvasOffset.X = (CanvasHost.ActualWidth - WorkspacePanel.CanvasWidth * scale) / 2;
-        CanvasOffset.Y = (CanvasHost.ActualHeight - WorkspacePanel.CanvasHeight * scale) / 2;
+        CanvasOffset.X = (hostWidth - WorkspacePanel.CanvasWidth * scale) / 2;
+        CanvasOffset.Y = 0;
     }
 
     private void OnPoolDragOver(object sender, DragEventArgs e)

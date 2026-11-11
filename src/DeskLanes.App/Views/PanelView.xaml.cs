@@ -219,4 +219,8 @@ public partial class PanelView : UserControl
 
         return null;
     }
+    /// <summary>拖动/缩放结束，补一次落盘（过程中 Save 已节流）。</summary>
+    private void OnGeometryDragCompleted(object sender, DragCompletedEventArgs e)
+        => ViewModel?.FlushGeometry();
+
 }
