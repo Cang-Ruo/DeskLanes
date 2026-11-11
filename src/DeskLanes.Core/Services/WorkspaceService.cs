@@ -627,12 +627,17 @@ public sealed class WorkspaceService : IWorkspaceService
             return;
         }
 
-        double finalWidth = Math.Clamp(width, WorkspacePanel.MinWidth, WorkspacePanel.CanvasWidth);
-        double finalHeight = Math.Clamp(height, WorkspacePanel.MinHeight, WorkspacePanel.CanvasHeight);
+        // 阶段 25：统一吸附到网格——位置和尺寸都是整数个方格，间距框定好，
+        // 拖动/缩放时不再随意停在任意像素上。
+        double grid = Math.Max(8, SettingsData.PanelGridSize);
+        double finalWidth = SnapToGrid(width, grid, roundUp: true);
+        double finalHeight = SnapToGrid(height, grid, roundUp: true);
+        finalWidth = Math.Clamp(finalWidth, WorkspacePanel.MinWidth, WorkspacePanel.CanvasWidth);
+        finalHeight = Math.Clamp(finalHeight, WorkspacePanel.MinHeight, WorkspacePanel.CanvasHeight);
         double maxX = Math.Max(0, WorkspacePanel.CanvasWidth - finalWidth);
         double maxY = Math.Max(0, WorkspacePanel.CanvasHeight - finalHeight);
-        double finalX = Math.Clamp(x, 0, maxX);
-        double finalY = Math.Clamp(y, 0, maxY);
+        double finalX = Math.Clamp(SnapToGrid(x, grid), 0, maxX);
+        double finalY = Math.Clamp(SnapToGrid(y, grid), 0, maxY);
 
         bool changed = panel.X != finalX || panel.Y != finalY ||
                        panel.Width != finalWidth || panel.Height != finalHeight;
@@ -908,9 +913,15 @@ public sealed class WorkspaceService : IWorkspaceService
         double w = WorkspacePanel.DefaultWidth;
         double h = WorkspacePanel.DefaultHeight;
 
-        for (double y = WorkspacePanel.DefaultY; y + h <= WorkspacePanel.CanvasHeight; y += h + gap)
+        double grid = Math.Max(8, SettingsData.PanelGridSize);
+        double startX = SnapToGrid(WorkspacePanel.DefaultX, grid, roundUp: true);
+        double startY = SnapToGrid(WorkspacePanel.DefaultY, grid, roundUp: true);
+        double stepX = SnapToGrid(w + gap, grid, roundUp: true);
+        double stepY = SnapToGrid(h + gap, grid, roundUp: true);
+
+        for (double y = startY; y + h <= WorkspacePanel.CanvasHeight; y += stepY)
         {
-            for (double x = WorkspacePanel.DefaultX; x + w <= WorkspacePanel.CanvasWidth; x += w + gap)
+            for (double x = startX; x + w <= WorkspacePanel.CanvasWidth; x += stepX)
             {
                 bool occupied = Panels.Any(p => Intersects(x, y, w, h, p));
                 if (!occupied)
@@ -927,6 +938,14 @@ public sealed class WorkspaceService : IWorkspaceService
 
     private static bool Intersects(double x, double y, double w, double h, WorkspacePanel p)
         => x < p.X + p.Width && x + w > p.X && y < p.Y + p.Height && y + h > p.Y;
+
+    /// <summary>把虚拟坐标吸附到网格；尺寸用向上取整，保证放得下内容。</summary>
+    private static double SnapToGrid(double value, double grid, bool roundUp = false)
+    {
+        double cells = value / grid;
+        double snapped = roundUp ? Math.Ceiling(cells - 0.0001) : Math.Round(cells);
+        return Math.Max(0, snapped * grid);
+    }
 
     private WorkspacePanel? PairedPanel(ShortcutGroup group)
         => Panels.FirstOrDefault(p => p.GroupId == group.Id);
