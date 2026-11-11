@@ -762,6 +762,9 @@ public sealed class WorkspaceService : IWorkspaceService
 
     public void Save() => SaveCore();
 
+    /// <summary>阶段 27：设置窗口拖滑块时实时通知侧栏刷新宽度，不写盘。</summary>
+    public void NotifySettingsChanged() => OnChanged();
+
     // ---------- 内部实现 ----------
 
     private void SaveCore()
@@ -905,10 +908,10 @@ public sealed class WorkspaceService : IWorkspaceService
     /// </summary>
     private void AutoFitPanel(WorkspacePanel panel)
     {
-        const double tileWidth = 120;
-        const double tileHeight = 116;
-        const double headerHeight = 46;
-        const double padding = 20;
+        const double tileWidth = 96;
+        const double tileHeight = 92;
+        const double headerHeight = 40;
+        const double padding = 16;
 
         int count = panel.ItemIds.Count;
         int columns = Math.Clamp((int)Math.Ceiling(Math.Sqrt(Math.Max(1, count))), 2, 5);

@@ -34,7 +34,9 @@ public partial class SidebarWindow : Window
         _viewModel.HideRequested += (_, _) => _controller.HideSidebar();
         _viewModel.PropertyChanged += (_, e) =>
         {
-            if (e.PropertyName is nameof(SidebarViewModel.IsExpanded) or nameof(SidebarViewModel.IsDockedRight))
+            if (e.PropertyName is nameof(SidebarViewModel.IsExpanded)
+                or nameof(SidebarViewModel.IsDockedRight)
+                or nameof(SidebarViewModel.SidebarWidth))
             {
                 ApplyWindowWidth();
                 PlaceOnDockedSide();

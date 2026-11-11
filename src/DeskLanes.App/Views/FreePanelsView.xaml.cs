@@ -1,4 +1,6 @@
 using System.Windows;
+using System.Windows.Input;
+using System.Windows.Media;
 using System.Windows.Controls;
 using System.Windows.Controls.Primitives;
 using DeskLanes.App.ViewModels;
@@ -48,6 +50,11 @@ public partial class FreePanelsView : UserControl
         CanvasScale.ScaleY = scale;
         CanvasOffset.X = (hostWidth - WorkspacePanel.CanvasWidth * scale) / 2;
         CanvasOffset.Y = 0;
+
+        // 阶段 27：RenderTransform 画的内容不受布局 ClipToBounds 约束，
+        // 放大后可能溢出到窗口底部状态栏上，看起来像图标被横条盖住。
+        // 显式给宿主一个矩形裁剪，把画布内容限制在内容区内。
+        CanvasHost.Clip = new RectangleGeometry(new Rect(0, 0, hostWidth, hostHeight), 10, 10);
     }
 
     private void OnPoolDragOver(object sender, DragEventArgs e)
@@ -132,6 +139,16 @@ public partial class FreePanelsView : UserControl
         if (DataContext is FreePanelsViewModel viewModel)
         {
             viewModel.PoolPanelHeight -= e.VerticalChange;
+        }
+    }
+
+    /// <summary>阶段 27：双击分隔条把「全部」一次拉满或还原，不用一直拖。</summary>
+    private void OnPoolThumbDoubleClick(object sender, MouseButtonEventArgs e)
+    {
+        if (DataContext is FreePanelsViewModel viewModel)
+        {
+            viewModel.PoolPanelHeight = viewModel.PoolPanelHeight >= 600 ? 250 : 2000;
+            e.Handled = true;
         }
     }
 
