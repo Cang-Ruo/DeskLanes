@@ -246,3 +246,18 @@ Release 0/0、冒烟 472/472、启动 7/7。详见 `docs/ui-acrylic-final/phase1
 - Release 0/0、冒烟 514/514、启动 7/7、端到端 36/36；
   正式 `80c54e05…` 已覆盖安装。详见 `phase26-report.md`。
 - **待实测**：滚轮范围、拖动流畅度、留白与自适应观感。
+
+### 阶段 27 追加（2026-11-11 13:46 用户反馈）
+
+- **「全部」可拉满**：`PoolPanelHeight` 上限 600→2000；双击分隔条直接拉满/还原；
+  画布加 `RectangleGeometry` 裁剪，修掉 RenderTransform 内容溢出到状态栏
+  造成的「图标被横条遮挡」。
+- **图标缩小**：ItemTile 112×110→88×88、图标 48→36、字号 13→11.5；
+  AutoFitPanel 磁贴常量同步。
+- **侧栏分类不遮挡**：节点改两列 Grid（名称 `*` 可截断 + 计数 `Auto`）。
+- **配色变淡**：BrushLabelScrim 45%→38% 黑、BrushPoolSolid 变浅、
+  侧栏专用 `BrushSidebarBaseGlass` 浅玻璃（亮壁纸下白字对比约 4.2）。
+- **宽度实时预览**：新增 `IWorkspaceService.NotifySettingsChanged()`，
+  SettingsVM setter 即时同步 + SidebarVM 通知 + SidebarWindow 立即重算宽度。
+- Release 0/0、冒烟 516/516、启动 7/7、端到端 36/36；
+  正式 `cf37d850…` 已覆盖安装。详见 `phase27-report.md`。

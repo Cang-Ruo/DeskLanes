@@ -193,4 +193,7 @@ public interface IWorkspaceService
 
     /// <summary>立即持久化。</summary>
     void Save();
+
+    /// <summary>设置预览：配置已改动，通知各视图刷新（不写盘，由应用设置时统一保存）。</summary>
+    void NotifySettingsChanged();
 }

@@ -206,7 +206,17 @@ public sealed class SettingsViewModel : ObservableObject
     public double SidebarWidth
     {
         get => _sidebarWidth;
-        set => SetProperty(ref _sidebarWidth, Math.Clamp(value, 180, 520));
+        set
+        {
+            double bounded = Math.Clamp(value, 180, 520);
+            if (SetProperty(ref _sidebarWidth, bounded))
+            {
+                // 阶段 27：拖滑块时立刻写进共享配置并通知侧栏重算宽度，
+                // 不用等点「应用」；真正落盘仍由 ApplySettings 统一处理。
+                _workspace.Settings.SidebarWidth = bounded;
+                _workspace.NotifySettingsChanged();
+            }
+        }
     }
 
     public bool FloatingHideOnDeactivate

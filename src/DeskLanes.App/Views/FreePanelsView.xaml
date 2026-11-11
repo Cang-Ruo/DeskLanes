@@ -137,7 +137,8 @@
             </StackPanel.Style>
             <!-- 阶段 23：拖这条上边界，把「全部」区往上拉高 / 往下压矮 -->
             <Thumb Height="9" Cursor="SizeNS" DragDelta="OnPoolResizeDragDelta"
-                   ToolTip="按住向上拖动可放大「全部」区" Margin="0,0,0,2">
+                   MouseDoubleClick="OnPoolThumbDoubleClick"
+                   ToolTip="按住拖动调整高度；双击直接拉满 / 还原" Margin="0,0,0,2">
                 <Thumb.Template>
                     <ControlTemplate TargetType="Thumb">
                         <Border Background="Transparent" Padding="0,3">
