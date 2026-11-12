@@ -100,12 +100,23 @@ public static class Program
             }
         }
 
+        // --width <DIP>：侧边栏快照的展开宽度（阶段 28 验证 100 宽顶栏换行用）。
+        double widthOverride = 0;
+        foreach (string a in args.Skip(2))
+        {
+            if (a.StartsWith("--width=", StringComparison.OrdinalIgnoreCase) &&
+                double.TryParse(a["--width=".Length..], out double w))
+            {
+                widthOverride = w;
+            }
+        }
+
         // 屏幕合成截图需要物理像素坐标（与 GetWindowRect / GetDC 一致）
         SetProcessDPIAware();
 
         try
         {
-            RunAsync(mode, output, demo, keepTop, screen, keepSize, holdMs).GetAwaiter().GetResult();
+            RunAsync(mode, output, demo, keepTop, screen, keepSize, holdMs, widthOverride).GetAwaiter().GetResult();
             return 0;
         }
         catch (Exception ex)
@@ -116,7 +127,8 @@ public static class Program
     }
 
     private static async Task RunAsync(string mode, string output, bool demo, bool keepTop,
-                                       bool screen = false, bool keepSize = false, int holdMs = 0)
+                                       bool screen = false, bool keepSize = false, int holdMs = 0,
+                                       double widthOverride = 0)
     {
         // 快照钩子必须在 MainViewModel / FreePanelsViewModel 构造之前设置
         if (mode == "panelspool")
@@ -264,6 +276,13 @@ public static class Program
                 }
 
                 vm.AutoCollapseOnFocusLost = false;
+
+                // 阶段 28：--width= 验证指定宽度下的布局（如 100 宽顶栏自动换行）。
+                if (widthOverride > 0)
+                {
+                    workspace.Settings.SidebarWidth = widthOverride;
+                    window.Width = widthOverride;
+                }
             }
             else if (mode == "reference")
             {

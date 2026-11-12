@@ -131,6 +131,13 @@ public interface IWorkspaceService
     /// <summary>结构性变更事件（分类/分区/成员关系/项目增删）。UI 订阅后刷新展示。</summary>
     event EventHandler? Changed;
 
+    /// <summary>
+    /// 阶段 28：纯设置变化事件（如拖动侧栏宽度滑块实时预览）。
+    /// 与 <see cref="Changed"/> 分离 —— 设置变化不携带任何数据变更，
+    /// 订阅方只做轻量属性通知，绝不能触发全量 Rebuild（那正是拖滑块卡顿残影的根源）。
+    /// </summary>
+    event EventHandler? SettingsChanged;
+
     /// <summary>保存失败（磁盘错误/权限问题）时触发，参数为中文说明。</summary>
     event EventHandler<string>? SaveFailed;
 

@@ -1524,7 +1524,7 @@ try
     sidebar.SelectedCategory = sidebar.Categories[1];
     Check(sidebar.Items.Count == 1, "点用户分类只显示该分类项目");
     Check(sidebar.ExpandedWidth == sideWorkspace.Settings.SidebarWidth, "展开宽度来自设置");
-    Check(sidebar.IsDockedRight && sidebar.DockToggleText == "停靠到左侧", "默认停靠右侧");
+    Check(sidebar.IsDockedRight && sidebar.DockToggleText == "停靠左侧", "默认停靠右侧");
 
     sidebar.ToggleExpandedCommand.Execute(null);
     Check(
@@ -1535,7 +1535,7 @@ try
 
     sidebar.ToggleDockCommand.Execute(null);
     Check(
-        sidebar.IsDockedLeft && !sidebar.IsDockedRight && sidebar.DockToggleText == "停靠到右侧" &&
+        sidebar.IsDockedLeft && !sidebar.IsDockedRight && sidebar.DockToggleText == "停靠右侧" &&
         sideWorkspace.Settings.SidebarDock == SidebarDock.Left,
         "切换停靠侧并持久化");
 
@@ -1592,8 +1592,9 @@ try
 
     settingsVm.SidebarWidth = 1000;
     Check(settingsVm.SidebarWidth == 520, "侧边栏宽度上限 520", settingsVm.SidebarWidth.ToString("0"));
+    // 阶段 28：用户确认 180 在小屏仍太宽，下限放开到 100（顶栏改为自动换行配合）。
     settingsVm.SidebarWidth = 10;
-    Check(settingsVm.SidebarWidth == 180, "侧边栏宽度下限 180", settingsVm.SidebarWidth.ToString("0"));
+    Check(settingsVm.SidebarWidth == 100, "侧边栏宽度下限 100", settingsVm.SidebarWidth.ToString("0"));
 
     settingsVm.IsDockLeft = true;
     Check(settingsVm.SidebarDock == SidebarDock.Left, "设置里可切换停靠侧");
@@ -3537,6 +3538,71 @@ Console.WriteLine("== 26. 大桌面：项目数超过图标缓存上限时的表
         {
             Directory.Delete(p27Root, true);
             Directory.Delete(p27Cfg, true);
+        }
+        catch
+        {
+            // 临时目录清理失败不影响结果
+        }
+    }
+}
+
+// ---------------------------------------------------------------- 36. 阶段 28：设置优先级 / 轻量设置通知 / 分类区高度可拖
+{
+    string p28Root = Path.Combine(Path.GetTempPath(), "DeskLanesP28_" + Guid.NewGuid().ToString("N"));
+    string p28Cfg = p28Root + "_cfg";
+    Directory.CreateDirectory(p28Root);
+    Directory.CreateDirectory(p28Cfg);
+    try
+    {
+        var ws28 = new WorkspaceService(new LibraryStore(p28Cfg), new ConfigStore(p28Cfg),
+            new ShortcutResolver());
+        var side28 = new SidebarViewModel(ws28, new ConsoleDialogService(), launchService,
+            new ShellState());
+
+        // 等价新断言（替代阶段 27 的「NotifySettingsChanged 走 Changed」）：
+        // 设置变化现在走专用轻量通道，绝不能再触发数据层的 Changed 全量 Rebuild ——
+        // 那是拖动宽度滑块时侧栏卡顿残影的根源。
+        int changedCount = 0;
+        ws28.Changed += (_, _) => changedCount++;
+        int categoriesBefore = side28.Categories.Count;
+
+        ws28.Settings.SidebarWidth = 120;
+        ws28.NotifySettingsChanged();
+        Check(side28.SidebarWidth == 120 && side28.ExpandedWidth == 120,
+            "轻量通道：设置变化后侧栏立即拿到新宽度", side28.SidebarWidth.ToString("0"));
+        Check(changedCount == 0,
+            "轻量通道：设置变化不触发数据层 Changed（不再全量 Rebuild）", changedCount.ToString());
+        Check(side28.Categories.Count == categoriesBefore,
+            "轻量通道：分类集合不被清空重建");
+
+        // 分类区高度：默认 150，可调范围 60–420
+        Check(side28.CategoryHeight == 150, "分类区高度默认 150", side28.CategoryHeight.ToString("0"));
+        side28.CategoryHeight = 999;
+        Check(side28.CategoryHeight == 420, "分类区高度上限 420", side28.CategoryHeight.ToString("0"));
+        side28.CategoryHeight = 5;
+        Check(side28.CategoryHeight == 60, "分类区高度下限 60", side28.CategoryHeight.ToString("0"));
+
+        // 设置优先级：设置窗口打开期间失焦不自动收起
+        bool autoCollapse = side28.AutoCollapseOnFocusLost;
+        side28.IsExpanded = true;
+        side28.OnWindowDeactivated();
+        Check(!side28.IsExpanded, "开启失焦收起时失焦会收起（对照行为）");
+        side28.IsExpanded = true;
+        side28.SuppressAutoCollapse = true;
+        side28.OnWindowDeactivated();
+        Check(side28.IsExpanded, "设置优先级：SuppressAutoCollapse 期间失焦不收起");
+        side28.SuppressAutoCollapse = false;
+        side28.OnWindowDeactivated();
+        Check(!side28.IsExpanded, "关闭设置后恢复常规失焦收起");
+        // 还原设置，避免影响其他用例
+        side28.AutoCollapseOnFocusLost = autoCollapse;
+    }
+    finally
+    {
+        try
+        {
+            Directory.Delete(p28Root, true);
+            Directory.Delete(p28Cfg, true);
         }
         catch
         {

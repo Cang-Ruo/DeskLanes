@@ -54,31 +54,35 @@
 
             <!-- 顶部：展开/收起 + 停靠切换 + 模式 + 关闭
                  收起态窗口只有 MinWidth=44 的窄条，这一排放不下，整体隐藏；
-                 展开由下方收起态的「◀」按钮负责（同一命令） -->
-            <StackPanel Grid.Row="0" Orientation="Horizontal" Margin="0,0,0,8"
-                        Visibility="{Binding IsExpanded, Converter={StaticResource BoolToVis}}">
-                <Button Content="{Binding ExpandToggleText}" Padding="10,5" Margin="0,0,6,0" FontSize="12"
+                 展开由下方收起态的「◀」按钮负责（同一命令）。
+                 阶段 28：StackPanel → WrapPanel，宽度收到 100 时按钮自动换行，
+                 不再被右边缘截断遮挡（最上面的那栏跟着宽度一起调整）。 -->
+            <WrapPanel Grid.Row="0" Margin="0,0,0,8"
+                       Visibility="{Binding IsExpanded, Converter={StaticResource BoolToVis}}">
+                <Button Content="{Binding ExpandToggleText}" Padding="8,4" Margin="0,0,4,4" FontSize="12"
                         ToolTip="展开 / 收起侧边栏"
                         Command="{Binding ToggleExpandedCommand}" />
-                <Button Content="{Binding DockToggleText}" Padding="10,5" Margin="0,0,6,0" FontSize="12"
+                <Button Content="{Binding DockToggleText}" Padding="8,4" Margin="0,0,4,4" FontSize="12"
                         ToolTip="切换停靠到屏幕左侧或右侧"
                         Command="{Binding ToggleDockCommand}" />
-                <Button Content="全屏" Padding="10,5" Margin="0,0,6,0" FontSize="12"
+                <Button Content="全屏" Padding="8,4" Margin="0,0,4,4" FontSize="12"
                         ToolTip="切换到全屏工作空间（数据共用）"
                         Command="{Binding ToggleFullModeCommand}" />
-                <Button Content="悬浮" Padding="10,5" Margin="0,0,6,0" FontSize="12"
+                <Button Content="悬浮" Padding="8,4" Margin="0,0,4,4" FontSize="12"
                         ToolTip="切换到悬浮窗（数据共用）"
                         Command="{Binding ToggleFloatingModeCommand}" />
                 <Button Content="✕" Width="26" Height="24" Padding="0" Background="Transparent"
-                        BorderThickness="0" Foreground="{StaticResource BrushTextPrimary}" HorizontalAlignment="Right"
+                        BorderThickness="0" Foreground="{StaticResource BrushTextPrimary}"
                         ToolTip="隐藏侧边栏（不退出应用）"
                         Command="{Binding HideWindowCommand}" />
-            </StackPanel>
+            </WrapPanel>
 
             <!-- 展开状态：分类 + 项目 -->
             <Grid Grid.Row="1" Visibility="{Binding IsExpanded, Converter={StaticResource BoolToVis}}">
                 <Grid.RowDefinitions>
                     <RowDefinition Height="Auto" />
+                    <RowDefinition Height="Auto" />
+                    <!-- 阶段 28：分类与项目区之间的可拖动分隔条 -->
                     <RowDefinition Height="Auto" />
                     <RowDefinition Height="*" />
                     <RowDefinition Height="Auto" />
@@ -87,11 +91,14 @@
                 <TextBlock Grid.Row="0" Text="分类" FontSize="12" FontWeight="SemiBold"
                            Foreground="{StaticResource BrushTextSecondary}" Margin="0,0,0,4" />
 
+                <!-- 阶段 28：MaxHeight 由 CategoryHeight 驱动（默认 150，可拖 60–420），
+                     分类多时拉高分隔条就能看全，不再把底部的分类裁掉一半。 -->
                 <ListBox Grid.Row="1" ItemsSource="{Binding Categories}"
                          SelectedItem="{Binding SelectedCategory}"
-                         Background="Transparent" BorderThickness="0" MaxHeight="150"
+                         Background="Transparent" BorderThickness="0"
+                         MaxHeight="{Binding CategoryHeight}"
                          ScrollViewer.HorizontalScrollBarVisibility="Disabled"
-                         Margin="0,0,0,6">
+                         Margin="0,0,0,2">
                     <ListBox.ItemTemplate>
                         <DataTemplate>
                             <!-- 阶段 27：三列布局，名称列吃掉剩余宽度并可截断，
@@ -117,8 +124,32 @@
                     </ListBox.ItemTemplate>
                 </ListBox>
 
+                <!-- 阶段 28：拖动调节「分类」区高度（上下箭头样式，悬停高亮） -->
+                <Thumb Grid.Row="2" Height="8" Margin="0,0,0,4" Cursor="SizeNS"
+                       DragDelta="OnCategoryHeightDragDelta"
+                       DragCompleted="OnCategoryHeightDragCompleted"
+                       ToolTip="拖动调节分类区高度">
+                    <Thumb.Template>
+                        <ControlTemplate TargetType="Thumb">
+                            <Border Background="Transparent" CornerRadius="2">
+                                <Rectangle x:Name="GripLine" Height="2" RadiusX="1" RadiusY="1"
+                                           HorizontalAlignment="Center" VerticalAlignment="Center"
+                                           Fill="{StaticResource BrushBorderGlass}" />
+                            </Border>
+                            <ControlTemplate.Triggers>
+                                <Trigger Property="IsMouseOver" Value="True">
+                                    <Setter TargetName="GripLine" Property="Height" Value="3" />
+                                </Trigger>
+                                <Trigger Property="IsDragging" Value="True">
+                                    <Setter TargetName="GripLine" Property="Height" Value="3" />
+                                </Trigger>
+                            </ControlTemplate.Triggers>
+                        </ControlTemplate>
+                    </Thumb.Template>
+                </Thumb>
+
                 <!-- 阶段 21：软件在上、文件夹在下，各自 A-Z -->
-                <ScrollViewer Grid.Row="2" VerticalScrollBarVisibility="Auto"
+                <ScrollViewer Grid.Row="3" VerticalScrollBarVisibility="Auto"
                               PreviewMouseWheel="OnOuterPreviewMouseWheel"
                               HorizontalScrollBarVisibility="Disabled"
                               Visibility="{Binding HasItems, Converter={StaticResource BoolToVis}}">
@@ -192,13 +223,13 @@
                     </StackPanel>
                 </ScrollViewer>
 
-                <TextBlock Grid.Row="2" Text="{Binding EmptyStateText}" FontSize="12"
+                <TextBlock Grid.Row="3" Text="{Binding EmptyStateText}" FontSize="12"
                            Foreground="{StaticResource BrushTextTertiary}" dt:DynamicText.Tone="Tertiary"
                            HorizontalAlignment="Center" VerticalAlignment="Center"
                            TextWrapping="Wrap"
                            Visibility="{Binding HasNoItems, Converter={StaticResource BoolToVis}}" />
 
-                <Border Grid.Row="3" Style="{StaticResource StatusBarScrim}" dt:DynamicText.Scrim="True"
+                <Border Grid.Row="4" Style="{StaticResource StatusBarScrim}" dt:DynamicText.Scrim="True"
                         HorizontalAlignment="Left"
                     Visibility="{Binding HasStatusText, Converter={StaticResource BoolToVis}}" Margin="0,6,0,0">
                     <TextBlock Text="{Binding StatusText}" FontSize="10"
