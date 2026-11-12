@@ -261,3 +261,23 @@ Release 0/0、冒烟 472/472、启动 7/7。详见 `docs/ui-acrylic-final/phase1
   SettingsVM setter 即时同步 + SidebarVM 通知 + SidebarWindow 立即重算宽度。
 - Release 0/0、冒烟 516/516、启动 7/7、端到端 36/36；
   正式 `cf37d850…` 已覆盖安装。详见 `phase27-report.md`。
+
+### 阶段 28 追加（2026-11-12 15:26 用户反馈）
+
+- **宽度下限**：180 → **100**（Clamp + Slider Minimum），用户自定义宽度不受迁移影响。
+- **设置优先级**：打开设置时侧栏强制展开并在窗口打开期间抑制失焦自动收起，
+  关闭设置后恢复；解决"第一次点开设置侧栏就被收走、没法实时预览"。
+- **实时调整卡顿残影**：根因是阶段 27 的 `NotifySettingsChanged()` 走 `OnChanged()`，
+  拖滑块每格都让四个 VM 全量 Rebuild。拆出 `SettingsChanged` 轻量事件，
+  只发属性通知、不动集合；`PlaceOnDockedSide` 值未变不重复赋值，减少 SetWindowPos。
+- **顶栏遮挡**：StackPanel → WrapPanel 自动换行，按钮 Padding 收紧、
+  文案缩为「停靠左/右侧」，100 宽下 5 个按钮完整显示。
+- **分类区遮挡**：固定 `MaxHeight=150` 改成可拖动的 `SidebarCategoryHeight`
+  （60–420，默认 150），分类与项目区之间加分隔条，拖完才落盘。
+- **发布流程教训**：`install.ps1` 不自己 publish，第一次装的是阶段 27 旧 exe
+  （靠 MD5 比对发现）；裸命令行 publish 会丢 pubxml 的单文件压缩设置（132MB），
+  必须用 `-p:PublishProfile=...`。两版重新发布 + 全套回归重跑。
+- Release 0/0、冒烟 525/525、启动 7/7、端到端 36/36；
+  正式 `7e4c8a34…` 已覆盖安装。详见 `phase28-report.md`。
+- **待实测**：100 宽观感、分类区分隔条手感、设置打开时自动展开与拖滑块流畅度
+  （自动化只覆盖数据链路）；长期项：热插拔、睡眠唤醒、新构建 24h+ 驻留、远程桌面。

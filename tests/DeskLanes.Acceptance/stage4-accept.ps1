@@ -794,15 +794,15 @@ try {
         Info ("侧边栏初始位置：Left={0} Right={1}（虚拟桌面 {2}..{3}，DPI 缩放 {4}）" -f $rectBefore.Left, $rectBefore.Right, $vsLeft, $vsRight, $script:DpiScale)
 
         $sidebarEl = Get-UiaWindow "DeskLanes 侧边栏" 3000
-        $dockBtn = if ($sidebarEl -ne $null) { Find-ButtonByName $sidebarEl "停靠到左侧" } else { $null }
+        $dockBtn = if ($sidebarEl -ne $null) { Find-ButtonByName $sidebarEl "停靠左侧" } else { $null }
         $invoked = Invoke-Element $dockBtn
-        Check $invoked "侧边栏「停靠到左侧」按钮可点击"
+        Check $invoked "侧边栏「停靠左侧」按钮可点击"
         Start-Sleep -Milliseconds 600
         $rectLeft = Get-RectLogical $sidebarHwnd
         Info ("停靠左侧后：Left={0} Right={1}" -f $rectLeft.Left, $rectLeft.Right)
         Check (([Math]::Abs($rectLeft.Left - $vsLeft) -le 2) -and ($rectLeft.Left -lt $rectBefore.Left)) "停靠到屏幕左侧（贴近虚拟桌面左缘）" ("Left={0} 期望≈{1}" -f $rectLeft.Left, $vsLeft)
 
-        $dockBtn2 = if ($sidebarEl -ne $null) { Find-ButtonByName $sidebarEl "停靠到右侧" } else { $null }
+        $dockBtn2 = if ($sidebarEl -ne $null) { Find-ButtonByName $sidebarEl "停靠右侧" } else { $null }
         Invoke-Element $dockBtn2 | Out-Null
         Start-Sleep -Milliseconds 600
         $rectRight = Get-RectLogical $sidebarHwnd

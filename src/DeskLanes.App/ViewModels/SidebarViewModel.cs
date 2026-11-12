@@ -42,6 +42,17 @@ public sealed class SidebarViewModel : ObservableObject
         HideWindowCommand = new RelayCommand(_ => HideRequested?.Invoke(this, EventArgs.Empty));
 
         _workspace.Changed += (_, _) => Rebuild();
+        // 阶段 28：纯设置变化（如拖动宽度滑块实时预览）走轻量通道，
+        // 只刷新属性绑定，绝不全量 Rebuild —— 全量重建就是卡顿残影的根源。
+        _workspace.SettingsChanged += (_, _) =>
+        {
+            OnPropertyChanged(nameof(SidebarWidth));
+            OnPropertyChanged(nameof(ExpandedWidth));
+            OnPropertyChanged(nameof(IsDockedRight));
+            OnPropertyChanged(nameof(IsDockedLeft));
+            OnPropertyChanged(nameof(DockToggleText));
+            OnPropertyChanged(nameof(CategoryHeight));
+        };
         _shellState.PropertyChanged += (_, e) =>
         {
             if (e.PropertyName == nameof(ShellState.SearchText))
@@ -117,8 +128,8 @@ public sealed class SidebarViewModel : ObservableObject
 
     public bool IsDockedLeft => !IsDockedRight;
 
-    /// <summary>停靠侧文字（按钮显示点击后的效果）。</summary>
-    public string DockToggleText => IsDockedRight ? "停靠到左侧" : "停靠到右侧";
+    /// <summary>停靠侧文字（按钮显示点击后的效果）。阶段 28 缩短一字：100 宽下也放得下。</summary>
+    public string DockToggleText => IsDockedRight ? "停靠左侧" : "停靠右侧";
 
     /// <summary>失焦自动收起（可在设置里关闭，避免操作过程中意外消失）。</summary>
     public bool AutoCollapseOnFocusLost
@@ -189,9 +200,46 @@ public sealed class SidebarViewModel : ObservableObject
     /// <summary>窗口失焦时调用：仅在开启"失焦收起"且处于展开状态时收起。</summary>
     public void OnWindowDeactivated()
     {
+        // 阶段 28：设置窗口打开期间侧栏拥有优先级 —— 即便失焦也不自动收起，
+        // 否则第一次点开设置就把侧栏收走，拖宽度滑块就看不到实时预览了。
+        if (SuppressAutoCollapse)
+        {
+            return;
+        }
+
         if (AutoCollapseOnFocusLost && IsExpanded)
         {
             IsExpanded = false;
+        }
+    }
+
+    /// <summary>阶段 28：拖动等操作结束后把当前显示偏好（含分类区高度）统一落盘。</summary>
+    public void CommitPreferences() => _workspace.Save();
+
+    /// <summary>
+    /// 阶段 28：设置窗口打开期间为 true，侧栏失焦不自动收起（打开设置时还会强制展开）。
+    /// 由 AppController 在设置窗口开关时切换，关闭设置后恢复常规行为。
+    /// </summary>
+    public bool SuppressAutoCollapse { get; set; }
+
+    /// <summary>
+    /// 阶段 28：「分类」列表区的最大高度（60–420）。分类多时固定 150 会把
+    /// 底部的分类裁掉一半；现在由分类与项目区之间的分隔条拖动调节，
+    /// 拖动过程只写内存配置，拖完由视图统一落盘。
+    /// </summary>
+    public double CategoryHeight
+    {
+        get => Math.Clamp(_workspace.Settings.SidebarCategoryHeight, 60, 420);
+        set
+        {
+            double bounded = Math.Clamp(value, 60, 420);
+            if (Math.Abs(_workspace.Settings.SidebarCategoryHeight - bounded) < 0.5)
+            {
+                return;
+            }
+
+            _workspace.Settings.SidebarCategoryHeight = bounded;
+            OnPropertyChanged(nameof(CategoryHeight));
         }
     }
 

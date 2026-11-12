@@ -3,6 +3,7 @@ using System.Windows;
 using DeskLanes.Core;
 using System.Windows.Interop;
 using System.Windows.Controls;
+using System.Windows.Controls.Primitives;
 using System.Windows.Input;
 using DeskLanes.App.Services;
 using DeskLanes.App.ViewModels;
@@ -90,25 +91,44 @@ public partial class SidebarWindow : Window
         // 不能直接取 VirtualScreenHeight —— 三屏时那是所有屏叠加的总高，
         // 窗口会被推到屏幕外（截图里只剩壁纸）。先按停靠侧定位，
         // 再取窗口所在那块显示器的工作区高度，按该屏 DPI 换算成 DIP。
-        Left = _viewModel.IsDockedRight ? screenLeft + screenWidth - Width : screenLeft;
-        Top = screenTop;
-
-        // 阶段 22：Show 之前 HWND 可能还没创建，不能靠 MonitorFromWindow。
-        // 直接按停靠侧（虚拟屏最左 / 最右）取那块屏的工作区，一次定位到位，
-        // 不需要显示后再补一次（那正是切换时「跳一下」的来源）。
+        double targetHeight = MinHeight;
+        double targetTop = screenTop;
         if (MonitorInterop.TryGetWorkAreaForDockedSide(_viewModel.IsDockedRight,
                 out MonitorInterop.RECT work, out uint dpi) && work.Height > 0)
         {
             double scale = Math.Max(dpi / 96.0, 0.01);
-            Height = Math.Max(MinHeight, work.Height / scale);
-            Top = work.Top / scale;
+            targetHeight = Math.Max(MinHeight, work.Height / scale);
+            targetTop = work.Top / scale;
         }
         else
         {
             // 拿不到显示器信息时退回主屏工作区，绝不用虚拟屏总高
             Rect primaryWork = SystemParameters.WorkArea;
-            Height = Math.Max(MinHeight, primaryWork.Height);
-            Top = primaryWork.Top;
+            targetHeight = Math.Max(MinHeight, primaryWork.Height);
+            targetTop = primaryWork.Top;
+        }
+
+        // 阶段 22：Show 之前 HWND 可能还没创建，不能靠 MonitorFromWindow。
+        // 直接按停靠侧（虚拟屏最左 / 最右）取那块屏的工作区，一次定位到位，
+        // 不需要显示后再补一次（那正是切换时「跳一下」的来源）。
+        double targetLeft = _viewModel.IsDockedRight ? screenLeft + screenWidth - Width : screenLeft;
+
+        // 阶段 28：拖宽度滑块实时预览时这里会被高频调用。值没变的属性
+        // 绝不重复赋值 —— WPF 每次 Left/Top/Height 赋值都是一次 SetWindowPos，
+        // 高频重排正是实时调整时残影的另一半来源。
+        if (Math.Abs(Left - targetLeft) > 0.5)
+        {
+            Left = targetLeft;
+        }
+
+        if (Math.Abs(Top - targetTop) > 0.5)
+        {
+            Top = targetTop;
+        }
+
+        if (Math.Abs(Height - targetHeight) > 0.5)
+        {
+            Height = targetHeight;
         }
     }
 
@@ -134,5 +154,21 @@ public partial class SidebarWindow : Window
             e.Handled = true;
         }
     }
+
+    // ---------- 阶段 28：分类区高度拖动 ----------
+
+    private const double MinCategoryHeight = 60;
+    private const double MaxCategoryHeight = 420;
+
+    /// <summary>拖动分隔条调节「分类」区的最大高度；只写内存，拖完统一落盘。</summary>
+    private void OnCategoryHeightDragDelta(object sender, DragDeltaEventArgs e)
+    {
+        _viewModel.CategoryHeight = Math.Clamp(
+            _viewModel.CategoryHeight + e.VerticalChange, MinCategoryHeight, MaxCategoryHeight);
+    }
+
+    /// <summary>拖动结束后持久化一次，避免拖动过程高频写盘。</summary>
+    private void OnCategoryHeightDragCompleted(object? sender, DragCompletedEventArgs e)
+        => _viewModel.CommitPreferences();
 
 }

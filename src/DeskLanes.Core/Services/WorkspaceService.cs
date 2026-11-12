@@ -66,6 +66,9 @@ public sealed class WorkspaceService : IWorkspaceService
 
     public event EventHandler? Changed;
 
+    /// <summary>阶段 28：纯设置变化（实时预览），与数据变更的 Changed 分离，订阅方只做轻量刷新。</summary>
+    public event EventHandler? SettingsChanged;
+
     /// <summary>保存失败（磁盘错误/权限问题）时触发，参数为中文说明。</summary>
     public event EventHandler<string>? SaveFailed;
 
@@ -763,7 +766,13 @@ public sealed class WorkspaceService : IWorkspaceService
     public void Save() => SaveCore();
 
     /// <summary>阶段 27：设置窗口拖滑块时实时通知侧栏刷新宽度，不写盘。</summary>
-    public void NotifySettingsChanged() => OnChanged();
+    /// <summary>
+    /// 阶段 28：设置预览改为专用事件，不再走 OnChanged。
+    /// 曾经 NotifySettingsChanged() 直接触发 Changed，导致侧栏/全屏/悬浮窗
+    /// 四个 VM 在拖动宽度滑块的每一格上都全量 Rebuild（清空重建集合、重建
+    /// 全部 ItemContainer）——这就是实时调整宽度卡顿与残影的根源。
+    /// </summary>
+    public void NotifySettingsChanged() => SettingsChanged?.Invoke(this, EventArgs.Empty);
 
     // ---------- 内部实现 ----------
 

@@ -75,7 +75,7 @@
                 </StackPanel>
                 <StackPanel Orientation="Horizontal" Margin="0,0,0,6" VerticalAlignment="Center">
                     <TextBlock Text="展开宽度" FontSize="12" Width="70" VerticalAlignment="Center" />
-                    <Slider Minimum="180" Maximum="520" Width="200"
+                    <Slider Minimum="100" Maximum="520" Width="200"
                             Value="{Binding SidebarWidth, Mode=TwoWay}" />
                     <TextBlock Text="{Binding SidebarWidth}" FontSize="12"
                                Foreground="{StaticResource BrushTextSecondary}"

@@ -208,7 +208,9 @@ public sealed class SettingsViewModel : ObservableObject
         get => _sidebarWidth;
         set
         {
-            double bounded = Math.Clamp(value, 180, 520);
+            // 阶段 28：下限 180 → 100。180 在竖屏 / 小屏上仍嫌太宽，
+            // 用户明确要求放开到 100（顶栏会自动换行，内容区文字靠截断 + ToolTip）。
+            double bounded = Math.Clamp(value, 100, 520);
             if (SetProperty(ref _sidebarWidth, bounded))
             {
                 // 阶段 27：拖滑块时立刻写进共享配置并通知侧栏重算宽度，
