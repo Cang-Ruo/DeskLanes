@@ -281,3 +281,24 @@ Release 0/0、冒烟 472/472、启动 7/7。详见 `docs/ui-acrylic-final/phase1
   正式 `7e4c8a34…` 已覆盖安装。详见 `phase28-report.md`。
 - **待实测**：100 宽观感、分类区分隔条手感、设置打开时自动展开与拖滑块流畅度
   （自动化只覆盖数据链路）；长期项：热插拔、睡眠唤醒、新构建 24h+ 驻留、远程桌面。
+
+### 阶段 29 追加（2026-11-12 15:59 用户反馈）
+
+- **失焦变灰**：`backdrop-probe.txt` 显示 `applied=3`，Acrylic 已被系统接受；
+  灰白实底是 Win11 DWM 在非活动窗口上把材质降级成纯色（系统行为，非应用画刷）。
+  `WindowBackdropService` 在 `Activated/Deactivated` 时重新下发 `NONE→ACRYLIC`
+  并开启 `DWMWA_USE_HOSTBACKDROPBRUSH`；`DESKLANES_PERSIST_ACRYLIC=0` 可关。
+  日志已确认 `reapply on focus change` 触发，**但失焦/焦点两态像素比对未完成**，
+  视觉是否一致仍需用户实测。若系统仍强制降级，备选是分层窗口 + WPF 自绘半透明底
+  （两态绝对一致，代价是没有 DWM 毛玻璃模糊）。
+- **悬浮窗失焦消失**：`FloatingHideOnDeactivate` 默认改为 false，旧配置里的 true
+  用 `FloatingHideOnDeactivateMigrated` 一次性迁移；失焦改为
+  `SetWindowPos(HWND_BOTTOM, SWP_NOACTIVATE)` 留在 z 序最底层，Esc 仍可隐藏。
+- **点设置崩溃**：`Owner = _mainWindow` 在悬浮窗/侧边栏模式下抛
+  `InvalidOperationException`（主窗口从未 Show）。改为按「已加载且可见」挑 Owner，
+  都不满足就不设；`errors.log` 15:57 有实证。
+- **explorer.exe / dcore.dll 报错**：Windows 更新中途系统 DLL 版本错配，
+  报错进程是 explorer.exe 而非 DeskLanes；24h soak 会阻止睡眠、可能推迟更新重启，
+  但无因果证据。建议完成更新并重启，仍复现再跑 DISM + SFC，不要覆盖 System32 DLL。
+- Release 0/0、冒烟 537/537、启动 7/7、端到端 36/36；
+  正式 `c286cbf2…` 已覆盖安装。详见 `phase29-report.md`。
