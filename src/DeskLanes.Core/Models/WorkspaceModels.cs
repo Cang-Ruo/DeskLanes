@@ -386,6 +386,13 @@ public sealed class AppSettings : IVersionedData
     public bool SidebarAutoCollapse { get; set; } = true;
 
     /// <summary>
+    /// 阶段 28：侧边栏「分类」列表区的最大高度（DIP）。
+    /// 分类多时固定 150 会把底部的分类裁一半，现在可以在分类与项目区之间
+    /// 拖动分隔条调节；范围 60–420，由 UI 层钳制。
+    /// </summary>
+    public double SidebarCategoryHeight { get; set; } = 150;
+
+    /// <summary>
     /// 阶段 25：自由分区画布的网格单元（虚拟单位）。分区的位置与尺寸都吸附到它，
     /// 用户可在工具栏切换 20 / 40 / 60 / 80。默认 40。
     /// </summary>

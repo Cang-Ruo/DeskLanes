@@ -782,7 +782,23 @@ public sealed class AppController : IDisposable
         {
             _settingsWindow = null;
             _settingsViewModel = null;
+
+            // 阶段 28：关闭设置后解除「设置优先级」，侧栏恢复常规的失焦自动收起
+            if (_sidebarViewModel is not null)
+            {
+                _sidebarViewModel.SuppressAutoCollapse = false;
+            }
         };
+
+        // 阶段 28：打开设置 = 设置优先级。侧栏即便处于收起态也自动展开，
+        // 且打开期间失焦不自动收起 —— 否则第一次点开设置侧栏就被收走，
+        // 拖动「展开宽度」滑块时完全看不到实时预览。
+        // 注意必须发生在 ShowDialog 之前：模态一开侧栏立刻失焦。
+        if (_sidebarViewModel is not null && _sidebarWindow is not null && _sidebarWindow.IsVisible)
+        {
+            _sidebarViewModel.SuppressAutoCollapse = true;
+            _sidebarWindow.ShowDocked();
+        }
 
         _settingsViewModel.Saved += (_, _) =>
         {
