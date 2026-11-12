@@ -7,15 +7,19 @@
         xmlns:dt="clr-namespace:DeskLanes.App.Services"
         Title="DeskLanes 侧边栏"
         Width="280" Height="760" MinWidth="44" MinHeight="240"
-        WindowStyle="None" Background="Transparent"
+        WindowStyle="None" AllowsTransparency="True" Background="#01000000"
         Topmost="True" ShowInTaskbar="False"
         WindowStartupLocation="Manual"
         TextOptions.TextFormattingMode="Ideal"
         UseLayoutRounding="True">
-    <shell:WindowChrome.WindowChrome>
-        <shell:WindowChrome CaptionHeight="0" ResizeBorderThickness="0"
-                            GlassFrameThickness="0" UseAeroCaptionButtons="False" />
-    </shell:WindowChrome.WindowChrome>
+    <!-- 阶段 30：改回分层窗口（AllowsTransparency=True），并去掉 WindowChrome。
+         原因：Win11 的 DWM 会在窗口失焦时把系统 Acrylic 降级成不透明纯色
+         （阶段 29 在焦点变化时重下发材质也拦不住，用户实测仍变灰白）。
+         分层窗口由 WPF 自己合成透明像素，DWM 不再有机会按焦点画底色，
+         因此「有焦点 / 无焦点」两态必然一致。
+         模糊由 WindowBackdropService 走 SetWindowCompositionAttribute 的
+         窗口级 Acrylic 提供；该 API 不可用时，根 Border 的半透明玻璃底
+         仍然保证透明（只是没有毛玻璃模糊）。 -->
     <Window.Resources>
         <BooleanToVisibilityConverter x:Key="BoolToVis" />
     </Window.Resources>

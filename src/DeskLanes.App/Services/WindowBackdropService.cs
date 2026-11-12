@@ -102,13 +102,27 @@ public static class WindowBackdropService
 
             void Reapply()
             {
-                if (!window.IsLoaded || window.AllowsTransparency)
+                if (!window.IsLoaded)
                 {
                     return;
                 }
 
-                window.Dispatcher.BeginInvoke(
-                    () => ReapplyBackdrop(window), DispatcherPriority.Background);
+                window.Dispatcher.BeginInvoke(() =>
+                {
+                    if (window.AllowsTransparency)
+                    {
+                        // 分层窗口：重新确认系统 backdrop 仍为 NONE、窗口级 Acrylic 仍在
+                        IntPtr layeredHwnd = new WindowInteropHelper(window).Handle;
+                        if (layeredHwnd != IntPtr.Zero)
+                        {
+                            ApplyLayeredWindow(layeredHwnd, squareCorner);
+                        }
+                    }
+                    else
+                    {
+                        ReapplyBackdrop(window);
+                    }
+                }, DispatcherPriority.Background);
             }
 
             window.Activated += (_, _) => Reapply();
@@ -126,7 +140,36 @@ public static class WindowBackdropService
             "0", StringComparison.Ordinal);
 
     /// <summary>
-    /// 在焦点变化后重新下发 Acrylic：先切 NONE 再切回 ACRYLIC，
+    /// 阶段 30：分层窗口（侧边栏 / 悬浮窗）的玻璃路径。
+    /// 1) 把系统 backdrop 关成 NONE，杜绝 DWM 在失焦时画纯色；
+    /// 2) 用 SetWindowCompositionAttribute 的窗口级 Acrylic 画模糊，
+    ///    tint 取很淡的白（AABBGGRR = 0x18FFFFFF），避免压暗壁纸；
+    /// 3) 标题栏深色与圆角照常设置（分层窗口没有原生标题栏，无害）。
+    /// 返回是否成功应用了窗口级模糊；false 时 XAML 的半透明底仍然有效。
+    /// </summary>
+    private static bool ApplyLayeredWindow(IntPtr hwnd, bool squareCorner)
+    {
+        int on = 1;
+        _ = DwmInterop.DwmSetWindowAttribute(
+            hwnd, DwmInterop.AttributeUseImmersiveDarkMode, ref on, sizeof(int));
+        int round = squareCorner
+            ? DwmInterop.CornerPreferenceDoNotRound
+            : DwmInterop.CornerPreferenceRound;
+        _ = DwmInterop.DwmSetWindowAttribute(
+            hwnd, DwmInterop.AttributeCornerPreference, ref round, sizeof(int));
+
+        // 关键：先关掉 DWMWA_SYSTEMBACKDROP_TYPE，否则非活动窗口仍会被画成纯灰
+        int none = DwmInterop.BackdropNone;
+        int hrNone = DwmInterop.DwmSetWindowAttribute(
+            hwnd, DwmInterop.AttributeSystemBackdropType, ref none, sizeof(int));
+
+        bool ok = DwmInterop.TrySetLayeredAcrylic(hwnd, 0x18FFFFFF);
+        WriteProbe(string.Format(CultureInfo.InvariantCulture,
+            "layered window: backdrop none hr=0x{0:X8}, accent acrylic={1}", hrNone, ok));
+        return ok;
+    }
+
+    /// <summary>在焦点变化后重新下发 Acrylic：先切 NONE 再切回 ACRYLIC，
     /// 否则 DWM 可能把「写同一个值」合并掉、不重建材质。
     /// 同时补一次 DWMWA_USE_HOSTBACKDROPBRUSH 与合成目标透明，
     /// 但不动 Window.Background / 子 Border，避免焦点切换时闪一下。
@@ -178,8 +221,10 @@ public static class WindowBackdropService
 
         if (window.AllowsTransparency)
         {
-            // 分层窗口：不用 DWM 背景，玻璃底色由 XAML 负责
-            return false;
+            // 阶段 30：分层窗口走自己的路径 —— 系统 backdrop 会按焦点降级，
+            // 必须关掉，改用窗口级 Acrylic（不跟随焦点）。即使这个 API 不可用，
+            // WPF 背景透明 + XAML 根 Border 的半透明底也能保证两态都透出壁纸。
+            return ApplyLayeredWindow(hwnd, squareCorner);
         }
 
         // 标题栏深色模式（白字）与系统圆角：失败不影响主流程
