@@ -302,3 +302,23 @@ Release 0/0、冒烟 472/472、启动 7/7。详见 `docs/ui-acrylic-final/phase1
   但无因果证据。建议完成更新并重启，仍复现再跑 DISM + SFC，不要覆盖 System32 DLL。
 - Release 0/0、冒烟 537/537、启动 7/7、端到端 36/36；
   正式 `c286cbf2…` 已覆盖安装。详见 `phase29-report.md`。
+
+### 阶段 30 追加（2026-11-12 16:38 用户实测「还是会」）
+
+- **阶段 29 方案确认无效**：焦点变化重下发 `DWMWA_SYSTEMBACKDROP_TYPE`
+  改不了 DWM「非活动窗口画纯色」的状态机。实验：对非分层窗口改
+  `SetWindowCompositionAttribute` 老式 Acrylic 只是中灰变深灰，看不到壁纸。
+- **侧边栏改分层窗口**（`AllowsTransparency=True` + `Background="#01000000"`
+  + 去掉 WindowChrome），透明像素由 WPF 自己合成；
+  系统 backdrop 关成 NONE，模糊改走 `ACCENT_ENABLE_ACRYLICBLURBEHIND`。
+  API 不可用时根 Border 半透明底仍保证两态一致（无模糊）。
+- **客观证据**：`tools/phase30-focus-glass.py` 在同一窗口的非活动/活动两态
+  做 GDI 截屏，平均像素差 **0.0**；`phase30-sidebar-{unfocused,focused}.png`。
+- **取舍（重要）**：悬浮窗曾一起改分层，但合成鼠标拖拽/八方向缩放变得不稳定
+  （e2e 31~35/36，连跑两次失败项不同；alpha=0 热区会鼠标穿透）。
+  已回退悬浮窗到非分层实现，端到端连跑两次 36/36。
+  **因此悬浮窗失焦仍可能变灰**；要一并解决需独立重构拖动/缩放热区
+  （改为窗口级鼠标坐标判定），本轮未做。
+- Release 0/0、冒烟 539/539、启动 7/7、端到端 36/36（两次）；
+  正式 `ad42663a…` 已覆盖安装。详见 `phase30-report.md`。
+- **待实测**：真机侧栏失焦观感、亮壁纸下白字可读性、是否也要悬浮窗一致。

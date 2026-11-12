@@ -92,6 +92,75 @@ public static class DwmInterop
         }
     }
 
+    // ---------- 阶段 30：分层窗口的窗口级 Acrylic（不受焦点降级影响） ----------
+
+    /// <summary>Win10 1809+ 的 ACCENT_ENABLE_ACRYLICBLURBEHIND：窗口自己画模糊背景。</summary>
+    public const int AccentEnableAcrylicBlurBehind = 4;
+
+    /// <summary>WCA_ACCENT_POLICY。</summary>
+    public const int WcaAccentPolicy = 19;
+
+    [StructLayout(LayoutKind.Sequential)]
+    public struct AccentPolicy
+    {
+        public int AccentState;
+        public int AccentFlags;
+        /// <summary>AABBGGRR 格式的 tint（注意不是 ARGB）。</summary>
+        public uint GradientColor;
+        public int AnimationId;
+    }
+
+    [StructLayout(LayoutKind.Sequential)]
+    public struct WindowCompositionAttributeData
+    {
+        public int Attribute;
+        public IntPtr Data;
+        /// <summary>SIZE_T：x64 下必须是 8 字节，用 int 会让结构体错位。</summary>
+        public IntPtr SizeOfData;
+    }
+
+    [DllImport("user32.dll")]
+    [return: MarshalAs(UnmanagedType.Bool)]
+    public static extern bool SetWindowCompositionAttribute(
+        IntPtr hwnd, ref WindowCompositionAttributeData data);
+
+    /// <summary>
+    /// 给窗口开启窗口级 Acrylic 模糊。与 DWMWA_SYSTEMBACKDROP_TYPE 不同，
+    /// 这条路不按「窗口是否活动」切换材质，失焦时不会被 DWM 换成纯色。
+    /// 调用方仍需把窗口设为 AllowsTransparency=True 并让 WPF 背景透明。
+    /// </summary>
+    public static bool TrySetLayeredAcrylic(IntPtr hwnd, uint tintAbgr)
+    {
+        var policy = new AccentPolicy
+        {
+            AccentState = AccentEnableAcrylicBlurBehind,
+            AccentFlags = 0,
+            GradientColor = tintAbgr,
+            AnimationId = 0,
+        };
+        int size = Marshal.SizeOf<AccentPolicy>();
+        IntPtr buffer = Marshal.AllocHGlobal(size);
+        try
+        {
+            Marshal.StructureToPtr(policy, buffer, false);
+            var data = new WindowCompositionAttributeData
+            {
+                Attribute = WcaAccentPolicy,
+                Data = buffer,
+                SizeOfData = (IntPtr)size,
+            };
+            return SetWindowCompositionAttribute(hwnd, ref data);
+        }
+        catch (EntryPointNotFoundException)
+        {
+            return false;   // 老系统没有这个导出：WPF 半透明底仍保证两态一致
+        }
+        finally
+        {
+            Marshal.FreeHGlobal(buffer);
+        }
+    }
+
     /// <summary>按 COLORREF 语义写入颜色类属性（标题栏色、边框色）。</summary>
     public static int DwmSetWindowAttributeColor(IntPtr hwnd, int attribute, ref ColorRef value)
     {

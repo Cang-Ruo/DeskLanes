@@ -3658,6 +3658,14 @@ Console.WriteLine("== 26. 大桌面：项目数超过图标缓存上限时的表
         Check(settingsVm29.FloatingHideOnDeactivate, "设置窗口读到用户主动开启的 true");
         Check(WindowBackdropService.PersistAcrylicOnFocusChange,
             "默认开启失焦 Acrylic 材质维持");
+
+        // 阶段 30：分层窗口的窗口级 Acrylic 必须能在 API 不可用 / 无效句柄时安全失败，
+        // 否则侧栏与悬浮窗会直接启动崩溃（WPF 半透明底是最终回退）。
+        Check(!DwmInterop.TrySetLayeredAcrylic(IntPtr.Zero, 0x18FFFFFF),
+            "窗口级 Acrylic 对无效句柄安全失败");
+        Check(DwmInterop.AccentEnableAcrylicBlurBehind == 4 &&
+              DwmInterop.WcaAccentPolicy == 19,
+            "窗口级 Acrylic 常量与 Win32 定义一致");
     }
     finally
     {
