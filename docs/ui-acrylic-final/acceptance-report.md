@@ -363,3 +363,16 @@ Release 0/0、冒烟 516/516、启动 7/7、端到端 36/36，
 改用仓库固化 `.pubxml` 重新发布两版并把全套回归在新构建上重跑。
 Release 0/0、冒烟 525/525、启动 7/7、端到端 36/36，
 正式 `7e4c8a34…` 已覆盖安装。详见 `phase28-report.md`。
+
+### 阶段 29（失焦玻璃 / 悬浮窗留底层 / 设置崩溃 / 系统报错归因）
+
+失焦变灰的根因是 Win11 DWM 在非活动窗口降级 Acrylic（应用画刷无问题），
+改为焦点变化时重新下发 `NONE→ACRYLIC` + host backdrop 采样，
+日志已确认重下发触发（两态像素比对未完成，需实测）。
+悬浮窗失焦不再隐藏：默认关闭自动隐藏 + 旧配置一次性迁移，
+失焦用 `SetWindowPos(HWND_BOTTOM)` 留在最底层。
+托盘点设置的 `Owner` 崩溃改为按「已加载且可见」挑 Owner、都不满足则不设。
+`explorer.exe` 的 `NtdxgkGetContextQos / dcore.dll` 报错归因于 Windows 更新
+中途系统 DLL 错配，与 DeskLanes 无关，给出重启 + DISM/SFC 建议。
+Release 0/0、冒烟 537/537、启动 7/7、端到端 36/36，
+正式 `c286cbf2…` 已覆盖安装。详见 `phase29-report.md`。

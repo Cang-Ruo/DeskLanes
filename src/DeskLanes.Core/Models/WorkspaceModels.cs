@@ -364,8 +364,19 @@ public sealed class AppSettings : IVersionedData
     /// <summary>悬浮窗左上角 Y；null 表示用户还没拖动过（此时窗口居中显示）。</summary>
     public double? FloatingWindowTop { get; set; }
 
-    /// <summary>悬浮窗失去焦点时是否自动隐藏（可关闭，避免误操作丢失窗口）。</summary>
-    public bool FloatingHideOnDeactivate { get; set; } = true;
+    /// <summary>
+    /// 悬浮窗失去焦点时是否自动隐藏。
+    /// 阶段 29 默认改为 **false**：用户要的是失焦后仍留在 z 序最底层，
+    /// 而不是一点别的软件就整个消失（消失后连设置都点不到）。
+    /// 仍可在设置里主动勾回来，Esc 也始终能隐藏。
+    /// </summary>
+    public bool FloatingHideOnDeactivate { get; set; }
+
+    /// <summary>
+    /// 阶段 29 一次性迁移标记：旧配置里显式写着 FloatingHideOnDeactivate=true
+    /// （当时的默认值），构造时迁移一次为 false；之后用户主动勾选不再被覆盖。
+    /// </summary>
+    public bool FloatingHideOnDeactivateMigrated { get; set; }
 
     // ---------- 侧边栏 ----------
 

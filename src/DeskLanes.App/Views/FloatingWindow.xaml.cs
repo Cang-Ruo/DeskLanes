@@ -3,8 +3,10 @@ using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Controls.Primitives;
 using System.Windows.Input;
+using System.Windows.Interop;
 using DeskLanes.App.Services;
 using DeskLanes.App.ViewModels;
+using DeskLanes.Core;
 using DeskLanes.Core.Models;
 
 namespace DeskLanes.App.Views;
@@ -67,12 +69,33 @@ public partial class FloatingWindow : Window
         }
     }
 
+    /// <summary>
+    /// 阶段 29：失焦时不再一律隐藏。
+    /// 勾选了「失焦自动隐藏」才隐藏；否则把窗口送到 z 序最底层，
+    /// 让它继续显示但不抢焦点、不盖住正在用的软件（用户要的「停靠在最底层」）。
+    /// </summary>
     private void OnDeactivated(object? sender, EventArgs e)
     {
         if (_viewModel.HideOnDeactivate)
         {
             _controller.HideFloating();
+            return;
         }
+
+        SendToBack();
+    }
+
+    private void SendToBack()
+    {
+        IntPtr hwnd = new WindowInteropHelper(this).Handle;
+        if (hwnd == IntPtr.Zero)
+        {
+            return;
+        }
+
+        _ = MonitorInterop.SetWindowPos(
+            hwnd, MonitorInterop.HwndBottom, 0, 0, 0, 0,
+            MonitorInterop.SwpNoMove | MonitorInterop.SwpNoSize | MonitorInterop.SwpNoActivate);
     }
 
     // ---------- 拖动 / 缩放 ----------

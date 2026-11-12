@@ -4,6 +4,7 @@ using System.IO;
 using System.Windows;
 using System.Windows.Interop;
 using System.Windows.Media;
+using System.Windows.Threading;
 using DeskLanes.Core;
 
 namespace DeskLanes.App.Services;
@@ -86,7 +87,77 @@ public static class WindowBackdropService
     public static void Attach(Window window, bool squareCorner = false, bool paintWindowSurface = true)
     {
         ArgumentNullException.ThrowIfNull(window);
-        window.SourceInitialized += (_, _) => Apply(window, squareCorner, paintWindowSurface);
+        window.SourceInitialized += (_, _) =>
+        {
+            Apply(window, squareCorner, paintWindowSurface);
+
+            // 阶段 29：Win11 的 DWM 会在窗口失去焦点时把 Acrylic 降级成
+            // 不透明纯色（截图里「非焦点是灰白实底、焦点是透明蓝」）。
+            // 属性本身没变，是 DWM 内部按焦点状态切换材质，所以焦点变化后
+            // 要强制它重建一次；社区里 MicaForEveryone 等工具也是这个做法。
+            if (!PersistAcrylicOnFocusChange)
+            {
+                return;
+            }
+
+            void Reapply()
+            {
+                if (!window.IsLoaded || window.AllowsTransparency)
+                {
+                    return;
+                }
+
+                window.Dispatcher.BeginInvoke(
+                    () => ReapplyBackdrop(window), DispatcherPriority.Background);
+            }
+
+            window.Activated += (_, _) => Reapply();
+            window.Deactivated += (_, _) => Reapply();
+        };
+    }
+
+    /// <summary>
+    /// 阶段 29：失焦保持透明的维持开关。默认开；
+    /// 设 <c>DESKLANES_PERSIST_ACRYLIC=0</c> 可关掉用于排障/对比。
+    /// </summary>
+    public static bool PersistAcrylicOnFocusChange
+        => !string.Equals(
+            Environment.GetEnvironmentVariable("DESKLANES_PERSIST_ACRYLIC")?.Trim(),
+            "0", StringComparison.Ordinal);
+
+    /// <summary>
+    /// 在焦点变化后重新下发 Acrylic：先切 NONE 再切回 ACRYLIC，
+    /// 否则 DWM 可能把「写同一个值」合并掉、不重建材质。
+    /// 同时补一次 DWMWA_USE_HOSTBACKDROPBRUSH 与合成目标透明，
+    /// 但不动 Window.Background / 子 Border，避免焦点切换时闪一下。
+    /// </summary>
+    private static void ReapplyBackdrop(Window window)
+    {
+        IntPtr hwnd = new WindowInteropHelper(window).Handle;
+        if (hwnd == IntPtr.Zero || window.AllowsTransparency ||
+            !DwmInterop.SupportsSystemBackdrop || DwmInterop.IsRemoteSession)
+        {
+            return;
+        }
+
+        int none = DwmInterop.BackdropNone;
+        _ = DwmInterop.DwmSetWindowAttribute(
+            hwnd, DwmInterop.AttributeSystemBackdropType, ref none, sizeof(int));
+        int acrylic = DwmInterop.BackdropAcrylic;
+        int hr = DwmInterop.DwmSetWindowAttribute(
+            hwnd, DwmInterop.AttributeSystemBackdropType, ref acrylic, sizeof(int));
+        int host = 1;
+        _ = DwmInterop.DwmSetWindowAttribute(
+            hwnd, DwmInterop.AttributeUseHostBackdropBrush, ref host, sizeof(int));
+
+        HwndSource? source = HwndSource.FromHwnd(hwnd);
+        if (source?.CompositionTarget is not null)
+        {
+            source.CompositionTarget.BackgroundColor = Colors.Transparent;
+        }
+
+        WriteProbe(string.Format(CultureInfo.InvariantCulture,
+            "reapply on focus change hr=0x{0:X8} (none -> acrylic)", hr));
     }
 
     /// <summary>对已创建句柄的窗口应用背景效果。返回是否应用了原生 DWM 背景。</summary>
@@ -143,6 +214,11 @@ public static class WindowBackdropService
         {
             // 首选 Desktop Acrylic：真正的半透明磨砂玻璃，能看到模糊后的桌面内容
             WriteProbe("acrylic accepted");
+            // 阶段 29：解锁 host backdrop 采样，让 Acrylic 在非活动状态下
+            // 也尽量继续采样桌面，而不是退回系统纯色。
+            int host = 1;
+            _ = DwmInterop.DwmSetWindowAttribute(
+                hwnd, DwmInterop.AttributeUseHostBackdropBrush, ref host, sizeof(int));
         }
         else
         {
