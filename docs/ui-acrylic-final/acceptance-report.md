@@ -376,3 +376,16 @@ Release 0/0、冒烟 525/525、启动 7/7、端到端 36/36，
 中途系统 DLL 错配，与 DeskLanes 无关，给出重启 + DISM/SFC 建议。
 Release 0/0、冒烟 537/537、启动 7/7、端到端 36/36，
 正式 `c286cbf2…` 已覆盖安装。详见 `phase29-report.md`。
+
+### 阶段 30（失焦玻璃彻底解决 / 分层窗口）
+
+用户实测阶段 29 仍变灰。实验证明：非分层窗口上老式 Acrylic 无效（中灰→深灰，
+仍不透壁纸）；改回分层窗口后由 WPF 自己合成透明像素，DWM 不再按焦点换底色。
+侧边栏改 `AllowsTransparency=True` + `#01000000` 背景、去掉 WindowChrome，
+系统 backdrop 关 NONE，模糊走 `ACCENT_ENABLE_ACRYLICBLURBEHIND`。
+`tools/phase30-focus-glass.py` 在同一窗口非活动/活动两态做 GDI 截屏，
+**平均像素差 0.0**，证据 `phase30-sidebar-{unfocused,focused}.png`。
+悬浮窗曾一起分层，但合成鼠标拖拽/缩放不稳定（e2e 31~35/36），
+已回退为求稳；**悬浮窗失焦仍可能变灰**，需独立重构热区才能一并解决。
+Release 0/0、冒烟 539/539、启动 7/7、端到端 **连跑两次 36/36**，
+正式 `ad42663a…` 已覆盖安装。详见 `phase30-report.md`。
