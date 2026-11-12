@@ -72,8 +72,12 @@ public static class MonitorInterop
     public static extern int GetSystemMetrics(int nIndex);
 
     public const uint SwpNoSize = 0x0001;
+    public const uint SwpNoMove = 0x0002;
     public const uint SwpNoZOrder = 0x0004;
     public const uint SwpNoActivate = 0x0010;
+
+    /// <summary>SetWindowPos 的 HWND_BOTTOM：把窗口放到 z 序最底层。</summary>
+    public static readonly IntPtr HwndBottom = new(1);
 
     /// <summary>取指定物理坐标所在显示器的工作区（物理像素）。</summary>
     public static bool TryGetWorkAreaForPoint(POINT pt, out RECT work, out uint dpi)

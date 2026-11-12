@@ -46,6 +46,16 @@ public sealed class WorkspaceService : IWorkspaceService
         // 有 2 个项目、分区里却是 0 个）。加载后立刻配对并同步成员，不丢用户数据。
         // 这里不补建缺失的一边，避免改变已有集合数量；切换布局时才补全。
         EnsurePairedContainers(createMissing: false);
+
+        // 阶段 29：旧默认「失焦自动隐藏」会让悬浮窗一切到别的软件就整个消失，
+        // 用户要的是留在最底层。旧配置里显式存过 true 的一次性迁移为 false；
+        // 标记落盘后，用户之后自己勾回 true 不会再被改。
+        if (!SettingsData.FloatingHideOnDeactivateMigrated)
+        {
+            SettingsData.FloatingHideOnDeactivate = false;
+            SettingsData.FloatingHideOnDeactivateMigrated = true;
+            Save();
+        }
     }
 
     private DateTime _lastGeometrySaveUtc = DateTime.MinValue;

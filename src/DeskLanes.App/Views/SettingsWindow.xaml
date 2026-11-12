@@ -59,7 +59,7 @@
 
                 <!-- 悬浮窗行为 -->
                 <TextBlock Text="悬浮窗" Style="{StaticResource SectionTitle}" Margin="0,0,0,6" />
-                <CheckBox Content="失去焦点时自动隐藏（Esc 也可隐藏）"
+                <CheckBox Content="失去焦点时自动隐藏（默认关闭：失焦后留在最底层，Esc 仍可隐藏）"
                           IsChecked="{Binding FloatingHideOnDeactivate, Mode=TwoWay}"
                           FontSize="12" Margin="0,0,0,14" />
 

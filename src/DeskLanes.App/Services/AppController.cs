@@ -753,6 +753,14 @@ public sealed class AppController : IDisposable
 
     // ---------- 设置 ----------
 
+    /// <summary>
+    /// 阶段 29：选出可作设置窗口 Owner 的窗口下标（0 主窗口 / 1 悬浮窗 / 2 侧边栏 / -1 不设）。
+    /// 抽成纯函数是为了能在冒烟测试里覆盖「主窗口没显示过时不选它」这条规则。
+    /// </summary>
+    public static int SelectSettingsOwnerIndex(
+        bool mainUsable, bool floatingUsable, bool sidebarUsable)
+        => mainUsable ? 0 : floatingUsable ? 1 : sidebarUsable ? 2 : -1;
+
     private void ShowSettings()
     {
         if (_mainViewModel is null || _hotkeyService is null)
@@ -774,10 +782,34 @@ public sealed class AppController : IDisposable
         _settingsViewModel = new SettingsViewModel(
             _mainViewModel.Workspace, _hotkeyService, _dialogService,
             _startupService, _desktopIconService, _configDir);
-        _settingsWindow = new SettingsWindow(_settingsViewModel)
+        // 阶段 29：Owner 必须是「之前显示过」的窗口。悬浮窗 / 侧边栏模式下主窗口
+        // 可能一次都没 Show 过，直接 Owner = _mainWindow 会抛
+        // InvalidOperationException（用户从托盘点设置必崩，errors.log 有实证）。
+        // 按当前可见且已加载的窗口挑一个；一个都没有就不设 Owner，ShowDialog 仍正常。
+        int ownerIndex = SelectSettingsOwnerIndex(
+            _mainWindow?.IsLoaded == true && _mainWindow.IsVisible,
+            _floatingWindow?.IsLoaded == true && _floatingWindow.IsVisible,
+            _sidebarWindow?.IsLoaded == true && _sidebarWindow.IsVisible);
+        Window? owner = ownerIndex switch
         {
-            Owner = _mainWindow,
+            0 => _mainWindow,
+            1 => _floatingWindow,
+            2 => _sidebarWindow,
+            _ => null,
         };
+
+        _settingsWindow = new SettingsWindow(_settingsViewModel);
+        if (owner is not null)
+        {
+            try
+            {
+                _settingsWindow.Owner = owner;
+            }
+            catch (InvalidOperationException)
+            {
+                // 极端时序下窗口刚 Hide：不设 Owner 也能正常模态显示，别再崩给用户看
+            }
+        }
         _settingsWindow.Closed += (_, _) =>
         {
             _settingsWindow = null;

@@ -1237,7 +1237,9 @@ Console.WriteLine("-- 13.2 窗口模式与行为设置 --");
 AppSettings settingDefaults = new();
 Check(settingDefaults.WindowMode == WindowMode.Full, "默认窗口模式为全屏");
 Check(settingDefaults.Hotkey == HotkeyDefinition.Default, "默认快捷键为 Ctrl+Alt+Space");
-Check(settingDefaults.FloatingHideOnDeactivate, "悬浮窗默认失焦隐藏");
+// 阶段 29：旧默认 true 会让悬浮窗一切走就整个消失（用户要求留在最底层），
+// 默认改成 false；这里按前提变化替换成等价新断言，不删断言。
+Check(!settingDefaults.FloatingHideOnDeactivate, "悬浮窗默认失焦不隐藏（留在最底层）");
 Check(
     settingDefaults.SidebarDock == SidebarDock.Right &&
     settingDefaults.SidebarExpanded &&
@@ -3603,6 +3605,66 @@ Console.WriteLine("== 26. 大桌面：项目数超过图标缓存上限时的表
         {
             Directory.Delete(p28Root, true);
             Directory.Delete(p28Cfg, true);
+        }
+        catch
+        {
+            // 临时目录清理失败不影响结果
+        }
+    }
+}
+
+// ---------------------------------------------------------------- 37. 阶段 29：失焦不隐藏 / Owner 选择 / 材质维持
+{
+    string p29Root = Path.Combine(Path.GetTempPath(), "DeskLanesP29_" + Guid.NewGuid().ToString("N"));
+    string p29Cfg = p29Root + "_cfg";
+    Directory.CreateDirectory(p29Root);
+    Directory.CreateDirectory(p29Cfg);
+    try
+    {
+        var defaults29 = new AppSettings();
+        Check(!defaults29.FloatingHideOnDeactivate, "阶段29 默认失焦不自动隐藏");
+        Check(!defaults29.FloatingHideOnDeactivateMigrated, "迁移标记默认未置位");
+
+        // 旧配置里显式存过 true（当时的默认值）→ 一次性迁移成 false 并落盘
+        string settingsPath = Path.Combine(p29Cfg, "settings.json");
+        File.WriteAllText(settingsPath,
+            "{ \"Version\": 1, \"FloatingHideOnDeactivate\": true }");
+        var ws29 = new WorkspaceService(new LibraryStore(p29Cfg), new ConfigStore(p29Cfg),
+            new ShortcutResolver());
+        Check(!ws29.Settings.FloatingHideOnDeactivate, "旧配置 true 一次性迁移为 false");
+        Check(ws29.Settings.FloatingHideOnDeactivateMigrated, "迁移后标记置位");
+        string persisted29 = File.ReadAllText(settingsPath);
+        Check(persisted29.Contains("\"FloatingHideOnDeactivate\": false"),
+            "迁移结果已落盘", persisted29.Length.ToString());
+
+        // 迁移只发生一次：用户之后主动勾回 true 不会被覆盖
+        ws29.Settings.FloatingHideOnDeactivate = true;
+        ws29.Save();
+        var ws29b = new WorkspaceService(new LibraryStore(p29Cfg), new ConfigStore(p29Cfg),
+            new ShortcutResolver());
+        Check(ws29b.Settings.FloatingHideOnDeactivate, "迁移后用户主动勾回 true 不被覆盖");
+
+        // 设置窗口 Owner 必须挑「显示过」的窗口，否则托盘点设置会崩
+        Check(AppController.SelectSettingsOwnerIndex(true, true, true) == 0,
+            "Owner 优先主窗口");
+        Check(AppController.SelectSettingsOwnerIndex(false, true, false) == 1,
+            "主窗口没显示过时选悬浮窗做 Owner");
+        Check(AppController.SelectSettingsOwnerIndex(false, false, true) == 2,
+            "只有侧边栏可见时选侧边栏");
+        Check(AppController.SelectSettingsOwnerIndex(false, false, false) == -1,
+            "全都不可见时不设 Owner");
+
+        var settingsVm29 = new SettingsViewModel(ws29b, new StubHotkeyService(), dialogService);
+        Check(settingsVm29.FloatingHideOnDeactivate, "设置窗口读到用户主动开启的 true");
+        Check(WindowBackdropService.PersistAcrylicOnFocusChange,
+            "默认开启失焦 Acrylic 材质维持");
+    }
+    finally
+    {
+        try
+        {
+            Directory.Delete(p29Root, true);
+            Directory.Delete(p29Cfg, true);
         }
         catch
         {
