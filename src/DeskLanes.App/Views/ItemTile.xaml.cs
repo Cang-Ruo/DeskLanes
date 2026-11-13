@@ -23,6 +23,30 @@ namespace DeskLanes.App.Views;
 /// </summary>
 public partial class ItemTile : UserControl
 {
+    /// <summary>
+    /// 阶段 31：全屏模式下把整块磁贴等比缩到 80%（悬浮窗保持 1.0）。
+    /// 用 LayoutTransform 而不是改 Width/Height：父容器的 WrapPanel / 自适应分区
+    /// 会按变换后的尺寸排版，图标、名字牌、文字一起等比缩小，不会错位。
+    /// 图标本身已有 BitmapScalingMode=HighQuality，缩小后更锐利。
+    /// </summary>
+    public static readonly DependencyProperty TileScaleProperty =
+        DependencyProperty.Register(nameof(TileScale), typeof(double), typeof(ItemTile),
+            new PropertyMetadata(1.0, OnTileScaleChanged));
+
+    public double TileScale
+    {
+        get => (double)GetValue(TileScaleProperty);
+        set => SetValue(TileScaleProperty, value);
+    }
+
+    private static void OnTileScaleChanged(DependencyObject d, DependencyPropertyChangedEventArgs e)
+    {
+        if (d is ItemTile tile && e.NewValue is double scale && scale > 0.1 && scale <= 2)
+        {
+            tile.LayoutTransform = new ScaleTransform(scale, scale);
+        }
+    }
+
     private Point _startPoint;
     private bool _pendingDrag;
     // 阶段 24：拖拽时跟随鼠标的软件图标幽灵窗口

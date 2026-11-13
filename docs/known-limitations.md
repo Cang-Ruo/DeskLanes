@@ -322,3 +322,25 @@ Release 0/0、冒烟 472/472、启动 7/7。详见 `docs/ui-acrylic-final/phase1
 - Release 0/0、冒烟 539/539、启动 7/7、端到端 36/36（两次）；
   正式 `ad42663a…` 已覆盖安装。详见 `phase30-report.md`。
 - **待实测**：真机侧栏失焦观感、亮壁纸下白字可读性、是否也要悬浮窗一致。
+
+### 阶段 31 追加（2026-11-14 00:43 用户反馈）
+
+- **全屏露任务栏**：`MainWindow` 挂 `WM_GETMINMAXINFO`，把最大化尺寸限制在
+  `MONITORINFO.rcWork`；仍是 `showCmd=3` 的系统最大化。实测显示器 1920 /
+  工作区 1848 / 窗口 1848，任务栏 72 px 完整可见。
+- **启动后收束**：`ShellState.ItemLaunched`（五个 VM 的启动成功路径）→
+  `AppController` 收束成 `EdgeStripWindow` 左侧 2 DIP 细线（8 DIP 命中区、
+  Topmost、不抢焦点）。侧边栏悬停即展开 / 移开收束；全屏悬停只提亮、
+  **必须点击**才展开；悬浮窗是特例，沉到焦点软件后面，可设置常驻置顶。
+  Esc、快捷键（全屏/侧边栏改为打开当前工作空间）、托盘点设置都会正确进出收束态。
+  侧边栏悬停判定用 Win32 几何（GetCursorPos + GetWindowRect），不依赖
+  WPF 的 IsMouseOver；展开全屏回到收束前那块显示器，避免左边缘误判到竖屏。
+- **透明度不动**：侧栏保持阶段 30 分层窗口的恒定透明；全屏仍是 DWM Acrylic，
+  点击细线展开时窗口被激活，呈现的就是「焦点态」透明度。
+- **全屏磁贴 80%**：`ItemTile.TileScale=0.8`（LayoutTransform，HighQuality 缩放），
+  `AutoFitPanel` 常量同步 96→77 / 92→74 / 40→32 / 16→13；悬浮窗与侧栏不缩放。
+- 新增设置 `CollapseOnLaunch`（默认开）、`FloatingTopmost`（默认关）。
+- Release 0/0、冒烟 546/546、启动 7/7、端到端 **37/37**（新增任务栏断言）、
+  收束功能探针 **8/8**；正式 `74a3fd04…` 已覆盖安装。详见 `phase31-report.md`。
+- **待实测**：真实双击启动软件后的收束手感（探针走 Esc 同一入口）、细线醒目程度、
+  80% 磁贴观感、露任务栏后自由分区排布；悬浮窗失焦仍可能变灰（同阶段 30）。

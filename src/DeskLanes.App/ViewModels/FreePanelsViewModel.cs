@@ -314,7 +314,10 @@ public sealed class FreePanelsViewModel : ObservableObject
         if (!result.Success)
         {
             _dialogService.ShowError(result.ErrorMessage ?? "启动失败。", "无法打开项目");
+            return;
         }
+
+        _shellState.NotifyItemLaunched();
     }
 
     private void RemoveItem(object? parameter)

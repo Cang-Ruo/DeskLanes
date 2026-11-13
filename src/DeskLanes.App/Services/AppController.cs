@@ -63,11 +63,13 @@ public sealed class AppController : IDisposable
     private SidebarViewModel? _sidebarViewModel;
     private WindowModeManager? _modeManager;
     private SettingsViewModel? _settingsViewModel;
+    private IWorkspaceService? _workspace;
 
     private MainWindow? _mainWindow;
     private FloatingWindow? _floatingWindow;
     private SidebarWindow? _sidebarWindow;
     private SettingsWindow? _settingsWindow;
+    private EdgeStripWindow? _edgeStrip;
     private Window? _messageHost;
 
     private HotkeyService? _hotkeyService;
@@ -83,6 +85,14 @@ public sealed class AppController : IDisposable
     private bool _disposed;
     private bool _initialized;
     private Task? _initializationTask;
+
+    // 阶段 31：收束状态。_isCollapsed 时只显示左侧细线；
+    // 侧边栏悬停展开后由 _peekTimer 监视鼠标，移开自动收束。
+    private bool _isCollapsed;
+    private bool _sidebarPeekActive;
+    private MonitorInterop.RECT _collapsedWork;
+    private DispatcherTimer? _peekTimer;
+
     // 阶段 14：从后台切回（离开超过阈值）时自动重扫桌面
     private DateTime _deactivatedAtUtc = DateTime.MinValue;
     private DateTime _lastReturnScanUtc = DateTime.MinValue;
@@ -126,6 +136,8 @@ public sealed class AppController : IDisposable
         var libraryStore = new LibraryStore(_configDir);
         var configStore = new ConfigStore(_configDir);
         IWorkspaceService workspace = new WorkspaceService(libraryStore, configStore, shortcutResolver);
+        _workspace = workspace;
+        shellState.ItemLaunched += (_, _) => OnItemLaunched();
 
         _logger = new FileDiagnosticLogger(Path.Combine(_configDir, "logs"));
         _startupService = new StartupService();
@@ -154,6 +166,13 @@ public sealed class AppController : IDisposable
         _mainWindow = new MainWindow(_mainViewModel, this) { DataContext = _mainViewModel };
         _floatingWindow = new FloatingWindow(_floatingViewModel, this);
         _sidebarWindow = new SidebarWindow(_sidebarViewModel, this);
+
+        // 阶段 31：收束用的左侧细线（默认隐藏，只有收束后才显示）
+        _edgeStrip = new EdgeStripWindow();
+        _edgeStrip.HoverRequested += OnEdgeStripHover;
+        _edgeStrip.ClickRequested += OnEdgeStripClick;
+        _peekTimer = new DispatcherTimer { Interval = TimeSpan.FromMilliseconds(350) };
+        _peekTimer.Tick += OnPeekTimerTick;
 
         (_dialogService as WpfDialogService)?.SetOwner(_mainWindow);
 
@@ -241,6 +260,24 @@ public sealed class AppController : IDisposable
             return;
         }
 
+        // 阶段 31：全屏 / 侧边栏模式下，快捷键是「打开工作空间」——
+        // 收束着就展开，展开着就带到前台，不再把用户切到悬浮窗模式。
+        // 悬浮窗模式仍保持原来的呼出 / 隐藏切换。
+        if (CurrentMode != WindowMode.Floating)
+        {
+            if (_isCollapsed)
+            {
+                ExpandFromEdge(activate: true);
+            }
+            else
+            {
+                ApplyMode(CurrentMode, activate: true);
+            }
+
+            UpdateTrayText();
+            return;
+        }
+
         _modeManager.ToggleFloating();
 
         if (_modeManager.IsFloatingVisible && _floatingWindow is not null)
@@ -271,9 +308,163 @@ public sealed class AppController : IDisposable
         UpdateTrayText();
     }
 
+    // ---------- 阶段 31：启动软件后自动收束成左侧细线 ----------
+
+    /// <summary>侧边栏是「悬停即展开、移开即收束」；全屏必须点击才展开。</summary>
+    public static bool IsHoverExpandMode(WindowMode mode) => mode == WindowMode.Sidebar;
+
+    /// <summary>双击启动成功：按模式收束。悬浮窗是特例，不走细线。</summary>
+    private void OnItemLaunched()
+    {
+        if (_workspace?.Settings.CollapseOnLaunch != true)
+        {
+            return;
+        }
+
+        if (CurrentMode == WindowMode.Floating)
+        {
+            bool topmost = _workspace?.Settings.FloatingTopmost == true;
+            _floatingWindow?.ApplyTopmostSetting(topmost);
+            return;
+        }
+
+        CollapseToEdge();
+    }
+
+    private void CollapseToEdge()
+    {
+        if (_isCollapsed || _edgeStrip is null)
+        {
+            return;
+        }
+
+        // 先取当前窗口所在显示器的工作区：拿不到就宁可不收束，
+        // 免得窗口藏了、细线却没地方放。
+        IntPtr hwnd = CurrentMode == WindowMode.Sidebar && _sidebarWindow is not null
+            ? new WindowInteropHelper(_sidebarWindow).Handle
+            : _mainWindow is not null ? new WindowInteropHelper(_mainWindow).Handle : IntPtr.Zero;
+
+        if (!MonitorInterop.TryGetWorkArea(hwnd, out MonitorInterop.RECT work, out uint dpi))
+        {
+            return;
+        }
+
+        _isCollapsed = true;
+        _collapsedWork = work;
+        _sidebarPeekActive = false;
+        _peekTimer?.Stop();
+        _edgeStrip.SetHover(false);
+        _mainWindow?.Hide();
+        _sidebarWindow?.Hide();
+        _edgeStrip.ShowAtWorkArea(work, dpi);
+    }
+
+    /// <summary>从细线展开。activate=false 是侧边栏的悬停预览（不抢焦点）。</summary>
+    private void ExpandFromEdge(bool activate)
+    {
+        if (!_isCollapsed)
+        {
+            return;
+        }
+
+        _isCollapsed = false;
+        _edgeStrip?.SetHover(false);
+        _edgeStrip?.Hide();
+
+        if (CurrentMode == WindowMode.Sidebar)
+        {
+            _sidebarWindow?.ShowDocked(activate: activate);
+            _sidebarPeekActive = !activate;
+            if (_sidebarPeekActive)
+            {
+                _peekTimer?.Start();
+            }
+            else
+            {
+                _peekTimer?.Stop();
+            }
+
+            return;
+        }
+
+        if (_mainWindow is not null)
+        {
+            // 回到收束前那块显示器，别按鼠标所在屏（鼠标正停在左侧边缘细线上，
+            // 很容易被判到相邻的左侧竖屏）。
+            _mainWindow.PlaceOnWorkArea(_collapsedWork);
+            _mainWindow.Show();
+            WindowActivator.Activate(_mainWindow, forceForeground: false);
+            _mainWindow.BeginFullMode(fromOtherMode: true);
+            return;
+        }
+
+        ApplyMode(WindowMode.Full, activate: activate);
+    }
+
+    private void OnEdgeStripHover(object? sender, EventArgs e)
+    {
+        if (!_isCollapsed)
+        {
+            return;
+        }
+
+        // 全屏模式只把线提亮（SetHover 已做），必须点击才展开。
+        if (IsHoverExpandMode(CurrentMode))
+        {
+            ExpandFromEdge(activate: false);
+        }
+    }
+
+    private void OnEdgeStripClick(object? sender, EventArgs e) => ExpandFromEdge(activate: true);
+
+    private void OnPeekTimerTick(object? sender, EventArgs e)
+    {
+        if (!_sidebarPeekActive || _isCollapsed || _sidebarWindow is null)
+        {
+            _sidebarPeekActive = false;
+            _peekTimer?.Stop();
+            return;
+        }
+
+        // 用户点进侧边栏开始操作了：不再自动收束，保持展开。
+        if (_sidebarWindow.IsActive)
+        {
+            _sidebarPeekActive = false;
+            _peekTimer?.Stop();
+            return;
+        }
+
+        if (MonitorInterop.IsPointerOverWindow(new WindowInteropHelper(_sidebarWindow).Handle) ||
+            (_edgeStrip is not null && _edgeStrip.IsVisible && _edgeStrip.IsPointerOver))
+        {
+            return;
+        }
+
+        CollapseToEdge();
+    }
+
+    /// <summary>Esc / 托盘收束入口：返回 false 表示调用方沿用「隐藏到托盘」。</summary>
+    public bool CollapseFromEscape()
+    {
+        if (_workspace?.Settings.CollapseOnLaunch != true ||
+            CurrentMode == WindowMode.Floating)
+        {
+            return false;
+        }
+
+        CollapseToEdge();
+        return true;
+    }
+
     /// <summary>显示当前模式的窗口（托盘"打开"）。</summary>
     public void ShowCurrentMode()
     {
+        if (_isCollapsed)
+        {
+            ExpandFromEdge(activate: true);
+            return;
+        }
+
         ApplyMode(_modeManager?.CurrentMode ?? WindowMode.Full, activate: true);
     }
 
@@ -625,6 +816,21 @@ public sealed class AppController : IDisposable
     /// </param>
     private void ApplyMode(WindowMode mode, bool activate, bool forceForeground = true)
     {
+        // 阶段 31：任何一次显式的模式切换 / 重新显示都结束收束态。
+        // ExpandFromEdge 会先把 _isCollapsed 置 false 再进来，所以不会互相抵消。
+        if (_isCollapsed)
+        {
+            _isCollapsed = false;
+            _sidebarPeekActive = false;
+            _peekTimer?.Stop();
+            _edgeStrip?.Hide();
+        }
+
+        if (mode == WindowMode.Floating)
+        {
+            _floatingWindow?.ApplyTopmostSetting(_workspace?.Settings.FloatingTopmost == true);
+        }
+
         switch (mode)
         {
             // 阶段 22：切换时先让新窗口显示出来，最后才隐藏旧窗口。
@@ -773,6 +979,13 @@ public sealed class AppController : IDisposable
         _desktopIconService?.Refresh();
         _startupService?.Refresh();
 
+        // 阶段 31：收束态下点设置，先把工作空间展开，否则设置窗口没有可见宿主，
+        // 用户也会以为「点设置没反应」。
+        if (_isCollapsed)
+        {
+            ExpandFromEdge(activate: true);
+        }
+
         if (_settingsWindow is not null)
         {
             WindowActivator.Activate(_settingsWindow);
@@ -836,6 +1049,10 @@ public sealed class AppController : IDisposable
         {
             // 应用新的窗口模式
             _modeManager?.SwitchTo(_mainViewModel.Workspace.Settings.WindowMode);
+
+            // 阶段 31：设置里改了「常驻置顶」/「自动收束」后立即生效
+            _floatingWindow?.ApplyTopmostSetting(
+                _mainViewModel.Workspace.Settings.FloatingTopmost);
 
             // 侧边栏几何可能变化：重新摆放
             if (_sidebarWindow is not null && _sidebarWindow.IsVisible)

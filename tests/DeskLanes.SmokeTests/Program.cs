@@ -3465,8 +3465,6 @@ Console.WriteLine("== 26. 大桌面：项目数超过图标缓存上限时的表
         });
 
         WorkspacePanel panel26 = ws26.CreatePanel("自适应面板");
-        double width0 = panel26.Width;
-        double height0 = panel26.Height;
         foreach (DesktopItem item in items26)
         {
             ws26.AssignItemToPanel(item, panel26);
@@ -3475,13 +3473,18 @@ Console.WriteLine("== 26. 大桌面：项目数超过图标缓存上限时的表
             panel26.ItemIds.AddRange(items26.Take(6).Select(i => i.Id));
         }
         ws26.AssignItemToPanel(items26[0], panel26);   // 触发一次自适应
-        Check(panel26.Height >= height0,
-            "成员变多时框不会变小（所有软件都显示得下）",
-            $"{height0} -> {panel26.Height}");
+        double heightWithSix = panel26.Height;
 
         // 直接验证：手动清空成员再触发一次，框应能缩小
         panel26.ItemIds.Clear();
         ws26.AssignItemToPanel(items26[0], panel26);
+        double heightWithOne = panel26.Height;
+        // 阶段 31：磁贴缩到 80% 后，"新默认高 240" 不再是有效基准
+        // （6 个成员现在只需要 200）。换成不依赖绝对尺寸的等价断言：
+        // 成员变多时框必须变大或至少不变小，且 1 成员时确实能缩小。
+        Check(heightWithSix >= heightWithOne && heightWithOne < heightWithSix,
+            "成员变多时框不会变小（6 成员 > 1 成员，所有软件都显示得下）",
+            $"1 成员 {heightWithOne} -> 6 成员 {heightWithSix}");
         Check(panel26.Height > 0 && panel26.Width > 0, "自适应尺寸保持有效几何", "");
 
         // 手动调过的尺寸在重新加载后保留（成员数没变化不重算）
@@ -3673,6 +3676,78 @@ Console.WriteLine("== 26. 大桌面：项目数超过图标缓存上限时的表
         {
             Directory.Delete(p29Root, true);
             Directory.Delete(p29Cfg, true);
+        }
+        catch
+        {
+            // 临时目录清理失败不影响结果
+        }
+    }
+}
+
+// ---------------------------------------------------------------- 38. 阶段 31：启动后收束 / 悬浮窗置顶 / 全屏磁贴 80%
+{
+    string p31Root = Path.Combine(Path.GetTempPath(), "DeskLanesP31_" + Guid.NewGuid().ToString("N"));
+    string p31Cfg = p31Root + "_cfg";
+    Directory.CreateDirectory(p31Root);
+    Directory.CreateDirectory(p31Cfg);
+    try
+    {
+        var defaults31 = new AppSettings();
+        Check(defaults31.CollapseOnLaunch, "阶段31 默认启动软件后自动收束");
+        Check(!defaults31.FloatingTopmost, "阶段31 悬浮窗默认不置顶（收束到焦点软件后面）");
+
+        // 悬停展开只属于侧边栏；全屏必须点击（纯逻辑，冒烟可覆盖）
+        Check(AppController.IsHoverExpandMode(WindowMode.Sidebar) &&
+              !AppController.IsHoverExpandMode(WindowMode.Full) &&
+              !AppController.IsHoverExpandMode(WindowMode.Floating),
+            "悬停展开仅限侧边栏，全屏需点击");
+
+        // 启动成功事件是收束的唯一触发源
+        var state31 = new ShellState();
+        int launched31 = 0;
+        state31.ItemLaunched += (_, _) => launched31++;
+        state31.NotifyItemLaunched();
+        Check(launched31 == 1, "ShellState 启动事件可被外壳订阅");
+
+        var ws31 = new WorkspaceService(new LibraryStore(p31Cfg), new ConfigStore(p31Cfg),
+            new ShortcutResolver());
+        var settingsVm31 = new SettingsViewModel(ws31, new StubHotkeyService(), dialogService);
+        settingsVm31.CollapseOnLaunch = false;
+        settingsVm31.FloatingTopmost = true;
+        settingsVm31.SaveCommand.Execute(null);
+        Check(!ws31.Settings.CollapseOnLaunch && ws31.Settings.FloatingTopmost,
+            "设置可关闭自动收束、可开启悬浮窗置顶");
+
+        // 全屏磁贴缩到 80%：6 个成员（3 列）时分区宽度应比旧常量算出的 320 更小
+        var items31 = new List<DesktopItem>();
+        for (int i = 0; i < 6; i++)
+        {
+            items31.Add(new DesktopItem
+            {
+                Name = "软件" + i, FullPath = Path.Combine(p31Root, "软件" + i),
+                Kind = DesktopItemKind.Shortcut, Origin = ItemOrigin.UserDesktop,
+            });
+        }
+        await ws31.MergeScanAsync(new ScanResult
+        {
+            Items = items31, ScopeDirectories = new[] { p31Root },
+        });
+        WorkspacePanel panel31 = ws31.CreatePanel("80%面板");
+        foreach (DesktopItem item in items31)
+        {
+            ws31.AssignItemToPanel(item, panel31);   // 每次成员数变化都会触发自适应
+        }
+        Check(panel31.Width > 0 && panel31.Width <= 280,
+            "全屏磁贴 80% 后分区自适应宽度同步缩小", panel31.Width.ToString("0"));
+        Check(panel31.Width > 0 && panel31.Width <= 280,
+            "全屏磁贴 80% 后分区自适应同步缩小", panel31.Width.ToString("0"));
+    }
+    finally
+    {
+        try
+        {
+            Directory.Delete(p31Root, true);
+            Directory.Delete(p31Cfg, true);
         }
         catch
         {

@@ -76,6 +76,27 @@ public static class MonitorInterop
     public const uint SwpNoZOrder = 0x0004;
     public const uint SwpNoActivate = 0x0010;
 
+    [DllImport("user32.dll")]
+    [return: MarshalAs(UnmanagedType.Bool)]
+    public static extern bool GetWindowRect(IntPtr hwnd, out RECT lpRect);
+
+    /// <summary>
+    /// 阶段 31：鼠标当前是否落在窗口矩形内（物理像素，跨混合 DPI 也准）。
+    /// 悬停展开侧边栏时 WPF 的 IsMouseOver 在「窗口突然出现在鼠标下方」
+    /// 这种时序下不稳，用几何判定更可靠。
+    /// </summary>
+    public static bool IsPointerOverWindow(IntPtr hwnd)
+    {
+        if (hwnd == IntPtr.Zero || !GetWindowRect(hwnd, out RECT rect) ||
+            !GetCursorPos(out POINT pt))
+        {
+            return false;
+        }
+
+        return pt.X >= rect.Left && pt.X < rect.Right &&
+               pt.Y >= rect.Top && pt.Y < rect.Bottom;
+    }
+
     /// <summary>SetWindowPos 的 HWND_BOTTOM：把窗口放到 z 序最底层。</summary>
     public static readonly IntPtr HwndBottom = new(1);
 
