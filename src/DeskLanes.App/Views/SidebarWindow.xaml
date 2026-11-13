@@ -8,8 +8,8 @@
         Title="DeskLanes 侧边栏"
         Width="280" Height="760" MinWidth="44" MinHeight="240"
         WindowStyle="None" AllowsTransparency="True" Background="#01000000"
-        Topmost="True" ShowInTaskbar="False"
-        WindowStartupLocation="Manual"
+        Topmost="True" ShowInTaskbar="False" ShowActivated="False"
+        WindowStartupLocation="Manual" KeyDown="OnWindowKeyDown"
         TextOptions.TextFormattingMode="Ideal"
         UseLayoutRounding="True">
     <!-- 阶段 30：改回分层窗口（AllowsTransparency=True），并去掉 WindowChrome。

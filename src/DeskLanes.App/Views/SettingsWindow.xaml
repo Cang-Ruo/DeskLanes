@@ -61,6 +61,12 @@
                 <TextBlock Text="悬浮窗" Style="{StaticResource SectionTitle}" Margin="0,0,0,6" />
                 <CheckBox Content="失去焦点时自动隐藏（默认关闭：失焦后留在最底层，Esc 仍可隐藏）"
                           IsChecked="{Binding FloatingHideOnDeactivate, Mode=TwoWay}"
+                          FontSize="12" Margin="0,0,0,6" />
+                <CheckBox Content="常驻置顶（默认关闭：收束时藏到焦点软件后面）"
+                          IsChecked="{Binding FloatingTopmost, Mode=TwoWay}"
+                          FontSize="12" Margin="0,0,0,14" />
+                <CheckBox Content="打开软件后自动收束成左侧细线（全屏 / 侧边栏；悬浮窗按上面的规则）"
+                          IsChecked="{Binding CollapseOnLaunch, Mode=TwoWay}"
                           FontSize="12" Margin="0,0,0,14" />
 
                 <!-- 侧边栏 -->

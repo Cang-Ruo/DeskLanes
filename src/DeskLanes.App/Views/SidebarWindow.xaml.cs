@@ -53,8 +53,12 @@ public partial class SidebarWindow : Window
         ContentRendered += (_, _) => _ = _controller.EnsureInitializedAsync();
     }
 
-    /// <summary>显示窗口并放置到停靠侧。</summary>
-    public void ShowDocked()
+    /// <summary>
+    /// 显示窗口并放置到停靠侧。
+    /// 阶段 31：activate=false 供「鼠标悬停细线预览」用 —— 展开侧边栏但不抢
+    /// 正在使用的软件的焦点，鼠标移开后由 AppController 重新收束。
+    /// </summary>
+    public void ShowDocked(bool activate = true)
     {
         // 阶段 21：上次收起过的话，直接切回来会出现「宽窗口 + 只剩一个 ◀ 按钮」的
         // 空白灰块（IsExpanded=false 但 Width 还停在展开宽度）。切到侧边栏模式时
@@ -67,7 +71,10 @@ public partial class SidebarWindow : Window
         ApplyWindowWidth();
         PlaceOnDockedSide();
         Show();
-        Activate();
+        if (activate)
+        {
+            Activate();
+        }
     }
 
     /// <summary>展开时用设置里的宽度，收起时只留窄条。</summary>
@@ -134,6 +141,23 @@ public partial class SidebarWindow : Window
 
     private void OnDeactivated(object? sender, EventArgs e)
         => _viewModel.OnWindowDeactivated();
+
+    /// <summary>阶段 31：Esc 收束成左侧细线；没开自动收束时沿用原来的隐藏。</summary>
+    private void OnWindowKeyDown(object sender, KeyEventArgs e)
+    {
+        if (e.Key != Key.Escape)
+        {
+            return;
+        }
+
+        if (!_controller.CollapseFromEscape())
+        {
+            _controller.HideSidebar();
+        }
+
+        e.Handled = true;
+    }
+
     /// <summary>双击侧边栏项目启动（自定义行模板不走 ItemTile 的双击处理）。</summary>
     private void OnItemDoubleClick(object sender, MouseButtonEventArgs e)
     {

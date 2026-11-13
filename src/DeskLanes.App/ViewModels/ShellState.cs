@@ -19,4 +19,13 @@ public sealed class ShellState : ObservableObject
 
     /// <summary>是否有有效搜索词（去除空白后非空）。</summary>
     public bool IsSearching => !string.IsNullOrWhiteSpace(_searchText);
+
+    /// <summary>
+    /// 阶段 31：任一视图模型成功启动了一个项目（双击磁贴 / 侧栏 / 悬浮窗）。
+    /// AppController 订阅它把全屏或侧边栏「收束」成左侧竖线。
+    /// 只有启动成功才发；启动失败会弹错误提示，此时不收束，方便继续操作。
+    /// </summary>
+    public event EventHandler? ItemLaunched;
+
+    public void NotifyItemLaunched() => ItemLaunched?.Invoke(this, EventArgs.Empty);
 }

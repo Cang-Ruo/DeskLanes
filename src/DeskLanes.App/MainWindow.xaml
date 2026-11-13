@@ -15,6 +15,11 @@
          （Acrylic → Mica），失败时服务会把 Background 还原为不透明玻璃底色 -->
     <Window.Resources>
         <BooleanToVisibilityConverter x:Key="BoolToVis" />
+        <!-- 阶段 31：全屏工作空间的磁贴等比缩到 80%（悬浮窗 / 侧边栏保持原尺寸）。
+             用 LayoutTransform，父容器会按缩放后的尺寸排版，图标也更锐利。 -->
+        <Style TargetType="{x:Type views:ItemTile}">
+            <Setter Property="TileScale" Value="0.8" />
+        </Style>
         <!-- 布局视图解析：CurrentView 绑定到对应视图模型时渲染对应视图 -->
         <DataTemplate DataType="{x:Type vm:CategoryNavViewModel}">
             <views:CategoryNavView />

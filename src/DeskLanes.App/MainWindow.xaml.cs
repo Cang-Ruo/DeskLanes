@@ -1,5 +1,6 @@
 using System;
 using System.ComponentModel;
+using System.Runtime.InteropServices;
 using System.Windows;
 using DeskLanes.Core;
 using System.Windows.Interop;
@@ -39,12 +40,60 @@ public partial class MainWindow : Window
         // 窗口偏好必须在窗口定位之前应用：句柄一建立就恢复上次的尺寸与位置。
         // 原来放在 ContentRendered 里，会晚于 BeginFullMode 的最大化 —— 用户上次
         // 把窗口留在副屏时，这次就会先在主屏最大化，副屏偏好直接丢失。
-        SourceInitialized += (_, _) => ApplyWindowPreferences();
+        SourceInitialized += (_, _) =>
+        {
+            ApplyWindowPreferences();
+            AttachWorkAreaMaximizeHook();
+        };
 
         // 窗口真正落到某块屏上之后（此时句柄已定位）才按那块屏收缩。
         // 放在 SourceInitialized 里做会踩空：那一刻还没定位，取到的是错的显示器。
         Loaded += (_, _) => FitToScreenAfterShow();
         Activated += (_, _) => FitToScreenAfterShow();
+    }
+
+    // ---------- 阶段 31：最大化只铺工作区，任务栏露出来 ----------
+
+    private const int WmGetMinMaxInfo = 0x0024;
+
+    [StructLayout(LayoutKind.Sequential)]
+    private struct MinMaxInfo
+    {
+        public MonitorInterop.POINT Reserved;
+        public MonitorInterop.POINT MaxSize;
+        public MonitorInterop.POINT MaxPosition;
+        public MonitorInterop.POINT MinTrackSize;
+        public MonitorInterop.POINT MaxTrackSize;
+    }
+
+    /// <summary>
+    /// WPF 的 WindowState.Maximized 会把无边框窗口铺满整块显示器，连任务栏一起盖住。
+    /// 这里在 WM_GETMINMAXINFO 里把「最大化尺寸 / 位置」改成该显示器的工作区：
+    /// 窗口仍是系统意义的最大化（showCmd=3），但底部任务栏保持可见。
+    /// 不改 WindowState，避免破坏还原 / 多屏定位的既有逻辑。
+    /// </summary>
+    private void AttachWorkAreaMaximizeHook()
+    {
+        IntPtr hwnd = new WindowInteropHelper(this).Handle;
+        HwndSource? source = HwndSource.FromHwnd(hwnd);
+        source?.AddHook(OnWindowMessage);
+    }
+
+    private IntPtr OnWindowMessage(IntPtr hwnd, int msg, IntPtr wParam, IntPtr lParam,
+        ref bool handled)
+    {
+        if (msg != WmGetMinMaxInfo || lParam == IntPtr.Zero ||
+            !MonitorInterop.TryGetWorkArea(hwnd, out MonitorInterop.RECT work, out _))
+        {
+            return IntPtr.Zero;
+        }
+
+        MinMaxInfo info = Marshal.PtrToStructure<MinMaxInfo>(lParam);
+        info.MaxSize = new MonitorInterop.POINT { X = work.Width, Y = work.Height };
+        info.MaxPosition = new MonitorInterop.POINT { X = work.Left, Y = work.Top };
+        Marshal.StructureToPtr(info, lParam, false);
+        // 不设 handled=true：让 WPF 继续走默认处理，它只是读回我们改过的结构。
+        return IntPtr.Zero;
     }
 
     /// <summary>
@@ -87,6 +136,28 @@ public partial class MainWindow : Window
         IntPtr hwnd = new WindowInteropHelper(this).Handle;
         if (hwnd == IntPtr.Zero ||
             !MonitorInterop.TryGetWorkAreaForCursor(out MonitorInterop.RECT work, out _))
+        {
+            return;
+        }
+
+        if (WindowState == WindowState.Maximized)
+        {
+            WindowState = WindowState.Normal;
+        }
+
+        MonitorInterop.SetWindowPos(hwnd, IntPtr.Zero, work.Left, work.Top, 0, 0,
+            MonitorInterop.SwpNoSize | MonitorInterop.SwpNoZOrder | MonitorInterop.SwpNoActivate);
+        WindowState = WindowState.Maximized;
+    }
+
+    /// <summary>
+    /// 阶段 31：从收束态展开时回到「收束前那块屏」，而不是按鼠标所在屏。
+    /// 鼠标停在屏幕最左边缘时 MonitorFromPoint 容易判到相邻的左侧竖屏。
+    /// </summary>
+    public void PlaceOnWorkArea(MonitorInterop.RECT work)
+    {
+        IntPtr hwnd = new WindowInteropHelper(this).Handle;
+        if (hwnd == IntPtr.Zero)
         {
             return;
         }
@@ -204,7 +275,13 @@ public partial class MainWindow : Window
     {
         if (e.Key == Key.Escape)
         {
-            Hide();
+            // 阶段 31：开了「启动后收束」时，Esc 先收束成左侧细线而不是直接躲进托盘；
+            // 没开就保持原来的「隐藏到托盘」行为。
+            if (!_controller.CollapseFromEscape())
+            {
+                Hide();
+            }
+
             e.Handled = true;
         }
     }

@@ -927,10 +927,12 @@ public sealed class WorkspaceService : IWorkspaceService
     /// </summary>
     private void AutoFitPanel(WorkspacePanel panel)
     {
-        const double tileWidth = 96;
-        const double tileHeight = 92;
-        const double headerHeight = 40;
-        const double padding = 16;
+        // 阶段 31：全屏磁贴缩到 80%（ItemTile 的 TileScale=0.8），
+        // 分区自适应常量同步等比缩小，框仍然刚好包住所有软件。
+        const double tileWidth = 77;      // 96 * 0.8
+        const double tileHeight = 74;     // 92 * 0.8
+        const double headerHeight = 32;    // 40 * 0.8
+        const double padding = 13;        // 16 * 0.8
 
         int count = panel.ItemIds.Count;
         int columns = Math.Clamp((int)Math.Ceiling(Math.Sqrt(Math.Max(1, count))), 2, 5);

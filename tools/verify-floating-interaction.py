@@ -501,6 +501,15 @@ try:
             "style=0x%08X caption=%s thickframe=%s showCmd=%d size=%dx%d monitor=%d"
             % (style, has_caption, has_thickframe, get_showcmd(hwnd), w0, h0, target_w))
 
+        # 阶段 31：用户要求全屏露出任务栏。前提变化后新增等价断言，验收强度不降低：
+        # 窗口仍要铺满工作区宽度，但高度不得超过工作区高度（任务栏那一条留出来）。
+        # 用 MONITORINFO.rcWork（物理像素）比较，避免硬编码任务栏像素高度。
+        work_h = (mi.rcWork.bottom - mi.rcWork.top) if got_monitor else 0
+        say("fullscreen leaves the taskbar visible (height <= work area)",
+            work_h > 0 and h0 <= work_h + 24 and h0 >= work_h - 120,
+            "window h=%d work area h=%d monitor h=%d"
+            % (h0, work_h, mi.rcMonitor.bottom - mi.rcMonitor.top))
+
         # Same message the restore button sends. Going through the real message matters:
         # it is what flips the "user restored" flag and triggers the fit.
         u.PostMessageW(hwnd, WM_SYSCOMMAND, SC_RESTORE, 0)

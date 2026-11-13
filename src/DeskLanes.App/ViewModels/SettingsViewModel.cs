@@ -27,6 +27,8 @@ public sealed class SettingsViewModel : ObservableObject
     private SidebarDock _sidebarDock;
     private double _sidebarWidth;
     private bool _floatingHideOnDeactivate;
+    private bool _floatingTopmost;
+    private bool _collapseOnLaunch;
     private bool _sidebarAutoCollapse;
     private bool _minimizeToTray;
     private bool _autoStartEnabled;
@@ -57,6 +59,8 @@ public sealed class SettingsViewModel : ObservableObject
         _sidebarDock = settings.SidebarDock;
         _sidebarWidth = settings.SidebarWidth;
         _floatingHideOnDeactivate = settings.FloatingHideOnDeactivate;
+        _floatingTopmost = settings.FloatingTopmost;
+        _collapseOnLaunch = settings.CollapseOnLaunch;
         _sidebarAutoCollapse = settings.SidebarAutoCollapse;
         _minimizeToTray = settings.MinimizeToTray;
 
@@ -227,6 +231,20 @@ public sealed class SettingsViewModel : ObservableObject
         set => SetProperty(ref _floatingHideOnDeactivate, value);
     }
 
+    /// <summary>阶段 31：悬浮窗常驻置顶（关闭时失焦藏到焦点软件后面）。</summary>
+    public bool FloatingTopmost
+    {
+        get => _floatingTopmost;
+        set => SetProperty(ref _floatingTopmost, value);
+    }
+
+    /// <summary>阶段 31：双击打开软件后，全屏 / 侧边栏自动收束成左侧细线。</summary>
+    public bool CollapseOnLaunch
+    {
+        get => _collapseOnLaunch;
+        set => SetProperty(ref _collapseOnLaunch, value);
+    }
+
     public bool SidebarAutoCollapse
     {
         get => _sidebarAutoCollapse;
@@ -362,6 +380,8 @@ public sealed class SettingsViewModel : ObservableObject
         settings.SidebarDock = SidebarDock;
         settings.SidebarWidth = SidebarWidth;
         settings.FloatingHideOnDeactivate = FloatingHideOnDeactivate;
+        settings.FloatingTopmost = FloatingTopmost;
+        settings.CollapseOnLaunch = CollapseOnLaunch;
         settings.SidebarAutoCollapse = SidebarAutoCollapse;
         settings.MinimizeToTray = MinimizeToTray;
 

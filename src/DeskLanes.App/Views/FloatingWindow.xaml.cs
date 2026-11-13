@@ -82,10 +82,20 @@ public partial class FloatingWindow : Window
             return;
         }
 
-        SendToBack();
+        // 阶段 31：常驻置顶时保持在前，不参与「收束到焦点软件后面」。
+        if (Topmost)
+        {
+            return;
+        }
+
+        SendBehind();
     }
 
-    private void SendToBack()
+    /// <summary>
+    /// 阶段 31：把窗口送到 z 序最底层 —— 悬浮窗的「收束」就是藏到焦点软件后面。
+    /// 供 AppController 在启动软件后直接调用，不依赖窗口一定收到 Deactivated。
+    /// </summary>
+    public void SendBehind()
     {
         IntPtr hwnd = new WindowInteropHelper(this).Handle;
         if (hwnd == IntPtr.Zero)
@@ -96,6 +106,16 @@ public partial class FloatingWindow : Window
         _ = MonitorInterop.SetWindowPos(
             hwnd, MonitorInterop.HwndBottom, 0, 0, 0, 0,
             MonitorInterop.SwpNoMove | MonitorInterop.SwpNoSize | MonitorInterop.SwpNoActivate);
+    }
+
+    /// <summary>阶段 31：应用「常驻置顶」设置；关掉时立刻沉到焦点软件后面。</summary>
+    public void ApplyTopmostSetting(bool topmost)
+    {
+        Topmost = topmost;
+        if (!topmost)
+        {
+            SendBehind();
+        }
     }
 
     // ---------- 拖动 / 缩放 ----------

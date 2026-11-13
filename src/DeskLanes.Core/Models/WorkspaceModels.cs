@@ -378,6 +378,18 @@ public sealed class AppSettings : IVersionedData
     /// </summary>
     public bool FloatingHideOnDeactivateMigrated { get; set; }
 
+    /// <summary>
+    /// 阶段 31：双击打开软件后，全屏 / 侧边栏自动「收束」成左侧一条细线。
+    /// 悬浮窗不走细线，改为藏到焦点软件后面（或按 FloatingTopmost 保持置顶）。
+    /// </summary>
+    public bool CollapseOnLaunch { get; set; } = true;
+
+    /// <summary>
+    /// 阶段 31：悬浮窗是否常驻置顶。默认关闭 —— 收束时藏到焦点软件后面；
+    /// 打开则即便失焦也留在最上层（用户可自选）。
+    /// </summary>
+    public bool FloatingTopmost { get; set; }
+
     // ---------- 侧边栏 ----------
 
     /// <summary>停靠位置（屏幕左侧 / 右侧）。</summary>

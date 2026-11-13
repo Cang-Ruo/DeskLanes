@@ -264,6 +264,10 @@ public sealed class SidebarViewModel : ObservableObject
         LaunchResult result = _launchService.Launch(item);
         // 阶段 23：启动成功不提示，失败才提示。
         StatusText = result.Success ? string.Empty : (result.ErrorMessage ?? "启动失败。");
+        if (result.Success)
+        {
+            _shellState.NotifyItemLaunched();
+        }
     }
 
     private void Rebuild()
