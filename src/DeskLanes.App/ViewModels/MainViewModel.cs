@@ -514,6 +514,10 @@ public sealed class MainViewModel : ObservableObject
         if (!result.Success)
         {
             _dialogService.ShowError(result.ErrorMessage ?? "启动失败。", "无法打开项目");
+            return;
         }
+
+        // 阶段 31：启动成功 → 通知外壳把全屏/侧边栏收束成左侧竖线
+        ShellState.NotifyItemLaunched();
     }
 }

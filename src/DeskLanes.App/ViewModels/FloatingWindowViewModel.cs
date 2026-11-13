@@ -197,6 +197,10 @@ public sealed class FloatingWindowViewModel : ObservableObject
         LaunchResult result = _launchService.Launch(item);
         // 阶段 23：启动成功不再往左下角写「已启动：xxx」，失败才提示。
         StatusText = result.Success ? string.Empty : (result.ErrorMessage ?? "启动失败。");
+        if (result.Success)
+        {
+            _shellState.NotifyItemLaunched();
+        }
     }
 
     private void Rebuild()
