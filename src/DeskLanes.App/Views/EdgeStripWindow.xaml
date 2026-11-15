@@ -5,16 +5,19 @@
         WindowStyle="None" AllowsTransparency="True" Background="#01000000"
         Topmost="True" ShowInTaskbar="False" ShowActivated="False"
         ResizeMode="NoResize" WindowStartupLocation="Manual"
-        Width="8" Height="900" Cursor="Hand"
-        ToolTip="悬停 / 点击展开 DeskLanes">
-    <!-- 阶段 31：收束后只留左侧一条不明显竖线。
-         外层 8 DIP 是鼠标命中区，实际可见的只有 2 DIP 的淡线；
-         alpha≠0 保证分层窗口下鼠标不会穿透。 -->
+        Width="19" Height="900" Cursor="Hand"
+        ToolTip="展开 DeskLanes">
+    <!-- 阶段 34：一个窗口承载三种收束指示器。
+         · 侧边栏：0.5cm 半透明边栏，常驻可见，悬停展开
+         · 全屏  ：热区常驻但可见窄条默认隐藏，鼠标靠近左边界才弹出，点击展开
+         · 悬浮窗：直径 3cm 半透明小球，贴在左边缘中部，点击展开
+         Root 的 alpha≠0 保证分层窗口下鼠标不会穿透。 -->
     <Grid x:Name="Root" Background="#01000000"
           MouseEnter="OnMouseEnter" MouseLeave="OnMouseLeave"
           MouseLeftButtonUp="OnClick">
-        <Border x:Name="Line" Width="2" HorizontalAlignment="Left"
-                VerticalAlignment="Stretch" CornerRadius="1"
-                Background="#26E8F1FF" />
+        <Border x:Name="Bar" HorizontalAlignment="Left" VerticalAlignment="Stretch"
+                CornerRadius="0,3,3,0" />
+        <Ellipse x:Name="Ball" HorizontalAlignment="Center" VerticalAlignment="Center"
+                 Visibility="Collapsed" />
     </Grid>
 </Window>

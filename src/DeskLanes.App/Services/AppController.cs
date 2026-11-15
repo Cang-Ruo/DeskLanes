@@ -252,7 +252,7 @@ public sealed class AppController : IDisposable
         }
     }
 
-    /// <summary>快捷键动作：呼出或隐藏悬浮窗。</summary>
+    /// <summary>快捷键动作：收束着就展开，否则呼出 / 隐藏悬浮窗。</summary>
     public void ToggleFloatingFromHotkey()
     {
         if (_modeManager is null)
@@ -260,20 +260,20 @@ public sealed class AppController : IDisposable
             return;
         }
 
+        // 阶段 34：三种模式收束态统一用快捷键展开（含悬浮窗小球）。
+        if (_isCollapsed)
+        {
+            ExpandFromEdge(activate: true);
+            UpdateTrayText();
+            return;
+        }
+
         // 阶段 31：全屏 / 侧边栏模式下，快捷键是「打开工作空间」——
-        // 收束着就展开，展开着就带到前台，不再把用户切到悬浮窗模式。
+        // 展开着就带到前台，不再把用户切到悬浮窗模式。
         // 悬浮窗模式仍保持原来的呼出 / 隐藏切换。
         if (CurrentMode != WindowMode.Floating)
         {
-            if (_isCollapsed)
-            {
-                ExpandFromEdge(activate: true);
-            }
-            else
-            {
-                ApplyMode(CurrentMode, activate: true);
-            }
-
+            ApplyMode(CurrentMode, activate: true);
             UpdateTrayText();
             return;
         }
@@ -295,6 +295,13 @@ public sealed class AppController : IDisposable
     /// <summary>隐藏悬浮窗（Esc 由窗口自身处理，这里供外部调用）。</summary>
     public void HideFloating()
     {
+        // 阶段 34：收束态下窗口是被指示器取代而隐藏的，不是用户主动隐藏。
+        // 不要动 ModeManager 的可见状态，否则展开后热键会误判成「已隐藏」。
+        if (_isCollapsed)
+        {
+            return;
+        }
+
         _modeManager?.HideFloating();
         _floatingWindow?.Hide();
         UpdateTrayText();
@@ -310,21 +317,18 @@ public sealed class AppController : IDisposable
 
     // ---------- 阶段 31：启动软件后自动收束成左侧细线 ----------
 
-    /// <summary>侧边栏是「悬停即展开、移开即收束」；全屏必须点击才展开。</summary>
-    public static bool IsHoverExpandMode(WindowMode mode) => mode == WindowMode.Sidebar;
+    /// <summary>
+    /// 只有侧边栏是「鼠标移上去就展开、移开就收束」；
+    /// 全屏与悬浮窗都必须点击才展开（阶段 34 用户确认）。
+    /// </summary>
+    public static bool IsHoverExpandMode(WindowMode mode)
+        => CollapseVisualPolicy.ExpandsOnHover(mode);
 
-    /// <summary>双击启动成功：按模式收束。悬浮窗是特例，不走细线。</summary>
+    /// <summary>双击启动成功：按模式收束成对应的指示器。</summary>
     private void OnItemLaunched()
     {
         if (_workspace?.Settings.CollapseOnLaunch != true)
         {
-            return;
-        }
-
-        if (CurrentMode == WindowMode.Floating)
-        {
-            bool topmost = _workspace?.Settings.FloatingTopmost == true;
-            _floatingWindow?.ApplyTopmostSetting(topmost);
             return;
         }
 
@@ -339,10 +343,16 @@ public sealed class AppController : IDisposable
         }
 
         // 先取当前窗口所在显示器的工作区：拿不到就宁可不收束，
-        // 免得窗口藏了、细线却没地方放。
-        IntPtr hwnd = CurrentMode == WindowMode.Sidebar && _sidebarWindow is not null
-            ? new WindowInteropHelper(_sidebarWindow).Handle
-            : _mainWindow is not null ? new WindowInteropHelper(_mainWindow).Handle : IntPtr.Zero;
+        // 免得窗口藏了、指示器却没地方放。
+        IntPtr hwnd = CurrentMode switch
+        {
+            WindowMode.Sidebar when _sidebarWindow is not null =>
+                new WindowInteropHelper(_sidebarWindow).Handle,
+            WindowMode.Floating when _floatingWindow is not null =>
+                new WindowInteropHelper(_floatingWindow).Handle,
+            _ when _mainWindow is not null => new WindowInteropHelper(_mainWindow).Handle,
+            _ => IntPtr.Zero,
+        };
 
         if (!MonitorInterop.TryGetWorkArea(hwnd, out MonitorInterop.RECT work, out uint dpi))
         {
@@ -353,10 +363,12 @@ public sealed class AppController : IDisposable
         _collapsedWork = work;
         _sidebarPeekActive = false;
         _peekTimer?.Stop();
-        _edgeStrip.SetHover(false);
         _mainWindow?.Hide();
         _sidebarWindow?.Hide();
-        _edgeStrip.ShowAtWorkArea(work, dpi);
+        _floatingWindow?.Hide();
+        // 阶段 34：侧栏 = 0.5cm 半透明边栏；悬浮窗 = 3cm 小球；
+        // 全屏 = 热区常驻、窄条默认隐藏，鼠标靠近左边界才弹出。
+        _edgeStrip.ShowAtWorkArea(CollapseVisualPolicy.ForMode(CurrentMode), work, dpi);
     }
 
     /// <summary>从细线展开。activate=false 是侧边栏的悬停预览（不抢焦点）。</summary>
@@ -387,6 +399,15 @@ public sealed class AppController : IDisposable
             return;
         }
 
+        // 阶段 34：悬浮窗收束成小球后，点击小球把原窗口叫回来。
+        // 收束时没有改 ModeManager 的可见性状态，直接 Show + Activate 即可。
+        if (CurrentMode == WindowMode.Floating)
+        {
+            _floatingWindow?.ApplyTopmostSetting(_workspace?.Settings.FloatingTopmost == true);
+            _floatingWindow?.ShowAndActivate();
+            return;
+        }
+
         if (_mainWindow is not null)
         {
             // 回到收束前那块显示器，别按鼠标所在屏（鼠标正停在左侧边缘细线上，
@@ -408,7 +429,8 @@ public sealed class AppController : IDisposable
             return;
         }
 
-        // 全屏模式只把线提亮（SetHover 已做），必须点击才展开。
+        // 全屏只把窄条弹出来（SetHover 已做），悬浮窗只把小球提亮；
+        // 两者都必须点击才展开。侧边栏才是「悬停即展开」。
         if (IsHoverExpandMode(CurrentMode))
         {
             ExpandFromEdge(activate: false);
@@ -443,11 +465,10 @@ public sealed class AppController : IDisposable
         CollapseToEdge();
     }
 
-    /// <summary>Esc / 托盘收束入口：返回 false 表示调用方沿用「隐藏到托盘」。</summary>
+    /// <summary>Esc / 托盘收束入口：三种模式都收束；返回 false 表示沿用「隐藏到托盘」。</summary>
     public bool CollapseFromEscape()
     {
-        if (_workspace?.Settings.CollapseOnLaunch != true ||
-            CurrentMode == WindowMode.Floating)
+        if (_workspace?.Settings.CollapseOnLaunch != true)
         {
             return false;
         }

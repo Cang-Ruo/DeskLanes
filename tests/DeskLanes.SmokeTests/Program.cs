@@ -3825,6 +3825,42 @@ Console.WriteLine("== 26. 大桌面：项目数超过图标缓存上限时的表
     }
 }
 
+// ---------------------------------------------------------------- 41. 阶段 34：三种收束指示器的尺寸与交互策略
+{
+    // 0.5cm / 3cm 用物理像素表达，与 DPI 无关
+    Check(Math.Abs(CollapseVisualPolicy.CentimetersToPixels(0.5) - 18.90) < 0.1 &&
+          Math.Abs(CollapseVisualPolicy.CentimetersToPixels(3.0) - 113.39) < 0.1,
+        "0.5cm ≈ 19px、3cm ≈ 113px（物理像素）");
+    Check(CollapseVisualPolicy.BarPixels == 19 && CollapseVisualPolicy.BallPixels == 113,
+        "边栏 / 小球像素尺寸取整正确");
+    Check(CollapseVisualPolicy.FullHotZonePixels == 38,
+        "全屏热区是窄条两倍宽（鼠标『靠近』即可触发）");
+
+    // 模式 → 形态
+    Check(CollapseVisualPolicy.ForMode(WindowMode.Sidebar) == CollapseVisual.SidebarBar &&
+          CollapseVisualPolicy.ForMode(WindowMode.Floating) == CollapseVisual.FloatingBall &&
+          CollapseVisualPolicy.ForMode(WindowMode.Full) == CollapseVisual.FullStrip,
+        "三种模式对应三种收束形态");
+
+    // 交互规则
+    Check(CollapseVisualPolicy.ExpandsOnHover(WindowMode.Sidebar) &&
+          !CollapseVisualPolicy.ExpandsOnHover(WindowMode.Full) &&
+          !CollapseVisualPolicy.ExpandsOnHover(WindowMode.Floating),
+        "只有侧边栏悬停即展开");
+    Check(CollapseVisualPolicy.RequiresClick(WindowMode.Full) &&
+          CollapseVisualPolicy.RequiresClick(WindowMode.Floating) &&
+          !CollapseVisualPolicy.RequiresClick(WindowMode.Sidebar),
+        "全屏与悬浮窗必须点击才展开");
+    Check(CollapseVisualPolicy.HiddenUntilNearBoundary(WindowMode.Full) &&
+          !CollapseVisualPolicy.HiddenUntilNearBoundary(WindowMode.Sidebar) &&
+          !CollapseVisualPolicy.HiddenUntilNearBoundary(WindowMode.Floating),
+        "只有全屏窄条默认隐藏、靠近左边界才弹出");
+    Check(AppController.IsHoverExpandMode(WindowMode.Sidebar) &&
+          !AppController.IsHoverExpandMode(WindowMode.Full) &&
+          !AppController.IsHoverExpandMode(WindowMode.Floating),
+        "AppController 沿用同一套交互策略");
+}
+
 // ---------------------------------------------------------------- 汇总
 Console.WriteLine();
 Console.WriteLine($"===== 冒烟测试结果：通过 {passed} 项，失败 {failed} 项 =====");
