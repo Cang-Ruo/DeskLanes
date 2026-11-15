@@ -272,11 +272,14 @@ def main():
                 # 远离边界时截左边缘
                 shot_a = os.path.join(OUT, "phase34-full-hidden.png")
                 shot_b = os.path.join(OUT, "phase34-full-strip.png")
+                # 阶段 36：窄条改用了与窗口本体相同的深蓝玻璃，
+                # 全 80px 区域平均会把 19px 的信号稀释掉。
+                # 只比对窄条所在的那 0.5cm 区域，信号更集中、断言更严格。
                 move_to(wx + ww // 2, wy + wh // 2, 0.8)
-                capture(x, y + 180, 80, 360, shot_a)
+                capture(x, y + 180, BAR, 360, shot_a)
                 # 靠近左边界 → 窄条弹出
                 move_to(x + 10, y + 300, 1.0)
-                capture(x, y + 180, 80, 360, shot_b)
+                capture(x, y + 180, BAR, 360, shot_b)
                 d = mean_diff(shot_a, shot_b)
                 say("full: strip appears only when cursor nears left edge",
                     d is not None and d > 6, "pixel diff=%s" % d)

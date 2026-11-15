@@ -171,6 +171,7 @@ public sealed class AppController : IDisposable
         _edgeStrip = new EdgeStripWindow();
         _edgeStrip.HoverRequested += OnEdgeStripHover;
         _edgeStrip.ClickRequested += OnEdgeStripClick;
+        _edgeStrip.BallMoved += OnCollapseBallMoved;
         _peekTimer = new DispatcherTimer { Interval = TimeSpan.FromMilliseconds(350) };
         _peekTimer.Tick += OnPeekTimerTick;
 
@@ -368,7 +369,24 @@ public sealed class AppController : IDisposable
         _floatingWindow?.Hide();
         // 阶段 34：侧栏 = 0.5cm 半透明边栏；悬浮窗 = 3cm 小球；
         // 全屏 = 热区常驻、窄条默认隐藏，鼠标靠近左边界才弹出。
-        _edgeStrip.ShowAtWorkArea(CollapseVisualPolicy.ForMode(CurrentMode), work, dpi);
+        // 阶段 36：小球上次拖动过的位置从配置读回来，没拖过就用左边缘中部。
+        AppSettings? shellSettings = _workspace?.Settings;
+        _edgeStrip.ShowAtWorkArea(
+            CollapseVisualPolicy.ForMode(CurrentMode), work, dpi,
+            shellSettings?.CollapseBallLeft, shellSettings?.CollapseBallTop);
+    }
+
+    /// <summary>阶段 36：小球拖动结束后把位置落盘，下次收起还在那里。</summary>
+    private void OnCollapseBallMoved(double left, double top)
+    {
+        if (_workspace is null)
+        {
+            return;
+        }
+
+        _workspace.Settings.CollapseBallLeft = left;
+        _workspace.Settings.CollapseBallTop = top;
+        _workspace.Save();
     }
 
     /// <summary>从细线展开。activate=false 是侧边栏的悬停预览（不抢焦点）。</summary>

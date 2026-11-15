@@ -2,6 +2,22 @@ using System.Collections.ObjectModel;
 
 namespace DeskLanes.Core.Models;
 
+/// <summary>
+/// 阶段 36：悬浮窗尺寸策略（纯函数，冒烟可直接覆盖）。
+/// 用户要「再小一点」，把已保存的旧尺寸按 85% 缩一档，
+/// 但不小于 XAML 里的最小尺寸，保证内容仍放得下。
+/// </summary>
+public static class FloatingSizePolicy
+{
+    public const double MinWidth = 420;
+    public const double MinHeight = 360;
+    public const double CompactFactor = 0.85;
+
+    public static (double Width, double Height) Compact(double width, double height)
+        => (Math.Max(MinWidth, width * CompactFactor),
+            Math.Max(MinHeight, height * CompactFactor));
+}
+
 /// <summary>全屏布局模式。两种模式共用同一份项目、分类与配置数据。</summary>
 public enum LayoutMode
 {
@@ -349,20 +365,35 @@ public sealed class AppSettings : IVersionedData
     public int HotkeyKey { get; set; } = HotkeyDefinition.Default.Key;
 
     // ---------- 悬浮窗 ----------
-    // 尺寸默认值与 FloatingWindow.xaml 保持一致。
+    // 尺寸默认值与 FloatingWindow.xaml 保持一致（阶段 36 同步缩小为 620×430）。
     // 读取侧有一条硬约定：只有位置记录（Left/Top）有效时，才会拿这两个尺寸去覆盖
     // 窗口的 XAML 默认值。早期版本这四个字段没人用，配置里可能躺着当时的默认尺寸，
     // 直接照搬会把 XAML 的默认值顶掉（升级后窗口反而变小）。
 
-    public double FloatingWindowWidth { get; set; } = 780;
+    public const double DefaultFloatingWidth = 620;
+    public const double DefaultFloatingHeight = 430;
 
-    public double FloatingWindowHeight { get; set; } = 540;
+    public double FloatingWindowWidth { get; set; } = DefaultFloatingWidth;
+
+    public double FloatingWindowHeight { get; set; } = DefaultFloatingHeight;
 
     /// <summary>悬浮窗左上角 X；null 表示用户还没拖动过（此时窗口居中显示）。</summary>
     public double? FloatingWindowLeft { get; set; }
 
     /// <summary>悬浮窗左上角 Y；null 表示用户还没拖动过（此时窗口居中显示）。</summary>
     public double? FloatingWindowTop { get; set; }
+
+    /// <summary>阶段 36：悬浮窗收起小球的位置（物理像素）；null = 用默认「左边缘中部」。</summary>
+    public double? CollapseBallLeft { get; set; }
+
+    /// <summary>阶段 36：悬浮窗收起小球的位置（物理像素）。</summary>
+    public double? CollapseBallTop { get; set; }
+
+    /// <summary>
+    /// 阶段 36 一次性迁移标记：把旧配置里已保存的悬浮窗尺寸缩一档，
+    /// 之后用户手动调整的尺寸不再被覆盖。
+    /// </summary>
+    public bool FloatingCompactSizeMigrated { get; set; }
 
     /// <summary>
     /// 悬浮窗失去焦点时是否自动隐藏。
