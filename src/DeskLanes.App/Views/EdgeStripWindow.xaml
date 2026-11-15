@@ -18,7 +18,23 @@
           MouseLeftButtonUp="OnMouseUp">
         <Border x:Name="Bar" HorizontalAlignment="Left" VerticalAlignment="Stretch"
                 CornerRadius="0,3,3,0" />
-        <Ellipse x:Name="Ball" HorizontalAlignment="Center" VerticalAlignment="Center"
+    <!-- 阶段 37：小球 A「细环玻璃球」——本体同款半透明玻璃 + 1px 冷蓝细环 +
+         中心小菱形；悬停加粗细环并浮出淡光环；拖动时细环变虚线、中心收成方块。
+         主体玻璃 / 细环都留 4px 内边距，光环才能完整落在 3cm 窗口里不被裁掉。 -->
+    <Grid x:Name="BallGroup" HorizontalAlignment="Center" VerticalAlignment="Center"
+          Visibility="Collapsed">
+        <Ellipse x:Name="BallHalo" Margin="0" Stretch="Fill" StrokeThickness="0.5"
                  Visibility="Collapsed" />
+        <Ellipse x:Name="BallGlass" Margin="4" Stretch="Fill" />
+        <Ellipse x:Name="BallRing" Margin="4" Stretch="Fill" StrokeThickness="1" />
+        <Path x:Name="CoreIdle" Data="M 6 0 L 12 6 L 6 12 L 0 6 Z"
+              HorizontalAlignment="Center" VerticalAlignment="Center" />
+        <Path x:Name="CoreHover" Data="M 9 0 L 18 9 L 9 18 L 0 9 Z"
+              HorizontalAlignment="Center" VerticalAlignment="Center"
+              Visibility="Collapsed" />
+        <Rectangle x:Name="CoreDrag" Width="8" Height="8"
+                   HorizontalAlignment="Center" VerticalAlignment="Center"
+                   Visibility="Collapsed" />
+    </Grid>
     </Grid>
 </Window>

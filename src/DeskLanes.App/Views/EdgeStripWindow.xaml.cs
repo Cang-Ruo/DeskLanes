@@ -28,6 +28,15 @@ public partial class EdgeStripWindow : Window
     private static readonly SolidColorBrush HoverShellGlass =
         new(Color.FromArgb(0x66, 0x20, 0x33, 0x4A));   // 同色系，稍浓一点
 
+    // 阶段 37：小球 A 的冷蓝点缀色
+    private static readonly SolidColorBrush AccentBlue =
+        new(Color.FromArgb(0xFF, 0x7F, 0xD8, 0xFF));
+    private static readonly SolidColorBrush HoverAccentBlue =
+        new(Color.FromArgb(0xFF, 0xB4, 0xE4, 0xFF));
+    private static readonly SolidColorBrush HaloBlue =
+        new(Color.FromArgb(0x4D, 0x7F, 0xD8, 0xFF));
+    private static readonly DoubleCollection DragDash = new() { 4, 5 };
+
     private CollapseVisual _visual = CollapseVisual.FullStrip;
     private MonitorInterop.RECT _work;
     private int _widthPx;
@@ -45,9 +54,13 @@ public partial class EdgeStripWindow : Window
     {
         InitializeComponent();
         Bar.Background = ShellGlass();
-        Ball.Fill = ShellGlass();
-        Ball.Stroke = new SolidColorBrush(Color.FromArgb(0x66, 0x7A, 0xA8, 0xD8));
-        Ball.StrokeThickness = 1;
+        BallGlass.Fill = ShellGlass();
+        BallHalo.Stroke = HaloBlue;
+        BallRing.Stroke = AccentBlue;
+        CoreIdle.Fill = AccentBlue;
+        CoreHover.Fill = HoverAccentBlue;
+        CoreDrag.Fill = AccentBlue;
+        ApplyBallVisualState(CollapseVisualPolicy.BallVisualState.Idle);
     }
 
     /// <summary>
@@ -63,8 +76,33 @@ public partial class EdgeStripWindow : Window
     public bool IsPointerOver => Root.IsMouseOver;
 
     /// <summary>
+    /// 阶段 37：小球的三态。主体玻璃始终与窗口本体共用同一支画刷，
+    /// 只是冷蓝细环 / 光环 / 中心符号随状态切换 —— 不破坏「统一」的材质。
+    /// </summary>
+    private void ApplyBallVisualState(CollapseVisualPolicy.BallVisualState state)
+    {
+        if (_visual != CollapseVisual.FloatingBall)
+        {
+            return;
+        }
+
+        bool hover = state == CollapseVisualPolicy.BallVisualState.Hover;
+        bool drag = state == CollapseVisualPolicy.BallVisualState.Dragging;
+
+        BallGlass.Fill = ShellGlass();
+        BallRing.Stroke = hover ? HoverAccentBlue : AccentBlue;
+        BallRing.StrokeThickness = hover ? 2 : 1;
+        BallRing.StrokeDashArray = drag ? DragDash : null;
+        BallHalo.Visibility = hover ? Visibility.Visible : Visibility.Collapsed;
+
+        CoreIdle.Visibility = (!hover && !drag) ? Visibility.Visible : Visibility.Collapsed;
+        CoreHover.Visibility = hover ? Visibility.Visible : Visibility.Collapsed;
+        CoreDrag.Visibility = drag ? Visibility.Visible : Visibility.Collapsed;
+    }
+
+    /// <summary>
     /// 悬停反馈：全屏模式负责把窄条「弹出 / 收回去」；
-    /// 其余模式只把半透明玻璃提亮一点。
+    /// 边栏提亮玻璃；小球切到悬停态。拖动中不许被 MouseLeave 打断。
     /// </summary>
     public void SetHover(bool hovered)
     {
@@ -73,9 +111,12 @@ public partial class EdgeStripWindow : Window
             Bar.Visibility = hovered ? Visibility.Visible : Visibility.Collapsed;
         }
 
-        Brush brush = hovered ? HoverShellGlass : ShellGlass();
-        Bar.Background = brush;
-        Ball.Fill = brush;
+        Bar.Background = hovered ? HoverShellGlass : ShellGlass();
+
+        if (_visual == CollapseVisual.FloatingBall && !(_pressed && _moved))
+        {
+            ApplyBallVisualState(hovered ? CollapseVisualPolicy.BallVisualState.Hover : CollapseVisualPolicy.BallVisualState.Idle);
+        }
     }
 
     /// <summary>
@@ -117,11 +158,11 @@ public partial class EdgeStripWindow : Window
 
         bool isBall = visual == CollapseVisual.FloatingBall;
         Bar.Visibility = isBall ? Visibility.Collapsed : Visibility.Visible;
-        Ball.Visibility = isBall ? Visibility.Visible : Visibility.Collapsed;
+        BallGroup.Visibility = isBall ? Visibility.Visible : Visibility.Collapsed;
 
         Bar.Width = bar / scale;   // 可见玻璃恒为 0.5cm，与窗口热区宽度无关
-        Ball.Width = ball / scale;
-        Ball.Height = ball / scale;
+        BallGroup.Width = ball / scale;
+        BallGroup.Height = ball / scale;
 
         Width = widthPx / scale;
         Height = heightPx / scale;
@@ -189,6 +230,11 @@ public partial class EdgeStripWindow : Window
             return;   // 小于 4px 仍算点击，避免手抖误判成拖动
         }
 
+        if (!_moved)
+        {
+            ApplyBallVisualState(CollapseVisualPolicy.BallVisualState.Dragging);   // 阶段 37：拖动中 = 虚线环 + 方块
+        }
+
         _moved = true;
         int left = Clamp(_startLeft + dx, _work.Left, _work.Left + _work.Width - _widthPx);
         int top = Clamp(_startTop + dy, _work.Top, _work.Top + _work.Height - _heightPx);
@@ -227,6 +273,10 @@ public partial class EdgeStripWindow : Window
         {
             ClickRequested?.Invoke(this, EventArgs.Empty);
         }
+
+        // 拖动结束回到悬停 / 静止态；此刻 _pressed/_moved 已复位，
+        // 所以不会被 SetHover 的保护分支拦住。
+        ApplyBallVisualState(Root.IsMouseOver ? CollapseVisualPolicy.BallVisualState.Hover : CollapseVisualPolicy.BallVisualState.Idle);
 
         e.Handled = true;
     }

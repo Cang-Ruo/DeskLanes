@@ -73,4 +73,13 @@ public static class CollapseVisualPolicy
 
     /// <summary>阶段 36：只有悬浮窗小球可以拖动，边栏 / 窄条固定在左边界。</summary>
     public static bool CanDrag(CollapseVisual visual) => visual == CollapseVisual.FloatingBall;
+
+    /// <summary>阶段 37：小球 A「细环玻璃球」的三种视觉状态。</summary>
+    public enum BallVisualState { Idle, Hover, Dragging }
+
+    /// <summary>拖动优先于悬停，避免拖动时被 MouseLeave 打断。</summary>
+    public static BallVisualState ForBall(bool hovered, bool dragging)
+        => dragging ? BallVisualState.Dragging
+            : hovered ? BallVisualState.Hover
+            : BallVisualState.Idle;
 }
