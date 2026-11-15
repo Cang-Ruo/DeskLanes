@@ -37,7 +37,8 @@
         </Style>
     </Window.Resources>
 
-    <Border Background="{StaticResource BrushWindowBaseGlass}"
+    <!-- 阶段 33：与侧边栏共用同一支 BrushShellGlass（配方见 GlassTheme.xaml）。 -->
+    <Border Background="{StaticResource BrushShellGlass}"
             CornerRadius="12" Padding="14"
             BorderBrush="{StaticResource BrushBorderGlass}" BorderThickness="1">
         <!-- 非分层窗口在 Win11 上自带 DWM 系统阴影，原来的 DropShadowEffect 已无必要，

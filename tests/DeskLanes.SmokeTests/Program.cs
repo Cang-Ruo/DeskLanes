@@ -3791,6 +3791,40 @@ Console.WriteLine("== 26. 大桌面：项目数超过图标缓存上限时的表
         "对齐宽度不超过窗口可用宽度");
 }
 
+// ---------------------------------------------------------------- 40. 阶段 33：分层窗口玻璃配方一致性守卫
+// 用户两次因为「侧边栏与悬浮窗观感不一样」返工。根因是两边各有一套 tint，
+// 现在由同一支画刷 + 同一窗口底色保证；这里做文本级守卫，防止以后又改回去。
+{
+    string p33Root = AppContext.BaseDirectory;
+    for (int i = 0; i < 8 && !Directory.Exists(Path.Combine(p33Root, "src", "DeskLanes.App")); i++)
+    {
+        p33Root = Path.GetFullPath(Path.Combine(p33Root, ".."));
+    }
+
+    bool located = Directory.Exists(Path.Combine(p33Root, "src", "DeskLanes.App"));
+    Check(located, "阶段33 定位仓库主题文件");
+    if (located)
+    {
+        string theme33 = File.ReadAllText(Path.Combine(p33Root, "src", "DeskLanes.App", "Themes", "GlassTheme.xaml"));
+        string floating33 = File.ReadAllText(Path.Combine(p33Root, "src", "DeskLanes.App", "Views", "FloatingWindow.xaml"));
+        string sidebar33 = File.ReadAllText(Path.Combine(p33Root, "src", "DeskLanes.App", "Views", "SidebarWindow.xaml"));
+
+        Check(theme33.Contains("x:Key=\"BrushShellGlass\" Color=\"#4A20334A\""),
+            "共享玻璃画刷为 29% 深蓝紫");
+        Check(floating33.Contains("{StaticResource BrushShellGlass}") &&
+              sidebar33.Contains("{StaticResource BrushShellGlass}"),
+            "悬浮窗与侧边栏引用同一支玻璃画刷");
+        Check(floating33.Contains("Background=\"#2020334A\"") &&
+              sidebar33.Contains("Background=\"#2020334A\""),
+            "悬浮窗与侧边栏窗口底色一致（12.5% 深）");
+        Check(!theme33.Contains("x:Key=\"BrushSidebarBaseGlass\"") &&
+              !sidebar33.Contains("BrushSidebarBaseGlass"),
+            "侧栏专用浅白玻璃已移除（不再有第二条配方）");
+        Check(theme33.Contains("x:Key=\"BrushWindowBaseGlass\" Color=\"#4A20334A\""),
+            "历史键名与共享画刷保持同色");
+    }
+}
+
 // ---------------------------------------------------------------- 汇总
 Console.WriteLine();
 Console.WriteLine($"===== 冒烟测试结果：通过 {passed} 项，失败 {failed} 项 =====");
