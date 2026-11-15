@@ -64,7 +64,12 @@ public partial class FloatingWindow : Window
     {
         if (e.Key == Key.Escape)
         {
-            _controller.HideFloating();
+            // 阶段 34：Esc 先收束成 3cm 半透明小球；关掉自动收束时沿用「隐藏到托盘」。
+            if (!_controller.CollapseFromEscape())
+            {
+                _controller.HideFloating();
+            }
+
             e.Handled = true;
         }
     }
