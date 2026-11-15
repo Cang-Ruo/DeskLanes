@@ -7,12 +7,15 @@
         xmlns:vm="clr-namespace:DeskLanes.App.ViewModels"
         xmlns:views="clr-namespace:DeskLanes.App.Views"
         Title="DeskLanes" Height="760" Width="1180" MinHeight="420" MinWidth="620"
-        Background="Transparent" WindowStartupLocation="CenterScreen"
+        Background="#2620334A" WindowStartupLocation="CenterScreen"
         TextOptions.TextFormattingMode="Ideal" UseLayoutRounding="True"
-        WindowStyle="None" ResizeMode="NoResize"
+        WindowStyle="None" ResizeMode="NoResize" AllowsTransparency="True"
         KeyDown="OnWindowKeyDown" Closing="OnClosing">
-    <!-- 背景说明：普通窗口由 WindowBackdropService 应用 Win11 原生 DWM 背景材料
-         （Acrylic → Mica），失败时服务会把 Background 还原为不透明玻璃底色 -->
+    <!-- 阶段 32：改成分层窗口（AllowsTransparency=True），透明像素由 WPF 自己合成。
+         DWM 的系统 Acrylic 在窗口失焦时会退化成不透明纯色，用户觉得「很丑」；
+         DWM backdrop 关成 NONE 后改走窗口级模糊，两种焦点状态逐像素一致。
+         Background 用 15% 深色玻璃底（alpha≠0 也保证鼠标不穿透）。
+         窗口仍是系统最大化，WM_GETMINMAXINFO 继续把范围限制在工作区，任务栏保持可见。 -->
     <Window.Resources>
         <BooleanToVisibilityConverter x:Key="BoolToVis" />
         <!-- 阶段 31：全屏工作空间的磁贴等比缩到 80%（悬浮窗 / 侧边栏保持原尺寸）。
@@ -70,14 +73,16 @@
             </StackPanel>
         </Grid>
 
-        <!-- 搜索框：贴近内容宽度，不再横跨整个窗口 -->
+        <!-- 搜索框：阶段 32 把横条做薄（Padding 10,7→10,2、字号 13→12），
+             横向加长，右边缘由代码动态对齐到工具栏「当前分区：文档」的「档」字右侧。
+             默认 540 是找不到提示文字（分类导航视图）时的回退值。 -->
         <Grid Grid.Row="1" Margin="0,0,0,10">
             <TextBox x:Name="SearchBox"
                      Text="{Binding SearchText, UpdateSourceTrigger=PropertyChanged}"
-                     FontSize="13" Padding="10,7"
-                     Width="420" MaxWidth="420" HorizontalAlignment="Left" />
+                     FontSize="12" Padding="10,2"
+                     Width="540" MaxWidth="900" HorizontalAlignment="Left" />
             <TextBlock Text="搜索桌面项目（不区分大小写，切换布局不丢失）…"
-                       Foreground="{StaticResource BrushTextTertiary}" FontSize="13"
+                       Foreground="{StaticResource BrushTextTertiary}" FontSize="12"
                        Margin="15,0,0,0" VerticalAlignment="Center"
                      IsHitTestVisible="False"
                        Visibility="{Binding IsSearchEmpty, Converter={StaticResource BoolToVis}}" />
