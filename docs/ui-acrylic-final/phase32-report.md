@@ -62,32 +62,35 @@
 | 冒烟 | **555 / 555**（新增第 39 节 9 条：2cm 换算、DPI 无关、缩放不裁画布、对齐计算） |
 | 启动探针 | **7 / 7**，`errors.log` 未增长 |
 | 三屏端到端 | **连跑两次 37 / 37**（分层窗口后拖拽与八方向缩放无退化） |
-| 三模式焦点一致性 | 全屏 / 侧边栏 / 悬浮窗 **平均像素差 0.0** |
+| 收束功能探针 | **连跑两次 8 / 8** |
+| 三模式焦点一致性 | 全屏 / 侧边栏 / 悬浮窗 **平均像素差 0.0**（真实焦点切换 `focused_ok` / `focus_lost_ok` 均为 true） |
 | 发布 | selfcontained `B35392598ED2F6C6AA37229B3A55069D`、portable `27103987AAE9BDBE8354A0F0544641D3` |
 | 安装 | `install.ps1 -Edition selfcontained -Force` 覆盖安装，安装副本 MD5 一致 |
 
+证据图：`phase32-{full,sidebar,floating}-{focused,unfocused}.png`，
+每对文件字节完全一致；另有 `phase32-fullscreen-layout.png`（布局）、
+`phase32-sidebar-glass.png`（最终玻璃）。
+
+## 五、第一次复跑的干扰与最终复跑（22:03）
+
+**第一次（18:41 之后）**：前台是《三角洲行动》全屏窗口（0,0,2048,1152，
+独占合成输入并把主屏分辨率改成 2048×1152），另有 NVIDIA Overlay / GamePP。
+它导致 e2e 拖拽、收束探针 Esc、焦点探针前台切换全部失败，截图混入游戏地图。
+处理：没有擅自结束或最小化用户游戏；临时开启的 `FloatingTopmost` 已还原，
+6 张污染截图已删，取证工具加了「前台必须真是被测窗口，否则判无效并删图」。
+
+**最终复跑（游戏退出后）**：前台恢复为普通窗口，全套结果见上表，
+两次 e2e 37/37、两次收束 8/8、三模式焦点差 0.0。
+
+复跑中额外定位并修好一个**工具问题**（不是产品缺陷）：
+`phase31-collapse-probe.py` 原来只用 `SetForegroundWindow` 抢前台，
+被 Windows 前台锁拒绝（返回 False），合成 Esc 发给了别的窗口，
+于是「全屏 Esc 收束」两项误报失败。诊断确认产品功能正常
+（强制前台后细线正常出现、主窗口隐藏），已给探针加
+`AttachThreadInput` 的强制前台切换，随后连跑两次 8/8。
+`phase32-focus-glass.py` 也加了同样的前台校验，杜绝把别的窗口画面当证据。
+
 为替换 exe 结束过运行中的实例，请重新按 `Win` → `DeskLanes` 启动。
-
-## 五、必须如实说明的环境干扰
-
-最终复跑全套时，本机前台是 **《三角洲行动》全屏窗口**（0,0,2048,1152，
-整屏覆盖，并把主屏分辨率改成 2048×1152），另含 NVIDIA Overlay / GamePP。
-它**独占合成鼠标与键盘输入**，导致：
-
-- `verify-floating-interaction.py` 的拖拽 / 位置持久化断言失败（点不到被测窗口）；
-- `phase31-collapse-probe.py` 的 Esc 收束失败（按键被游戏吃掉）；
-- `phase32-focus-glass.py` 抢不到前台，截图里混进游戏地图画面。
-
-处理：**没有擅自结束或最小化用户的游戏窗口**；临时开启的
-`FloatingTopmost` 已还原，游戏画面污染过的 6 张截图已删除，
-取证工具已加「前台必须是被测窗口、否则判无效并删图」的防护。
-上表中 37/37 与 0.0 来自**同一份分层窗口代码、无游戏占用前台时**的实测记录；
-本轮后续增量只有 tint 数值与布局纯函数抽取，不涉及窗口几何 / 焦点机制。
-
-**请在游戏退出后让我复跑一次全套**（约 2 分钟），或自行执行：
-`python tools\verify-floating-interaction.py`、
-`python tools\phase31-collapse-probe.py`、
-`python tools\phase32-focus-glass.py`。
 
 ## 六、仍需用户实测 / 未闭环
 

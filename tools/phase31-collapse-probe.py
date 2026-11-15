@@ -82,12 +82,37 @@ def rect(title):
     return r.left, r.top, r.right - r.left, r.bottom - r.top
 
 
+def force_foreground(hwnd):
+    """前台锁会挡住普通 SetForegroundWindow（尤其窗口刚启动时），
+    挂接当前线程与前台线程后再抢，确保合成 Esc 真的发给被测窗口。"""
+    k = ctypes.windll.kernel32
+    u.GetWindowThreadProcessId.argtypes = [ctypes.c_void_p, ctypes.c_void_p]
+    u.GetWindowThreadProcessId.restype = wintypes.DWORD
+    u.AttachThreadInput.argtypes = [wintypes.DWORD, wintypes.DWORD, wintypes.BOOL]
+    k.GetCurrentThreadId.restype = wintypes.DWORD
+    me = k.GetCurrentThreadId()
+    fg = u.GetForegroundWindow()
+    attached = []
+    for h in (fg, hwnd):
+        if h:
+            t = u.GetWindowThreadProcessId(ctypes.c_void_p(h), None)
+            if t and t != me and u.AttachThreadInput(me, t, True):
+                attached.append(t)
+    u.BringWindowToTop(ctypes.c_void_p(hwnd))
+    u.ShowWindow(ctypes.c_void_p(hwnd), 5)
+    u.SetForegroundWindow(ctypes.c_void_p(hwnd))
+    for t in attached:
+        u.AttachThreadInput(me, t, False)
+    time.sleep(0.4)
+    return u.GetForegroundWindow() == hwnd
+
+
 def press_esc(title):
     hwnd = find_window(title)
     if not hwnd:
         return False
-    u.SetForegroundWindow(ctypes.c_void_p(hwnd))
-    time.sleep(0.4)
+    force_foreground(hwnd)
+    time.sleep(0.2)
     u.keybd_event(VK_ESCAPE, 0, 0, 0)
     u.keybd_event(VK_ESCAPE, 0, KEYEVENTF_KEYUP, 0)
     return True
