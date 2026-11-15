@@ -384,11 +384,12 @@ try:
         x2, y2, w2, h2 = get_rect(hwnd)
         say("floating window can be dragged onto the other monitor", x2 < 0,
             "moved to (%d,%d)" % (x2, y2))
-        # Portrait monitor is 1080 px physical wide. 780 DIP at 150% would be 1170 px
-        # and stick out by 90; the window must now auto-shrink into the work area
-        # (~712 DIP = ~1068 px).
-        say("floating window auto-shrinks to fit the portrait monitor",
-            950 <= w2 <= 1085, "width %d px physical (monitor is 1080)" % w2)
+        # 阶段 36：悬浮窗默认从 780 DIP 缩到 620 DIP（@150% = 930 px），
+        # 本来就落在 1080px 宽的竖屏内，不再需要「自动收缩」到 ~1068。
+        # 前提变化后换成等价断言：必须完整落在竖屏工作区内，且不小于最小尺寸。
+        say("floating window fits the portrait monitor work area",
+            600 <= w2 <= 1085 and x2 >= vx and x2 + w2 <= 0,
+            "width %d px physical, x=%d (virtual left %d)" % (w2, x2, vx))
 
         s2 = read_settings()
         say("cross-monitor position persisted", s2.get("FloatingWindowLeft") is not None

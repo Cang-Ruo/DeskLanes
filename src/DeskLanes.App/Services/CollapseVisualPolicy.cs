@@ -70,4 +70,7 @@ public static class CollapseVisualPolicy
     /// </summary>
     public static bool ShouldUseCollapseIndicator(bool autoCollapse, bool suppress)
         => autoCollapse && !suppress;
+
+    /// <summary>阶段 36：只有悬浮窗小球可以拖动，边栏 / 窄条固定在左边界。</summary>
+    public static bool CanDrag(CollapseVisual visual) => visual == CollapseVisual.FloatingBall;
 }

@@ -120,14 +120,16 @@ public partial class FloatingWindow : Window
             MonitorInterop.SwpNoMove | MonitorInterop.SwpNoSize | MonitorInterop.SwpNoActivate);
     }
 
-    /// <summary>阶段 31：应用「常驻置顶」设置；关掉时立刻沉到焦点软件后面。</summary>
+    /// <summary>
+    /// 阶段 36：只切换「常驻置顶」，**不再顺手把窗口沉到 z 序最底层**。
+    /// 启动时 / 从小球展开时调用它都会触发旧的 SendBehind，
+    /// 让窗口刚显示就被别的窗口盖住，看起来像「焦点一变样式就变了」。
+    /// 现在收束统一走「隐藏窗口 + 小球」，失焦需要留在最底层时
+    /// 由 OnDeactivated 自己调用 SendBehind 即可。
+    /// </summary>
     public void ApplyTopmostSetting(bool topmost)
     {
         Topmost = topmost;
-        if (!topmost)
-        {
-            SendBehind();
-        }
     }
 
     // ---------- 拖动 / 缩放 ----------

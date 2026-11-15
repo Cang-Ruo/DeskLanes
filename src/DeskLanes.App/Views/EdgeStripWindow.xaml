@@ -14,7 +14,8 @@
          Root 的 alpha≠0 保证分层窗口下鼠标不会穿透。 -->
     <Grid x:Name="Root" Background="#01000000"
           MouseEnter="OnMouseEnter" MouseLeave="OnMouseLeave"
-          MouseLeftButtonUp="OnClick">
+          MouseLeftButtonDown="OnMouseDown" MouseMove="OnMouseMove"
+          MouseLeftButtonUp="OnMouseUp">
         <Border x:Name="Bar" HorizontalAlignment="Left" VerticalAlignment="Stretch"
                 CornerRadius="0,3,3,0" />
         <Ellipse x:Name="Ball" HorizontalAlignment="Center" VerticalAlignment="Center"

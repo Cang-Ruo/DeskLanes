@@ -2066,10 +2066,15 @@ Console.WriteLine("== 19. 悬浮窗几何持久化（拖动与缩放后要记得
     {
         var geoWs = new WorkspaceService(new LibraryStore(geoRoot), new ConfigStore(geoRoot), resolver);
 
-        // ---- 19.1 出厂默认：尺寸与窗口 XAML 一致，位置没有记录 ----
-        Check(geoWs.Settings.FloatingWindowWidth == 780, "悬浮窗默认宽 780",
+        // ---- 19.1 出厂默认：阶段 36 用户要求「再小一点」，
+        // 尺寸与窗口 XAML 同步缩到 620×430；仍不小于最小尺寸 420×360 ----
+        Check(geoWs.Settings.FloatingWindowWidth == 620 &&
+              geoWs.Settings.FloatingWindowWidth >= FloatingSizePolicy.MinWidth,
+            "悬浮窗默认宽 620 且不小于最小尺寸",
             geoWs.Settings.FloatingWindowWidth.ToString());
-        Check(geoWs.Settings.FloatingWindowHeight == 540, "悬浮窗默认高 540",
+        Check(geoWs.Settings.FloatingWindowHeight == 430 &&
+              geoWs.Settings.FloatingWindowHeight >= FloatingSizePolicy.MinHeight,
+            "悬浮窗默认高 430 且不小于最小尺寸",
             geoWs.Settings.FloatingWindowHeight.ToString());
         Check(geoWs.Settings.FloatingWindowLeft is null && geoWs.Settings.FloatingWindowTop is null,
             "首次使用没有位置记录（此时应居中，而不是停在 Manual 默认左上角）");
@@ -3870,6 +3875,41 @@ Console.WriteLine("== 26. 大桌面：项目数超过图标缓存上限时的表
     Check(!CollapseVisualPolicy.ShouldUseCollapseIndicator(false, false) &&
           !CollapseVisualPolicy.ShouldUseCollapseIndicator(false, true),
         "没勾自动收起时不改变原行为");
+}
+
+// ---------------------------------------------------------------- 43. 阶段 36：小球拖动 / 尺寸迁移 / 配色统一
+{
+    // 悬浮窗「再小一点」：旧保存尺寸按 85% 缩一档，但不得小于最小尺寸
+    (double cw, double ch) = FloatingSizePolicy.Compact(593.6, 434.4);
+    Check(Math.Abs(cw - 504.56) < 0.1 && Math.Abs(ch - 369.24) < 0.1,
+        "悬浮窗尺寸迁移缩到 85%", $"{cw:0.0}x{ch:0.0}");
+    Check(cw >= FloatingSizePolicy.MinWidth && ch >= FloatingSizePolicy.MinHeight,
+        "缩小后不小于最小尺寸");
+    (double mw, double mh) = FloatingSizePolicy.Compact(420, 360);
+    Check(mw == 420 && mh == 360, "已在最小尺寸时不再继续缩");
+
+    // 小球位置默认空（左边缘中部），拖动过才有坐标
+    var defaults36 = new AppSettings();
+    Check(defaults36.CollapseBallLeft is null && defaults36.CollapseBallTop is null &&
+          !defaults36.FloatingCompactSizeMigrated,
+        "小球位置默认空、尺寸迁移默认未执行");
+
+    // 只有小球可拖动
+    Check(CollapseVisualPolicy.CanDrag(CollapseVisual.FloatingBall) &&
+          !CollapseVisualPolicy.CanDrag(CollapseVisual.SidebarBar) &&
+          !CollapseVisualPolicy.CanDrag(CollapseVisual.FullStrip),
+        "只有悬浮窗小球可拖动");
+
+    // 指示器配色与三窗口本体共用同一支画刷（文本级守卫，防止再分叉）
+    string root36 = AppContext.BaseDirectory;
+    for (int i = 0; i < 8 && !Directory.Exists(Path.Combine(root36, "src", "DeskLanes.App")); i++)
+    {
+        root36 = Path.GetFullPath(Path.Combine(root36, ".."));
+    }
+    string edge36 = File.ReadAllText(Path.Combine(root36, "src", "DeskLanes.App", "Views", "EdgeStripWindow.xaml.cs"));
+    Check(edge36.Contains("Resources[\"BrushShellGlass\"]") &&
+          !edge36.Contains("0xE8, 0xF1, 0xFF"),
+        "收起态玻璃与本体共用 BrushShellGlass（不再是粉灰白）");
 }
 
 // ---------------------------------------------------------------- 汇总

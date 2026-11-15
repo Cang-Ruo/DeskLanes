@@ -56,6 +56,26 @@ public sealed class WorkspaceService : IWorkspaceService
             SettingsData.FloatingHideOnDeactivateMigrated = true;
             Save();
         }
+
+        // 阶段 36：用户要悬浮窗「再小一点」。只迁移**用户改过的尺寸**，
+        // 新配置本来就是缩小后的默认值 620×430，不能再乘一次 0.85。
+        // 标记落盘后，用户之后自己拖过的尺寸不会再被改。
+        if (!SettingsData.FloatingCompactSizeMigrated)
+        {
+            bool userResized =
+                Math.Abs(SettingsData.FloatingWindowWidth - AppSettings.DefaultFloatingWidth) > 0.5 ||
+                Math.Abs(SettingsData.FloatingWindowHeight - AppSettings.DefaultFloatingHeight) > 0.5;
+            if (userResized)
+            {
+                (double w, double h) = FloatingSizePolicy.Compact(
+                    SettingsData.FloatingWindowWidth, SettingsData.FloatingWindowHeight);
+                SettingsData.FloatingWindowWidth = w;
+                SettingsData.FloatingWindowHeight = h;
+            }
+
+            SettingsData.FloatingCompactSizeMigrated = true;
+            Save();
+        }
     }
 
     private DateTime _lastGeometrySaveUtc = DateTime.MinValue;
