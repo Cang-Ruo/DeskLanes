@@ -140,7 +140,23 @@ public partial class SidebarWindow : Window
     }
 
     private void OnDeactivated(object? sender, EventArgs e)
-        => _viewModel.OnWindowDeactivated();
+    {
+        // 阶段 35：勾了「失焦自动收起」就统一收束成 0.5cm 半透明边栏
+        // （隐藏窗口 + 指示器），不再只把侧栏折成 44px 窄条。
+        // 设置窗口打开期间 suppress=true，保持展开不收。
+        if (CollapseVisualPolicy.ShouldUseCollapseIndicator(
+                _viewModel.AutoCollapseOnFocusLost, _viewModel.SuppressAutoCollapse))
+        {
+            if (!_controller.CollapseFromEscape())
+            {
+                _viewModel.OnWindowDeactivated();
+            }
+
+            return;
+        }
+
+        _viewModel.OnWindowDeactivated();
+    }
 
     /// <summary>阶段 31：Esc 收束成左侧细线；没开自动收束时沿用原来的隐藏。</summary>
     private void OnWindowKeyDown(object sender, KeyEventArgs e)

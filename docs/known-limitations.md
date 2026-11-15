@@ -411,3 +411,26 @@ Release 0/0、冒烟 472/472、启动 7/7。详见 `docs/ui-acrylic-final/phase1
   详见 `phase34-report.md`。
 - **待实测**：三种半透明形态观感、38px 触发范围是否顺手、小球位置、
   悬停/点击节奏。
+
+### 阶段 35 追加（2026-11-16 00:23 「软件好像没有弄好」）
+
+- **复现**：用户真实配置 `FloatingHideOnDeactivate=True`、
+  `SidebarAutoCollapse=True`、`CollapseOnLaunch=True`。实测启动后悬浮窗可见，
+  **一切到别的软件就整个消失、小球不出现**。无新异常、安装副本正确。
+- **根因**：两条老路径绕过收束状态机 —— 悬浮窗 `OnDeactivated` 直接
+  `HideFloating()` 隐藏到托盘；侧栏 `OnDeactivated` 只把 `IsExpanded` 置 false
+  折成 44px 窄条。都不是阶段 34 要求的 3cm 小球 / 0.5cm 边栏。
+- **为什么阶段 34 探针 19/19 没发现**：探针 `patch()` 把这两个设置强制改成
+  False，没覆盖用户真实配置。**验收探针不能改掉用户真实配置后当全绿**。
+- **修法**：`CollapseVisualPolicy.ShouldUseCollapseIndicator(autoCollapse, suppress)`
+  统一判定；两个窗口失焦时先试 `_controller.CollapseFromEscape()`，
+  只有用户同时关掉 `CollapseOnLaunch` 才回退老逻辑；设置窗口打开期间
+  `suppress=true` 优先不收。`_isCollapsed` 先置位再 Hide，避免嵌套递归。
+  **不改用户任何配置值**。
+- `tools/phase35-deactivate-probe.py` 只临时改 `WindowMode`、保留真实配置，
+  **9/9**（探针必须 `_set_dpi_aware()`，否则 113px 小球读成 90px）。
+- Release 0/0、冒烟 572/572、启动 7/7、e2e 两次 37/37、
+  阶段31 收束 8/8、阶段34 形态 19/19、三模式焦点差 ≤0.03；
+  正式 `6f7efda0…` 已覆盖安装。详见 `phase35-report.md`。
+- **待用户确认**：修的是「失焦后窗口消失、看不到小球」；
+  若「没弄好」指别的现象，需按具体现象再定位，不盲改。

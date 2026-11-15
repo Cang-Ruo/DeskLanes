@@ -60,4 +60,14 @@ public static class CollapseVisualPolicy
 
     /// <summary>只有全屏的窄条默认隐藏，鼠标靠近左边界才弹出。</summary>
     public static bool HiddenUntilNearBoundary(WindowMode mode) => mode == WindowMode.Full;
+
+    /// <summary>
+    /// 阶段 35：勾了「失焦自动隐藏 / 自动收起」时，必须统一走收束入口
+    /// （隐藏窗口 + 对应的半透明指示器），不能再用老的两条局部路径：
+    /// 悬浮窗「完全隐藏到托盘」、侧边栏「只收成 44px 窄条」。
+    /// 那两条路径会让用户切到别的软件后既看不到窗口、也看不到阶段 34 的小球/边栏。
+    /// 设置窗口打开期间（suppress=true）保持展开，优先级最高。
+    /// </summary>
+    public static bool ShouldUseCollapseIndicator(bool autoCollapse, bool suppress)
+        => autoCollapse && !suppress;
 }
