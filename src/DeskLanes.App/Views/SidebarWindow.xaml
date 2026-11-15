@@ -7,7 +7,7 @@
         xmlns:dt="clr-namespace:DeskLanes.App.Services"
         Title="DeskLanes 侧边栏"
         Width="280" Height="760" MinWidth="44" MinHeight="240"
-        WindowStyle="None" AllowsTransparency="True" Background="#01000000"
+        WindowStyle="None" AllowsTransparency="True" Background="#2020334A"
         Topmost="True" ShowInTaskbar="False" ShowActivated="False"
         WindowStartupLocation="Manual" KeyDown="OnWindowKeyDown"
         TextOptions.TextFormattingMode="Ideal"
@@ -24,14 +24,12 @@
         <BooleanToVisibilityConverter x:Key="BoolToVis" />
     </Window.Resources>
 
-    <!-- 与主窗口 / 悬浮窗同一套材质：WindowChrome 非分层窗口 + DWM Acrylic。
-         曾经是分层窗口（AllowsTransparency=True），用不了 DWM 材质，
-         只能垫 90% 不透明的深色底 —— 三个窗口里就它一个不像玻璃。
-         贴边停靠时用 DWMWA_WINDOW_CORNER_PREFERENCE=DoNotRound（见 code-behind），
-         避免 DWM 把贴着屏幕边缘的那两个角切掉。 -->
-    <!-- 与悬浮窗同理：paintWindowSurface=false 时 Window.Background 是透明的，
-         基底 tint 必须由这个带停靠侧圆角的 Border 画一次，不能绑定回去。 -->
-    <Border Background="{StaticResource BrushSidebarBaseGlass}"
+    <!-- 贴边停靠时用 DWMWA_WINDOW_CORNER_PREFERENCE=DoNotRound（见 code-behind），
+         避免 DWM 把贴着屏幕边缘的那两个角切掉。
+         阶段 33：材质与悬浮窗统一，不再有「侧栏专用浅玻璃」这种第二条配方。 -->
+    <!-- 阶段 33：与悬浮窗共用 BrushShellGlass + 同一窗口底色 #2020334A，
+         观感严格一致（深色半透明、壁纸压暗、白花清晰），不再是浅粉白雾面。 -->
+    <Border Background="{StaticResource BrushShellGlass}"
             Padding="10"
             BorderBrush="{StaticResource BrushBorderGlass}">
         <!-- 圆角与边框方向随停靠侧自适应：左侧停靠圆左边、无右边框；右侧停靠镜像 -->
