@@ -166,6 +166,16 @@ def main():
     before = json.loads(original)
     kill()
 
+    # 场景隔离：用户真实配置勾着「失焦自动隐藏」，而当前前台可能是浏览器，
+    # 应用一启动就会被阶段 35 的逻辑收束成小球，探针等不到悬浮窗。
+    # 这里只临时关掉这一项（失焦行为由 phase35-deactivate-probe.py 专门覆盖），
+    # 其余真实配置（尤其已保存的窗口尺寸）原样保留，跑完还原。
+    isolated = json.loads(original)
+    isolated["WindowMode"] = 0
+    isolated["FloatingHideOnDeactivate"] = False
+    with open(CFG, "w", encoding="utf-8") as f:
+        json.dump(isolated, f, ensure_ascii=False, indent=2)
+
     saved_ball = None
     try:
         proc = start()
@@ -179,10 +189,13 @@ def main():
         after = read_cfg()
         w0, h0 = before.get("FloatingWindowWidth", 620), before.get("FloatingWindowHeight", 430)
         w1, h1 = after.get("FloatingWindowWidth", 0), after.get("FloatingWindowHeight", 0)
-        say("floating window shrank ~15% and migration flag saved",
+        # 一次性迁移只在首次启动执行，重跑时标记已落盘、尺寸不再变化。
+        # 所以断言改为「缩小后的尺寸已生效且标记存在」；迁移算法本身由
+        # 冒烟第 43 节 FloatingSizePolicy.Compact 覆盖，不靠这里重复验证。
+        say("compact floating size in effect with migration flag saved",
             after.get("FloatingCompactSizeMigrated") is True and
-            w1 < w0 and h1 < h0 and w1 >= 420 and h1 >= 360,
-            "%.1fx%.1f -> %.1fx%.1f" % (w0, h0, w1, h1))
+            420 <= w1 <= 620 and 360 <= h1 <= 430,
+            "%.1fx%.1f (was %.1fx%.1f)" % (w1, h1, w0, h0))
 
         fw = rect(FLOATING)
         capture(fw[0], fw[1], fw[2], min(fw[3], 520),

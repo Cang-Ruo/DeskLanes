@@ -3912,6 +3912,18 @@ Console.WriteLine("== 26. 大桌面：项目数超过图标缓存上限时的表
         "收起态玻璃与本体共用 BrushShellGlass（不再是粉灰白）");
 }
 
+// ---------------------------------------------------------------- 44. 阶段 37：小球 A 细环玻璃球的三态判定
+{
+    Check(CollapseVisualPolicy.ForBall(false, false) ==
+          CollapseVisualPolicy.BallVisualState.Idle, "静止态：细环 + 小菱形");
+    Check(CollapseVisualPolicy.ForBall(true, false) ==
+          CollapseVisualPolicy.BallVisualState.Hover, "悬停态：粗环 + 光环 + 放大菱形");
+    Check(CollapseVisualPolicy.ForBall(false, true) ==
+          CollapseVisualPolicy.BallVisualState.Dragging, "拖动态：虚线环 + 方块");
+    Check(CollapseVisualPolicy.ForBall(true, true) ==
+          CollapseVisualPolicy.BallVisualState.Dragging, "拖动优先于悬停（不被 MouseLeave 打断）");
+}
+
 // ---------------------------------------------------------------- 汇总
 Console.WriteLine();
 Console.WriteLine($"===== 冒烟测试结果：通过 {passed} 项，失败 {failed} 项 =====");
