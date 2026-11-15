@@ -81,9 +81,16 @@ public partial class FloatingWindow : Window
     /// </summary>
     private void OnDeactivated(object? sender, EventArgs e)
     {
-        if (_viewModel.HideOnDeactivate)
+        if (CollapseVisualPolicy.ShouldUseCollapseIndicator(_viewModel.HideOnDeactivate, false))
         {
-            _controller.HideFloating();
+            // 阶段 35：勾了「失焦自动隐藏」也不再整个消失 —— 统一收束成 3cm 小球，
+            // 否则用户切到别的软件就找不回 DeskLanes（与阶段 34 规格冲突）。
+            // 若用户同时关掉了「打开软件后自动收起」，才沿用隐藏到托盘。
+            if (!_controller.CollapseFromEscape())
+            {
+                _controller.HideFloating();
+            }
+
             return;
         }
 

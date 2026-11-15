@@ -3861,6 +3861,17 @@ Console.WriteLine("== 26. 大桌面：项目数超过图标缓存上限时的表
         "AppController 沿用同一套交互策略");
 }
 
+// ---------------------------------------------------------------- 42. 阶段 35：失焦自动收起统一走收束指示器
+{
+    Check(CollapseVisualPolicy.ShouldUseCollapseIndicator(true, false),
+        "勾了失焦自动收起 → 走隐藏窗口 + 半透明指示器");
+    Check(!CollapseVisualPolicy.ShouldUseCollapseIndicator(true, true),
+        "设置窗口打开期间不收起（suppress 优先）");
+    Check(!CollapseVisualPolicy.ShouldUseCollapseIndicator(false, false) &&
+          !CollapseVisualPolicy.ShouldUseCollapseIndicator(false, true),
+        "没勾自动收起时不改变原行为");
+}
+
 // ---------------------------------------------------------------- 汇总
 Console.WriteLine();
 Console.WriteLine($"===== 冒烟测试结果：通过 {passed} 项，失败 {failed} 项 =====");

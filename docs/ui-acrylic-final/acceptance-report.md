@@ -441,3 +441,17 @@ Release 0/0、冒烟 561/561、启动 7/7、端到端两次 37/37、
 像素差 26.12）。Release 0/0、冒烟 569/569、启动 7/7、
 端到端两次 37/37、阶段 31 收束 8/8、三模式焦点差 0.0，
 正式 `217b1ad7…` 已覆盖安装。详见 `phase34-report.md`。
+
+### 阶段 35（修失焦自动收起与收束形态冲突）
+
+用户真实配置勾着 `FloatingHideOnDeactivate=True` / `SidebarAutoCollapse=True`，
+实测一切走悬浮窗就整个消失、小球不出现：两条老路径
+（`HideFloating()` 隐藏到托盘 / `IsExpanded=false` 折成 44px 窄条）
+绕过了阶段 34 的收束状态机。阶段 34 探针把这两个设置强制改成 False，
+所以 19/19 全过却漏掉了真实配置。
+统一用 `ShouldUseCollapseIndicator` 判定，两个窗口失焦时先走
+`CollapseFromEscape()`（隐藏窗口 + 对应半透明指示器），
+不改用户配置值。`tools/phase35-deactivate-probe.py` 保留真实配置 9/9。
+Release 0/0、冒烟 572/572、启动 7/7、端到端两次 37/37、
+阶段31 收束 8/8、阶段34 形态 19/19、焦点差 ≤0.03，
+正式 `6f7efda0…` 已覆盖安装。详见 `phase35-report.md`。
