@@ -51,7 +51,10 @@
          —— 壁纸的明暗变化仍然透得出来。再往上加就回到"深灰块"了，别动。 -->
     <SolidColorBrush x:Key="BrushWindowBaseGlass" Color="#4A20334A" />
     <!-- 阶段 27：侧边栏用更淡的浅玻璃，不再压出浓重的暗红底色 -->
-    <SolidColorBrush x:Key="BrushSidebarBaseGlass" Color="#32E8EEF5" />
+    <!-- 阶段 32：用户觉得侧边栏「太明显、不清新」。原来 20% 白底 + 9% 窗口级 tint
+         叠在红壁纸上会压出一层粉白罩；降到 6% 白 + 2% tint（合计约 8%，
+         不到原来的三分之一），壁纸颜色与花枝直接透出来，只保留一点点玻璃感。 -->
+    <SolidColorBrush x:Key="BrushSidebarBaseGlass" Color="#10E8EEF5" />
     <SolidColorBrush x:Key="BrushNavGlass" Color="#4D17283B" />
     <SolidColorBrush x:Key="BrushPanelGlass" Color="#3320334A" />
     <!-- 阶段 25：底部「全部」覆盖层用不透明实底，不再透出下面的画布/壁纸。

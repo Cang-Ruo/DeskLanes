@@ -2,6 +2,8 @@ using System;
 using System.ComponentModel;
 using System.Runtime.InteropServices;
 using System.Windows;
+using System.Windows.Controls;
+using System.Windows.Media;
 using DeskLanes.Core;
 using System.Windows.Interop;
 using System.Windows.Input;
@@ -50,6 +52,62 @@ public partial class MainWindow : Window
         // 放在 SourceInitialized 里做会踩空：那一刻还没定位，取到的是错的显示器。
         Loaded += (_, _) => FitToScreenAfterShow();
         Activated += (_, _) => FitToScreenAfterShow();
+        // 阶段 32：内容区布局稳定后，把搜索框右边缘对齐到工具栏「当前分区」提示文字右侧。
+        LayoutUpdated += (_, _) => AlignSearchBoxToToolbarHint();
+    }
+
+    // ---------- 阶段 32：搜索框右边缘对齐「当前分区：文档」的「档」字右侧 ----------
+
+    private double _lastSearchWidth = -1;
+
+    /// <summary>
+    /// 跨 UserControl 按名字找提示文字，用相对窗口的变换算右边缘。
+    /// 分类导航视图没有这个提示，就保留 XAML 的回退宽度 540。
+    /// 只有目标宽度真的变了才赋值，避免 LayoutUpdated 自己触发循环布局。
+    /// </summary>
+    private void AlignSearchBoxToToolbarHint()
+    {
+        if (!IsLoaded)
+        {
+            return;
+        }
+
+        TextBlock? hint = FindNamedChild<TextBlock>(this, "CurrentPartitionHint");
+        if (hint is null || hint.ActualWidth <= 0)
+        {
+            return;
+        }
+
+        Point right = hint.TransformToVisual(this).Transform(new Point(hint.ActualWidth, 0));
+        // 根 Grid 左右各 14 DIP 内边距，搜索框左边缘与提示文字同基准。
+        double target = WorkspaceLayoutMath.AlignSearchWidth(right.X, 14, ActualWidth);
+        if (Math.Abs(target - _lastSearchWidth) > 1)
+        {
+            SearchBox.Width = target;
+            _lastSearchWidth = target;
+        }
+    }
+
+    private static T? FindNamedChild<T>(DependencyObject root, string name)
+        where T : FrameworkElement
+    {
+        int count = VisualTreeHelper.GetChildrenCount(root);
+        for (int i = 0; i < count; i++)
+        {
+            DependencyObject child = VisualTreeHelper.GetChild(root, i);
+            if (child is T typed && typed.Name == name)
+            {
+                return typed;
+            }
+
+            T? nested = FindNamedChild<T>(child, name);
+            if (nested is not null)
+            {
+                return nested;
+            }
+        }
+
+        return null;
     }
 
     // ---------- 阶段 31：最大化只铺工作区，任务栏露出来 ----------

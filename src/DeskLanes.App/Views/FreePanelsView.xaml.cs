@@ -3,6 +3,7 @@ using System.Windows.Input;
 using System.Windows.Media;
 using System.Windows.Controls;
 using System.Windows.Controls.Primitives;
+using DeskLanes.App.Services;
 using DeskLanes.App.ViewModels;
 using DeskLanes.Core.Models;
 
@@ -32,12 +33,9 @@ public partial class FreePanelsView : UserControl
             return;
         }
 
-        double scaleX = hostWidth / WorkspacePanel.CanvasWidth;
-        double scaleY = hostHeight / WorkspacePanel.CanvasHeight;
-        // 阶段 26：内容区高度通常比 16:9 矮，等比 min() 会让两侧留白很大。
-        // 适度放大 12% 用满一点宽度；超出的是画布底部空白（面板都在上半部）。
-        // 同时把边框虚拟高度压到正好铺满宿主物理高度，边框仍完整可见。
-        double scale = Math.Min(scaleX, scaleY * 1.12);
+        // 阶段 26 / 32：计算见 WorkspaceLayoutMath（纯函数）。
+        double dpiScale = VisualTreeHelper.GetDpi(this).DpiScaleX;
+        double scale = WorkspaceLayoutMath.ComputeCanvasScale(hostWidth, hostHeight, dpiScale);
         if (double.IsNaN(scale) || scale <= 0)
         {
             scale = 0.01;

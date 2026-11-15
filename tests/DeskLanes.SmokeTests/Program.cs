@@ -3756,6 +3756,41 @@ Console.WriteLine("== 26. 大桌面：项目数超过图标缓存上限时的表
     }
 }
 
+// ---------------------------------------------------------------- 39. 阶段 32：2cm 边距 / 搜索框对齐 / 焦点无关材质
+{
+    // 2cm 物理边距在 100% / 125% / 150% DPI 下换算正确
+    double px = WorkspaceLayoutMath.TargetSideMarginPixels;
+    Check(Math.Abs(px - 75.59) < 0.2, "2cm ≈ 75.6 物理像素", px.ToString("0.00"));
+    Check(Math.Abs(WorkspaceLayoutMath.TargetSideMarginDip(1.25) * 1.25 - px) < 0.01,
+        "125% DPI 下换算回物理仍是 2cm");
+
+    // 典型 2048×900 内容区：缩放后左右留白应恰好约 2cm，且不超过 scaleX（不裁画布）
+    double hostW = 1900, hostH = 860, dpi = 1.25;
+    double scale32 = WorkspaceLayoutMath.ComputeCanvasScale(hostW, hostH, dpi);
+    double margin32 = WorkspaceLayoutMath.SideMarginDip(hostW, scale32);
+    Check(scale32 <= hostW / WorkspacePanel.CanvasWidth + 0.0001,
+        "画布缩放不超过宽度上限（不会横向裁掉）", scale32.ToString("0.000"));
+    Check(Math.Abs(margin32 * dpi - px) < 1.0,
+        "左右留白约 2cm（物理像素）", (margin32 * dpi).ToString("0.0"));
+    Check(margin32 < WorkspaceLayoutMath.SideMarginDip(hostW,
+            Math.Min(hostW / WorkspacePanel.CanvasWidth, hostH / WorkspacePanel.CanvasHeight * 1.12)),
+        "留白确实比阶段 31 的 3cm 更小");
+
+    // 换 DPI 后物理尺寸不变
+    double marginAt150 = WorkspaceLayoutMath.SideMarginDip(hostW,
+        WorkspaceLayoutMath.ComputeCanvasScale(hostW, hostH, 1.5)) * 1.5;
+    Check(Math.Abs(marginAt150 - px) < 1.0,
+        "150% DPI 下留白仍是 2cm", marginAt150.ToString("0.0"));
+
+    // 搜索框右边缘对齐提示文字
+    Check(WorkspaceLayoutMath.AlignSearchWidth(544, 14, 2000) == 530,
+        "搜索框宽度 = 档字右边缘 - 左边距");
+    Check(WorkspaceLayoutMath.AlignSearchWidth(120, 14, 2000) == 300,
+        "对齐宽度有下限钳制");
+    Check(WorkspaceLayoutMath.AlignSearchWidth(3000, 14, 800) == 772,
+        "对齐宽度不超过窗口可用宽度");
+}
+
 // ---------------------------------------------------------------- 汇总
 Console.WriteLine();
 Console.WriteLine($"===== 冒烟测试结果：通过 {passed} 项，失败 {failed} 项 =====");

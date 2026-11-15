@@ -163,7 +163,9 @@ public static class WindowBackdropService
         int hrNone = DwmInterop.DwmSetWindowAttribute(
             hwnd, DwmInterop.AttributeSystemBackdropType, ref none, sizeof(int));
 
-        bool ok = DwmInterop.TrySetLayeredAcrylic(hwnd, 0x18FFFFFF);
+        // 阶段 32：tint 从 9% 白降到 2% 白 —— 侧边栏在红壁纸上不再泛粉白罩，
+        // 模糊仍然保留；两态（有/无焦点）依旧由 WPF 自己合成，完全一致。
+        bool ok = DwmInterop.TrySetLayeredAcrylic(hwnd, 0x06FFFFFF);
         WriteProbe(string.Format(CultureInfo.InvariantCulture,
             "layered window: backdrop none hr=0x{0:X8}, accent acrylic={1}", hrNone, ok));
         return ok;

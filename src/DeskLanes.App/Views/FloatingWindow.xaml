@@ -7,37 +7,30 @@
         xmlns:dt="clr-namespace:DeskLanes.App.Services"
         Title="DeskLanes 快速启动"
         Width="780" Height="540" MinWidth="420" MinHeight="360"
-        WindowStyle="None" Background="Transparent"
+        WindowStyle="None" AllowsTransparency="True" Background="#2020334A"
         Topmost="False" ShowInTaskbar="False"
         WindowStartupLocation="Manual"
         KeyDown="OnWindowKeyDown">
-    <!--
-      曾经是分层窗口（AllowsTransparency=True），代价是用不了 DWM 的
-      Acrylic / Mica 材质，只能垫一块 90% 不透明的深色底——和主窗口的
-      玻璃感完全对不上。现在改为 WindowChrome 非分层窗口：
-        - CaptionHeight=0 / ResizeBorderThickness=0：系统不接管标题栏与边缘，
-          拖动与八方向缩放仍由自己的热区负责（行为与原来完全一致）
-        - 背景材质由 WindowBackdropService 在 SourceInitialized 后应用
-      根 Border 自己画那一层 18% 基底（带圆角），窗口表面留空：
-      WindowBackdropService 以 paintWindowSurface=false 把 Window.Background 置为透明，
-      若这里再绑定 Window.Background，这层 tint 就一层都画不上（阶段 2 的遗留缺陷，
-      也是悬浮窗对比度一直是三个窗口里最差的原因）。
-      材质不可用回退时窗口自身是深色不透明底，Border 只是在它上面再压 18%，仍然可读。 -->
-    <shell:WindowChrome.WindowChrome>
-        <shell:WindowChrome CaptionHeight="0" ResizeBorderThickness="0"
-                            GlassFrameThickness="0" UseAeroCaptionButtons="False" />
-    </shell:WindowChrome.WindowChrome>
+    <!-- 阶段 32：与侧边栏、全屏一致改成分层窗口，透明像素由 WPF 自己合成。
+         DWM 的系统 Acrylic 在窗口失焦时会变成不透明深色实底（用户截图里那块深灰，
+         明确说「很丑」）；分层窗口 + backdrop NONE + 窗口级模糊不受焦点状态影响。
+         两个关键防回归点：
+           1) 窗口底色用 12.5% 深蓝（alpha≠0），分层窗口才不会让鼠标穿透；
+           2) 拖动条 / 八方向缩放热区全部加厚并落在窗口内部，
+              避免阶段 30 里「矩形变了、合成鼠标点空」的回归。
+         去掉 WindowChrome —— 分层窗口不兼容，拖动与缩放仍由自己的热区负责。 -->
     <Window.Resources>
         <BooleanToVisibilityConverter x:Key="BoolToVis" />
 
-        <!-- 缩放用的隐形热区：透明、不抢焦点，只靠 Cursor 提示可拖方向 -->
+        <!-- 阶段 32：热区必须有非零 alpha，否则分层窗口下鼠标直接穿透到桌面。
+             用几乎看不见的 #01000000（1/255 黑）即可，视觉上仍是透明。 -->
         <Style x:Key="ResizeThumbStyle" TargetType="Thumb">
-            <Setter Property="Background" Value="Transparent" />
+            <Setter Property="Background" Value="#01000000" />
             <Setter Property="Focusable" Value="False" />
             <Setter Property="Template">
                 <Setter.Value>
                     <ControlTemplate TargetType="Thumb">
-                        <Border Background="Transparent" />
+                        <Border Background="#01000000" />
                     </ControlTemplate>
                 </Setter.Value>
             </Setter>

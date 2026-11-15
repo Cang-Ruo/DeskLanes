@@ -61,7 +61,7 @@
             <Button Content="{Binding PoolToggleText}" Padding="12,4" Margin="0,0,14,0" FontSize="12"
                     ToolTip="展开或收起底部「全部」项目区"
                     Command="{Binding TogglePoolCommand}" />
-            <TextBlock FontSize="12" Foreground="{StaticResource BrushTextSecondary}" VerticalAlignment="Center"
+            <TextBlock x:Name="CurrentPartitionHint" FontSize="12" Foreground="{StaticResource BrushTextSecondary}" VerticalAlignment="Center"
                        TextTrimming="CharacterEllipsis">
                 <Run Text="当前分区：" />
                 <Run Text="{Binding SelectedPanelTitle, Mode=OneWay}" />
