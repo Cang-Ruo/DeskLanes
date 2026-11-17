@@ -109,8 +109,7 @@ public partial class EdgeStripWindow : Window
         OrbGlassHover.Visibility = hover ? Visibility.Visible : Visibility.Collapsed;
         OrbGlassDrag.Visibility = drag ? Visibility.Visible : Visibility.Collapsed;
 
-        // 外光晕只在激活态出现，主体保持通透
-        AnimateOpacity(OrbHalo, drag ? 0.55 : hover ? 0.4 : 0);
+        // 阶段 41：外光晕已移除；只用浅色环境阴影托住球体
         AnimateOpacity(OrbShadow, drag ? 0.3 : hover ? 0.27 : 0.24);
 
         // 边缘反射：三态的主要差异来源
