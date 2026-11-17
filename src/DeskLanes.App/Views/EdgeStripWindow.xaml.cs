@@ -13,7 +13,7 @@ namespace DeskLanes.App.Views;
 
 /// <summary>
 /// 收束后留在屏幕最左侧的指示器：侧栏半透明边栏 / 全屏靠近边界才弹出的窄条 /
-/// 悬浮窗的 DeskLanes Glass Orb（阶段 38）。
+/// 悬浮窗的 DeskLanes 珍珠冰晶玻璃球（阶段 39）。
 /// 不抢焦点、不进任务栏、常驻置顶，否则被启动的软件盖住就找不回来了。
 /// </summary>
 public partial class EdgeStripWindow : Window
@@ -29,9 +29,6 @@ public partial class EdgeStripWindow : Window
 
     private static readonly SolidColorBrush HoverShellGlass =
         new(Color.FromArgb(0x66, 0x20, 0x33, 0x4A));
-    private static readonly SolidColorBrush ColdWhite =
-        new(Color.FromArgb(0xFF, 0xF1, 0xFA, 0xFF));
-    private static readonly SolidColorBrush PureWhite = new(Colors.White);
 
     private readonly ToolTip _openTip = new() { Content = "打开 DeskLanes" };
     private readonly ToolTip _dragTip = new() { Content = "拖动以移动" };
@@ -92,7 +89,10 @@ public partial class EdgeStripWindow : Window
             new DoubleAnimation(target, duration) { FillBehavior = FillBehavior.HoldEnd, EasingFunction = ease });
     }
 
-    /// <summary>三态视觉：只淡入淡出材质层与描边，双轨图标始终清晰可见。</summary>
+    /// <summary>
+    /// 阶段 39：同一颗珍珠冰晶球，三态只改材质透明度与轻微光晕，
+    /// 波浪线的形状 / 位置 / 颜色保持不变，不存在状态间跳变。
+    /// </summary>
     private void ApplyOrbVisualState(CollapseVisualPolicy.OrbVisualState state)
     {
         if (_visual != CollapseVisual.FloatingBall)
@@ -104,15 +104,30 @@ public partial class EdgeStripWindow : Window
         bool drag = state == CollapseVisualPolicy.OrbVisualState.Dragging;
         bool active = hover || drag;
 
-        AnimateOpacity(OrbGlassIdle, active ? 0 : 1);
-        AnimateOpacity(OrbGlassHover, hover ? 1 : 0);
-        AnimateOpacity(OrbGlassDrag, drag ? 1 : 0);
-        AnimateOpacity(OrbHalo, drag ? 0.85 : hover ? 0.55 : 0);
-        AnimateOpacity(OrbBorderIdle, active ? 0 : 1);
-        AnimateOpacity(OrbBorderActive, active ? 1 : 0);
-        AnimateOpacity(OrbInnerHighlight, hover ? 0.6 : drag ? 0.75 : 0.35);
-        OrbBorderActive.StrokeThickness = drag ? 1.5 : hover ? 1.2 : 1;
-        OrbTrackMain.Stroke = active ? PureWhite : ColdWhite;
+        // 主体：静止 74% → 悬停 84% → 拖动 88%（整体略微变亮）
+        AnimateOpacity(OrbGlassIdle, active ? 0 : 0.74);
+        AnimateOpacity(OrbGlassHover, hover ? 0.84 : 0);
+        AnimateOpacity(OrbGlassDrag, drag ? 0.88 : 0);
+
+        // 外光晕只在激活态出现；浅色环境阴影常驻
+        AnimateOpacity(OrbHalo, drag ? 0.7 : hover ? 0.5 : 0);
+        AnimateOpacity(OrbShadow, drag ? 0.34 : hover ? 0.3 : 0.26);
+
+        // 虹彩：激活态略微增强，但仍是局部折射，不做彩虹灯球
+        AnimateOpacity(OrbIris, active ? 0.9 : 0.8);
+        AnimateOpacity(OrbIrisGlow, active ? 0.58 : 0.45);
+        AnimateOpacity(OrbInnerRim, hover ? 0.7 : drag ? 0.75 : 0.5);
+
+        // 两条波浪光带：形状不变，只提亮；光带始终清晰可辨
+        AnimateOpacity(OrbWaveMain, active ? 1.0 : 0.92);
+        AnimateOpacity(OrbWaveSub, active ? 0.96 : 0.88);
+        AnimateOpacity(OrbWaveMainGlow, drag ? 0.5 : hover ? 0.44 : 0.36);
+        AnimateOpacity(OrbWaveSubGlow, drag ? 0.46 : hover ? 0.42 : 0.34);
+
+        // 左上高光 / 底部粉蓝折射
+        AnimateOpacity(OrbTopHighlight, active ? 1.0 : 0.85);
+        AnimateOpacity(OrbBottomRefraction, active ? 0.68 : 0.55);
+
         AnimateScale(drag ? 1.05 : hover ? 1.04 : 1.0);
     }
 
