@@ -134,11 +134,8 @@
                 <ScaleTransform x:Name="OrbScale" ScaleX="1" ScaleY="1" />
             </Grid.RenderTransform>
 
-            <!-- 圆外的柔光与浅色环境阴影 -->
-            <Ellipse x:Name="OrbHalo" Margin="-6" Stroke="#C7E8FF" StrokeThickness="2"
-                     Fill="#00000000" Opacity="0">
-                <Ellipse.Effect><BlurEffect Radius="5" /></Ellipse.Effect>
-            </Ellipse>
+            <!-- 阶段 41：移除悬停外光晕（用户觉得球外那圈光斑不好看）。
+                 只留浅色环境阴影，晶莹感由球内的珍珠白轮廓 / 内折射 / 局部虹彩提供。 -->
             <Ellipse x:Name="OrbShadow" Margin="-3" Fill="#6B7DB8" Opacity="0.24">
                 <Ellipse.Effect><BlurEffect Radius="5" /></Ellipse.Effect>
             </Ellipse>
