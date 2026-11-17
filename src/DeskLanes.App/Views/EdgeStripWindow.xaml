@@ -6,11 +6,94 @@
         Topmost="True" ShowInTaskbar="False" ShowActivated="False"
         ResizeMode="NoResize" WindowStartupLocation="Manual"
         Width="56" Height="56" Cursor="Hand">
-    <!-- 一个窗口承载三种收束指示器：
-         · 侧边栏：0.5cm 半透明边栏，常驻可见，悬停展开
-         · 全屏  ：热区常驻但可见窄条默认隐藏，鼠标靠近左边界才弹出，点击展开
-         · 悬浮窗：阶段 38 DeskLanes Glass Orb（冰川蓝 / 双轨流线 / 清透冰晶）
+    <!-- 一个窗口承载三种收束指示器：侧栏边栏 / 全屏窄条 / 悬浮窗珍珠冰晶球。
          Root 的 alpha≠0 保证分层窗口下鼠标不会穿透。 -->
+    <Window.Resources>
+        <!-- 阶段 39：浅冰蓝 → 淡紫珍珠玻璃主体 -->
+        <RadialGradientBrush x:Key="OrbBodyIdleBrush" GradientOrigin="0.34,0.24"
+                             Center="0.46,0.44" RadiusX="0.78" RadiusY="0.78">
+            <GradientStop Color="#F6FAFF" Offset="0" />
+            <GradientStop Color="#CEE6FA" Offset="0.38" />
+            <GradientStop Color="#BCC4F0" Offset="0.74" />
+            <GradientStop Color="#8EA2D8" Offset="1" />
+        </RadialGradientBrush>
+        <RadialGradientBrush x:Key="OrbBodyHoverBrush" GradientOrigin="0.34,0.24"
+                             Center="0.46,0.44" RadiusX="0.78" RadiusY="0.78">
+            <GradientStop Color="#FFFFFF" Offset="0" />
+            <GradientStop Color="#DDF0FF" Offset="0.38" />
+            <GradientStop Color="#CFD8FA" Offset="0.74" />
+            <GradientStop Color="#9FB4E6" Offset="1" />
+        </RadialGradientBrush>
+        <RadialGradientBrush x:Key="OrbBodyDragBrush" GradientOrigin="0.34,0.24"
+                             Center="0.46,0.44" RadiusX="0.78" RadiusY="0.78">
+            <GradientStop Color="#FCFEFF" Offset="0" />
+            <GradientStop Color="#D6EDFF" Offset="0.38" />
+            <GradientStop Color="#C6D0F8" Offset="0.74" />
+            <GradientStop Color="#96AAE0" Offset="1" />
+        </RadialGradientBrush>
+
+        <!-- 内部流动光影：青绿 / 珍珠白 / 淡紫 -->
+        <LinearGradientBrush x:Key="OrbFlowCyanBrush" StartPoint="0,0" EndPoint="1,1">
+            <GradientStop Color="#B6F2EC" Offset="0" />
+            <GradientStop Color="#8FD8F2" Offset="0.55" />
+            <GradientStop Color="#B7BBF0" Offset="1" />
+        </LinearGradientBrush>
+        <LinearGradientBrush x:Key="OrbFlowPearlBrush" StartPoint="0,1" EndPoint="1,0">
+            <GradientStop Color="#FFFFFF" Offset="0" />
+            <GradientStop Color="#DCEEFF" Offset="0.5" />
+            <GradientStop Color="#FFFFFF" Offset="1" />
+        </LinearGradientBrush>
+        <LinearGradientBrush x:Key="OrbFlowLavenderBrush" StartPoint="0,0" EndPoint="1,1">
+            <GradientStop Color="#C9B9F2" Offset="0" />
+            <GradientStop Color="#E3CFF8" Offset="0.5" />
+            <GradientStop Color="#9FB6E8" Offset="1" />
+        </LinearGradientBrush>
+
+        <!-- 边缘虹彩：左青绿 → 顶白 → 右淡紫 → 底粉蓝 -->
+        <LinearGradientBrush x:Key="OrbIrisBrush" StartPoint="0,0.2" EndPoint="1,0.85">
+            <GradientStop Color="#7FDED8" Offset="0" />
+            <GradientStop Color="#D8F2FF" Offset="0.28" />
+            <GradientStop Color="#FFFFFF" Offset="0.5" />
+            <GradientStop Color="#C3B2F0" Offset="0.76" />
+            <GradientStop Color="#E6C9F7" Offset="1" />
+        </LinearGradientBrush>
+        <LinearGradientBrush x:Key="OrbWaveMainBrush" StartPoint="0,1" EndPoint="1,0">
+            <GradientStop Color="#E4F2FF" Offset="0" />
+            <GradientStop Color="#FFFFFF" Offset="0.45" />
+            <GradientStop Color="#F2F8FF" Offset="1" />
+        </LinearGradientBrush>
+        <LinearGradientBrush x:Key="OrbWaveSubBrush" StartPoint="0,1" EndPoint="1,0">
+            <GradientStop Color="#9FD8F5" Offset="0" />
+            <GradientStop Color="#CAEAFF" Offset="0.5" />
+            <GradientStop Color="#BBD8FA" Offset="1" />
+        </LinearGradientBrush>
+        <LinearGradientBrush x:Key="OrbTopHighlightBrush" StartPoint="0,0" EndPoint="1,0">
+            <GradientStop Color="#FFFFFF" Offset="0" />
+            <GradientStop Color="#FFFFFF" Offset="0.6" />
+            <GradientStop Color="#DCEBFF" Offset="1" />
+        </LinearGradientBrush>
+
+        <!-- 阶段 39：浅色冰晶 Tooltip，只在此窗口生效 -->
+        <Style TargetType="ToolTip">
+            <Setter Property="Foreground" Value="#2A4A6B" />
+            <Setter Property="Background" Value="#F0E6F2FF" />
+            <Setter Property="BorderBrush" Value="#B4CDE8" />
+            <Setter Property="HasDropShadow" Value="False" />
+            <Setter Property="FontSize" Value="12" />
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="ToolTip">
+                        <Border Background="{TemplateBinding Background}"
+                                BorderBrush="{TemplateBinding BorderBrush}"
+                                BorderThickness="1" CornerRadius="8" Padding="10,6">
+                            <ContentPresenter />
+                        </Border>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+    </Window.Resources>
+
     <Grid x:Name="Root" Background="#01000000"
           ToolTipService.InitialShowDelay="550"
           MouseEnter="OnMouseEnter" MouseLeave="OnMouseLeave"
@@ -19,9 +102,8 @@
         <Border x:Name="Bar" HorizontalAlignment="Left" VerticalAlignment="Stretch"
                 CornerRadius="0,3,3,0" />
 
-        <!-- 阶段 38：Glass Orb —— 44 DIP 可视、56 DIP 透明热区。
-             冰晶材质用多层 RadialGradientBrush，三态靠交叉淡入淡出 + 缩放过渡；
-             侧边栏 / 全屏窄条仍用上面的 Bar，未做任何改造。 -->
+        <!-- 阶段 39：珍珠冰晶玻璃球，44 DIP 可视 / 56 DIP 热区。
+             所有材质层被同一圆形区域裁切；球体以外完全透明。 -->
         <Grid x:Name="OrbGroup" Width="44" Height="44"
               HorizontalAlignment="Center" VerticalAlignment="Center"
               Visibility="Collapsed" IsHitTestVisible="False">
@@ -29,81 +111,85 @@
                 <ScaleTransform x:Name="OrbScale" ScaleX="1" ScaleY="1" />
             </Grid.RenderTransform>
 
-            <!-- 柔和冰蓝外光晕：只在悬停 / 拖动时淡入，不做霓虹 -->
-            <Ellipse x:Name="OrbHalo" Margin="-6" Stroke="#BDE6FF" StrokeThickness="1.2"
+            <!-- 圆外的柔和光晕与浅色环境阴影（不裁切） -->
+            <Ellipse x:Name="OrbHalo" Margin="-6" Stroke="#C7E8FF" StrokeThickness="2"
                      Fill="#00000000" Opacity="0">
-                <Ellipse.Effect>
-                    <BlurEffect Radius="5" />
-                </Ellipse.Effect>
+                <Ellipse.Effect><BlurEffect Radius="5" /></Ellipse.Effect>
+            </Ellipse>
+            <Ellipse x:Name="OrbShadow" Margin="-3" Fill="#6B7DB8" Opacity="0.26">
+                <Ellipse.Effect><BlurEffect Radius="5" /></Ellipse.Effect>
             </Ellipse>
 
-            <!-- 柔和阴影：稍微内缩，模糊后从冰晶边缘透出一点层次 -->
-            <Ellipse x:Name="OrbShadow" Margin="3" Fill="#0A1E30" Opacity="0.42">
-                <Ellipse.Effect>
-                    <BlurEffect Radius="5" />
-                </Ellipse.Effect>
-            </Ellipse>
+            <!-- 圆形裁切内的材质层 -->
+            <Grid>
+                <Grid.Clip>
+                    <EllipseGeometry Center="22,22" RadiusX="22" RadiusY="22" />
+                </Grid.Clip>
 
-            <!-- 静止：低透明度冰川蓝，左上微弱白反射，底部深蓝收底 -->
-            <Ellipse x:Name="OrbGlassIdle">
-                <Ellipse.Fill>
-                    <RadialGradientBrush GradientOrigin="0.30,0.24" Center="0.42,0.38"
-                                         RadiusX="0.82" RadiusY="0.82">
-                        <GradientStop Color="#8FC4E8" Offset="0" />
-                        <GradientStop Color="#527FA9" Offset="0.42" />
-                        <GradientStop Color="#294E72" Offset="1" />
-                    </RadialGradientBrush>
-                </Ellipse.Fill>
-            </Ellipse>
+                <!-- 1. 浅冰蓝淡紫玻璃主体（三态） -->
+                <Ellipse x:Name="OrbGlassIdle" Fill="{StaticResource OrbBodyIdleBrush}" Opacity="0.74" />
+                <Ellipse x:Name="OrbGlassHover" Fill="{StaticResource OrbBodyHoverBrush}" Opacity="0" />
+                <Ellipse x:Name="OrbGlassDrag" Fill="{StaticResource OrbBodyDragBrush}" Opacity="0" />
 
-            <!-- 悬停：亮度提高一档 -->
-            <Ellipse x:Name="OrbGlassHover" Opacity="0">
-                <Ellipse.Fill>
-                    <RadialGradientBrush GradientOrigin="0.30,0.24" Center="0.42,0.38"
-                                         RadiusX="0.82" RadiusY="0.82">
-                        <GradientStop Color="#C6E9FF" Offset="0" />
-                        <GradientStop Color="#6FA3C9" Offset="0.42" />
-                        <GradientStop Color="#315D85" Offset="1" />
-                    </RadialGradientBrush>
-                </Ellipse.Fill>
-            </Ellipse>
+                <!-- 2. 内部丝绸般流动光影 -->
+                <Path x:Name="OrbFlowPearl" Data="M2,13 C10,5 24,7 42,11 C30,16 16,13 2,20 Z"
+                      Fill="{StaticResource OrbFlowPearlBrush}" Opacity="0.55">
+                    <Path.Effect><BlurEffect Radius="2" /></Path.Effect>
+                </Path>
+                <Path x:Name="OrbFlowCyan" Data="M0,29 C10,20 20,32 30,25 C36,21 41,25 44,23 L44,44 L0,44 Z"
+                      Fill="{StaticResource OrbFlowCyanBrush}" Opacity="0.42">
+                    <Path.Effect><BlurEffect Radius="2.5" /></Path.Effect>
+                </Path>
+                <Path x:Name="OrbFlowLavender" Data="M12,44 C20,33 30,41 44,27 L44,44 Z"
+                      Fill="{StaticResource OrbFlowLavenderBrush}" Opacity="0.5">
+                    <Path.Effect><BlurEffect Radius="2.5" /></Path.Effect>
+                </Path>
 
-            <!-- 拖动：更饱和的冰川蓝 -->
-            <Ellipse x:Name="OrbGlassDrag" Opacity="0">
-                <Ellipse.Fill>
-                    <RadialGradientBrush GradientOrigin="0.30,0.24" Center="0.42,0.38"
-                                         RadiusX="0.82" RadiusY="0.82">
-                        <GradientStop Color="#BDE6FF" Offset="0" />
-                        <GradientStop Color="#3489C2" Offset="0.45" />
-                        <GradientStop Color="#24567A" Offset="1" />
-                    </RadialGradientBrush>
-                </Ellipse.Fill>
-            </Ellipse>
+                <!-- 3. 局部虹彩折射：一圈柔光 + 一圈细描边 -->
+                <Ellipse x:Name="OrbIrisGlow" Margin="1" Stroke="{StaticResource OrbIrisBrush}"
+                         StrokeThickness="4" Opacity="0.45">
+                    <Ellipse.Effect><BlurEffect Radius="2" /></Ellipse.Effect>
+                </Ellipse>
+                <Ellipse x:Name="OrbIris" Margin="0.8" Stroke="{StaticResource OrbIrisBrush}"
+                         StrokeThickness="1.6" Opacity="0.8" />
 
-            <!-- 内侧极细高光线，做出晶体厚度感 -->
-            <Ellipse x:Name="OrbInnerHighlight" Margin="2.5" Stroke="#BDE6FF"
-                     StrokeThickness="0.6" Opacity="0.35" />
+                <!-- 4. 两条波浪光带：柔光底 + 清晰主体，平行且从左下到右上 -->
+                <Path x:Name="OrbWaveMainGlow"
+                      Data="M6,31 C13,30 16,22 23,21 C30,20 33,13 39,9"
+                      Stroke="{StaticResource OrbWaveMainBrush}" StrokeThickness="6"
+                      StrokeStartLineCap="Round" StrokeEndLineCap="Round" Opacity="0.36">
+                    <Path.Effect><BlurEffect Radius="2" /></Path.Effect>
+                </Path>
+                <Path x:Name="OrbWaveSubGlow"
+                      Data="M5,37 C13,35 17,28 24,27 C31,26 35,19 40,15"
+                      Stroke="{StaticResource OrbWaveSubBrush}" StrokeThickness="5.5"
+                      StrokeStartLineCap="Round" StrokeEndLineCap="Round" Opacity="0.34">
+                    <Path.Effect><BlurEffect Radius="2" /></Path.Effect>
+                </Path>
+                <Path x:Name="OrbWaveMain"
+                      Data="M6,31 C13,30 16,22 23,21 C30,20 33,13 39,9"
+                      Stroke="{StaticResource OrbWaveMainBrush}" StrokeThickness="2.6"
+                      StrokeStartLineCap="Round" StrokeEndLineCap="Round" Opacity="0.92" />
+                <Path x:Name="OrbWaveSub"
+                      Data="M5,37 C13,35 17,28 24,27 C31,26 35,19 40,15"
+                      Stroke="{StaticResource OrbWaveSubBrush}" StrokeThickness="2.4"
+                      StrokeStartLineCap="Round" StrokeEndLineCap="Round" Opacity="0.88" />
 
-            <!-- 银蓝细描边；悬停 / 拖动切到明亮冰蓝 -->
-            <Ellipse x:Name="OrbBorderIdle" Stroke="#9EC4DE" StrokeThickness="1" />
-            <Ellipse x:Name="OrbBorderActive" Stroke="#BDE6FF" StrokeThickness="1.2"
-                     Opacity="0" />
-
-            <!-- 双轨流线：两条独立平行的 S 形曲线，左下 → 右上，圆润线端 -->
-            <Viewbox x:Name="OrbIcon" Width="22" Height="22">
-                <Canvas Width="24" Height="24">
-                    <Path x:Name="OrbTrackMain"
-                          Data="M3,15 C7,15 8,8 12,8 C15,8 16,6 19,3"
-                          Stroke="#F1FAFF" StrokeThickness="2.1"
-                          StrokeStartLineCap="Round" StrokeEndLineCap="Round"
-                          Fill="Transparent" />
-                    <Path x:Name="OrbTrackSub"
-                          Data="M3,20 C8,20 9,13 14,13 C17,13 18,11 21,8"
-                          Stroke="#BDE6FF" StrokeThickness="2.1"
-                          StrokeStartLineCap="Round" StrokeEndLineCap="Round"
-                          Fill="Transparent" />
-                </Canvas>
-            </Viewbox>
+                <!-- 5. 左上珍珠白高光 + 底部粉蓝折射 + 内圈细反光 -->
+                <Path x:Name="OrbTopHighlight" Data="M9,13 A17,17 0 0 1 34,10"
+                      Stroke="{StaticResource OrbTopHighlightBrush}" StrokeThickness="2.2"
+                      StrokeStartLineCap="Round" StrokeEndLineCap="Round" Opacity="0.85">
+                    <Path.Effect><BlurEffect Radius="1" /></Path.Effect>
+                </Path>
+                <Path x:Name="OrbBottomRefraction"
+                      Data="M11,38 A17,17 0 0 0 35,36"
+                      Stroke="#C7B6F2" StrokeThickness="2.4"
+                      StrokeStartLineCap="Round" StrokeEndLineCap="Round" Opacity="0.55">
+                    <Path.Effect><BlurEffect Radius="1.5" /></Path.Effect>
+                </Path>
+                <Ellipse x:Name="OrbInnerRim" Margin="2" Stroke="#F2F8FF"
+                         StrokeThickness="0.7" Opacity="0.5" />
+            </Grid>
         </Grid>
     </Grid>
 </Window>
