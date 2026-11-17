@@ -47,6 +47,7 @@ public partial class EdgeStripWindow : Window
     private int _startCursorY;
     private int _startLeft;
     private int _startTop;
+    private int _hitInsetPx;   // 渲染窗口相对命中区每边多出的像素
     private bool _pressed;
     private bool _dragging;
 
@@ -109,7 +110,13 @@ public partial class EdgeStripWindow : Window
         OrbGlassHover.Visibility = hover ? Visibility.Visible : Visibility.Collapsed;
         OrbGlassDrag.Visibility = drag ? Visibility.Visible : Visibility.Collapsed;
 
-        // 阶段 41：外光晕已移除；只用浅色环境阴影托住球体
+        // 阶段 42：Crystal Aura —— 静止几乎不可见，悬停淡冰蓝、拖动稍明显的青蓝柔光。
+        // 渐变层外缘 alpha=0，不形成第二道圆边，也不被窗口边界裁切。
+        AnimateOpacity(OrbAuraIdle, active ? 0 : 1);
+        AnimateOpacity(OrbAuraHover, hover ? 1 : 0);
+        AnimateOpacity(OrbAuraDrag, drag ? 1 : 0);
+
+        // 浅色环境阴影托住球体
         AnimateOpacity(OrbShadow, drag ? 0.3 : hover ? 0.27 : 0.24);
 
         // 边缘反射：三态的主要差异来源
@@ -215,9 +222,14 @@ public partial class EdgeStripWindow : Window
         _dpiScale = Math.Max(dpi / 96.0, 0.5);
         int bar = CollapseVisualPolicy.BarPixels;
         int orbPx = (int)Math.Round(CollapseVisualPolicy.OrbHitDip * _dpiScale);
+        // 阶段 42：渲染窗口比命中区每边多 10 DIP，给光晕留扩散空间。
+        // 落盘位置仍是「命中区左上角」的语义，保持与旧配置兼容。
+        int renderPx = (int)Math.Round(CollapseVisualPolicy.OrbRenderDip * _dpiScale);
+        _hitInsetPx = (renderPx - orbPx) / 2;
+        int insetPx = _hitInsetPx;
 
         int widthPx = visual == CollapseVisual.FloatingBall
-            ? orbPx
+            ? renderPx
             : CollapseVisualPolicy.FullHotZonePixels;
         int heightPx = work.Height;
         int x = work.Left;
@@ -225,13 +237,18 @@ public partial class EdgeStripWindow : Window
 
         if (visual == CollapseVisual.FloatingBall)
         {
-            heightPx = orbPx;
-            y = work.Top + Math.Max(0, (work.Height - orbPx) / 2);
+            heightPx = renderPx;
+            // 默认位置按 56 DIP 命中区居中，再换算到 76 DIP 渲染窗口左上角
+            y = work.Top + Math.Max(0, (work.Height - orbPx) / 2) - insetPx;
             if (ballLeft.HasValue && ballTop.HasValue)
             {
                 x = (int)Math.Round(ballLeft.Value);
                 y = (int)Math.Round(ballTop.Value);
             }
+
+            // 保存的是命中区左上角；实际窗口左上角要往外扩 inset
+            x -= insetPx;
+            y -= insetPx;
 
             // 换分辨率 / 换主屏后别让小球留在屏幕外
             x = Clamp(x, work.Left, work.Left + work.Width - widthPx);
@@ -285,10 +302,25 @@ public partial class EdgeStripWindow : Window
 
     // ---------- 长按 / 拖动状态机 ----------
 
+    /// <summary>光标是否落在中心 56 DIP 命中区（渲染窗口每边多出的余量不响应）。</summary>
+    private bool PointerInHitArea()
+    {
+        if (_visual != CollapseVisual.FloatingBall)
+        {
+            return true;   // 侧栏 / 窄条仍用整个窗口命中
+        }
+
+        MonitorInterop.POINT pt = CursorPos();
+        return pt.X >= _currentLeft + _hitInsetPx &&
+               pt.X < _currentLeft + _widthPx - _hitInsetPx &&
+               pt.Y >= _currentTop + _hitInsetPx &&
+               pt.Y < _currentTop + _heightPx - _hitInsetPx;
+    }
+
     private void OnMouseDown(object sender, MouseButtonEventArgs e)
     {
         // 侧栏 / 全屏窄条不拖动，但 OnMouseUp 仍按原有方式处理点击
-        if (!CollapseVisualPolicy.CanDrag(_visual))
+        if (!CollapseVisualPolicy.CanDrag(_visual) || !PointerInHitArea())
         {
             return;
         }
@@ -351,6 +383,12 @@ public partial class EdgeStripWindow : Window
     private void OnMouseUp(object sender, MouseButtonEventArgs e)
     {
         bool isBall = _visual == CollapseVisual.FloatingBall;
+        // 光晕渲染区不参与点击；只有中心 56 DIP 命中区的松开才算
+        if (isBall && !_pressed && !PointerInHitArea())
+        {
+            return;
+        }
+
         bool dragged = isBall && _dragging;
 
         // 先把状态复位再释放捕获，LostMouseCapture 就不会重复保存位置
@@ -364,7 +402,7 @@ public partial class EdgeStripWindow : Window
 
         if (dragged)
         {
-            BallMoved?.Invoke(_currentLeft, _currentTop);
+            BallMoved?.Invoke(_currentLeft + _hitInsetPx, _currentTop + _hitInsetPx);
         }
         else
         {
@@ -395,7 +433,7 @@ public partial class EdgeStripWindow : Window
         _pressStopwatch.Stop();
         if (dragged)
         {
-            BallMoved?.Invoke(_currentLeft, _currentTop);
+            BallMoved?.Invoke(_currentLeft + _hitInsetPx, _currentTop + _hitInsetPx);
         }
 
         if (_visual == CollapseVisual.FloatingBall)

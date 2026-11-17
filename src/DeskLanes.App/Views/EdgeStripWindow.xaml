@@ -5,7 +5,7 @@
         WindowStyle="None" AllowsTransparency="True" Background="#01000000"
         Topmost="True" ShowInTaskbar="False" ShowActivated="False"
         ResizeMode="NoResize" WindowStartupLocation="Manual"
-        Width="56" Height="56" Cursor="Hand">
+        Width="76" Height="76" Cursor="Hand">
     <!-- 一个窗口承载三种收束指示器：侧栏边栏 / 全屏窄条 / 悬浮窗珍珠冰晶球。
          Root 的 alpha≠0 保证分层窗口下鼠标不会穿透。 -->
     <Window.Resources>
@@ -97,6 +97,34 @@
             <GradientStop Color="#00B7AFE9" Offset="1" />
         </LinearGradientBrush>
 
+        <!-- 阶段 42：Crystal Aura 冰晶柔光。
+             外缘 alpha=0 正好落在 56 DIP 窗口边界，既没有第二道圆边、也不会被裁切；
+             峰值放在球体边缘（offset≈0.79）附近，向内向外都柔和衰减。 -->
+        <RadialGradientBrush x:Key="OrbAuraIdleBrush" Center="0.5,0.5" RadiusX="0.5" RadiusY="0.5">
+            <GradientStop Color="#00BDEEFF" Offset="0" />
+            <GradientStop Color="#00BDEEFF" Offset="0.30" />
+            <GradientStop Color="#03BDEEFF" Offset="0.46" />
+            <GradientStop Color="#0ABDEEFF" Offset="0.58" />
+            <GradientStop Color="#04BDEEFF" Offset="0.80" />
+            <GradientStop Color="#00BDEEFF" Offset="1" />
+        </RadialGradientBrush>
+        <RadialGradientBrush x:Key="OrbAuraHoverBrush" Center="0.5,0.5" RadiusX="0.5" RadiusY="0.5">
+            <GradientStop Color="#00BDEEFF" Offset="0" />
+            <GradientStop Color="#00BDEEFF" Offset="0.30" />
+            <GradientStop Color="#11BDEEFF" Offset="0.46" />
+            <GradientStop Color="#36BDEEFF" Offset="0.58" />
+            <GradientStop Color="#16BDEEFF" Offset="0.80" />
+            <GradientStop Color="#00BDEEFF" Offset="1" />
+        </RadialGradientBrush>
+        <RadialGradientBrush x:Key="OrbAuraDragBrush" Center="0.5,0.5" RadiusX="0.5" RadiusY="0.5">
+            <GradientStop Color="#00A8EEF0" Offset="0" />
+            <GradientStop Color="#00A8EEF0" Offset="0.30" />
+            <GradientStop Color="#1AA8EEF0" Offset="0.46" />
+            <GradientStop Color="#4FA8EEF0" Offset="0.58" />
+            <GradientStop Color="#20A8EEF0" Offset="0.80" />
+            <GradientStop Color="#00A8EEF0" Offset="1" />
+        </RadialGradientBrush>
+
         <!-- 浅色冰晶 Tooltip，只在此窗口生效 -->
         <Style TargetType="ToolTip">
             <Setter Property="Foreground" Value="#2A4A6B" />
@@ -134,8 +162,16 @@
                 <ScaleTransform x:Name="OrbScale" ScaleX="1" ScaleY="1" />
             </Grid.RenderTransform>
 
-            <!-- 阶段 41：移除悬停外光晕（用户觉得球外那圈光斑不好看）。
-                 只留浅色环境阴影，晶莹感由球内的珍珠白轮廓 / 内折射 / 局部虹彩提供。 -->
+            <!-- 阶段 42：Crystal Aura —— 从球体向外散开的柔光，无独立描边圆环。
+                 Margin=-6 让渐变层正好铺满 56 DIP 窗口，外缘 alpha=0 不与窗口边界重合。 -->
+            <Ellipse x:Name="OrbAuraIdle" Margin="-16" Fill="{StaticResource OrbAuraIdleBrush}"
+                     IsHitTestVisible="False" />
+            <Ellipse x:Name="OrbAuraHover" Margin="-16" Fill="{StaticResource OrbAuraHoverBrush}"
+                     Opacity="0" IsHitTestVisible="False" />
+            <Ellipse x:Name="OrbAuraDrag" Margin="-16" Fill="{StaticResource OrbAuraDragBrush}"
+                     Opacity="0" IsHitTestVisible="False" />
+
+            <!-- 浅色环境阴影托住球体 -->
             <Ellipse x:Name="OrbShadow" Margin="-3" Fill="#6B7DB8" Opacity="0.24">
                 <Ellipse.Effect><BlurEffect Radius="5" /></Ellipse.Effect>
             </Ellipse>

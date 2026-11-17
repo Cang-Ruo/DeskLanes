@@ -47,10 +47,16 @@ public static class CollapseVisualPolicy
     public const double OrbDragVisualDip = 46;
 
     /// <summary>
-    /// 透明热区 56 DIP：大于规格要求的 48 DIP，给 1.05 缩放与柔和光晕留余量，
-    /// 但仍只是一颗小球，不会用大透明矩形盖住桌面。
+    /// 鼠标命中热区 56 DIP（≥ 规格要求的 48 DIP）——这是唯一的点击区域。
     /// </summary>
     public const double OrbHitDip = 56;
+
+    /// <summary>
+    /// 阶段 42：渲染窗口 76 DIP，比命中区每边多 10 DIP，
+    /// 让 Crystal Aura 有空间向外扩散，外缘 alpha=0 不与窗口边界相交。
+    /// 鼠标命中仍只有中心 56 DIP，点击范围不变。
+    /// </summary>
+    public const double OrbRenderDip = 76;
 
     /// <summary>长按 350ms 后才具备拖动资格。</summary>
     public const int OrbLongPressMs = 350;
