@@ -32,7 +32,7 @@ MODES = [
     ("floating", 0, "DeskLanes 快速启动"),
     ("full", 1, "DeskLanes"),
 ]
-BAR, BALL, HOT = 19, 113, 38
+BAR, BALL, HOT = 19, 70, 38
 VK_ESCAPE, KEYUP = 0x1B, 0x0002
 LEFTDOWN, LEFTUP = 0x0002, 0x0004
 
@@ -250,8 +250,8 @@ def main():
                         os.path.join(OUT, "phase34-sidebar-bar.png"))
 
             elif label == "floating":
-                say("floating: ball is 3cm (≈113px) round",
-                    abs(w - BALL) <= 6 and abs(h - BALL) <= 6, "%dx%d" % (w, h))
+                say("floating: orb is round (44 DIP visual in 56 DIP hit area)",
+                    w == h and 50 <= w <= 95, "%dx%d" % (w, h))
                 say("floating: ball sits at left edge middle",
                     abs(x - mx) <= 4 and abs((y + h / 2) - (my + mh / 2)) <= 12,
                     "x=%d y=%d work=(%d,%d,%d,%d)" % (x, y, mx, my, mw, mh))

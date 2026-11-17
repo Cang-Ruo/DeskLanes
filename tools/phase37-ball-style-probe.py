@@ -24,7 +24,7 @@ CFG = os.path.join(os.environ.get("LOCALAPPDATA", ""), "DeskLanes", "settings.js
 OUT = os.path.join(REPO, "docs", "ui-acrylic-final")
 STRIP = "DeskLanes 边缘细线"
 FLOATING = "DeskLanes 快速启动"
-BALL = 113
+BALL = 70
 VK_ESCAPE, KEYUP = 0x1B, 0x0002
 LEFTDOWN, LEFTUP = 0x0002, 0x0004
 
@@ -173,7 +173,7 @@ def main():
             kill()
             return 1
         x, y, w, h = r
-        say("ball is 3cm round", abs(w - BALL) <= 6 and abs(h - BALL) <= 6,
+        say("orb is round (DPI-scaled hit area)", w == h and 50 <= w <= 95,
             "%dx%d" % (w, h))
 
         idle = os.path.join(OUT, "phase37-ball-idle.png")
@@ -191,7 +191,7 @@ def main():
         # 拖动中：按住并移动，但先不松开
         cx, cy = x + w / 2, y + h / 2
         u.mouse_event(LEFTDOWN, 0, 0, 0, 0)
-        time.sleep(0.15)
+        time.sleep(0.42)   # 阶段38：长按门槛
         for i in range(1, 9):
             u.SetCursorPos(int(cx + 30 * i / 8), int(cy + 18 * i / 8))
             time.sleep(0.05)
