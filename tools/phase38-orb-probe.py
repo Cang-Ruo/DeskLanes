@@ -218,10 +218,12 @@ def main():
             kill()
             return 1
         x, y, w, h = r
-        expected = round(56 * dpi_of(find(STRIP)) / 96)
-        say("hit area = 56 DIP (DPI-scaled), orb is round",
-            w == h and abs(w - expected) <= 4,
-            "%dx%d px, expected ~%d" % (w, h, expected))
+        dpi = dpi_of(find(STRIP)) / 96.0
+        expected_render = round(76 * dpi)
+        inset = (expected_render - round(56 * dpi)) // 2
+        say("render canvas 76 DIP (56 DIP hit + aura margin), round",
+            w == h and abs(w - expected_render) <= 4,
+            "%dx%d px, expected ~%d (hit inset %d)" % (w, h, expected_render, inset))
 
         idle = os.path.join(OUT, "phase38-orb-idle.png")
         hover = os.path.join(OUT, "phase38-orb-hover.png")
@@ -241,6 +243,12 @@ def main():
         say("hover visual differs from idle",
             mean_diff(idle, hover) is not None and mean_diff(idle, hover) > 2,
             "pixel diff=%s" % mean_diff(idle, hover))
+
+        # 0) 光晕渲染区（命中区外）不应响应点击
+        click(x + 5, y + h / 2)
+        say("aura margin is NOT clickable (56 DIP hit area unchanged)",
+            not visible(FLOATING))
+        move(cx, cy, 0.3)
 
         # 1) 普通点击打开
         click(cx, cy)
@@ -272,10 +280,12 @@ def main():
             abs((r3[1] - r2[1]) - dy) <= 25,
             "%s -> %s (expected +%d,+%d)" % (r2[:2], r3[:2] if r3 else None, dx, dy))
         saved = json.load(open(CFG, encoding="utf-8"))
-        say("position saved on mouse up",
+        # 位置落盘语义 = 命中区左上角 = 渲染窗口左上角 + inset
+        say("position saved on mouse up (hit-area origin)",
             saved.get("CollapseBallLeft") is not None and
-            abs(saved["CollapseBallLeft"] - r3[0]) <= 4,
-            "saved=%s" % str((saved.get("CollapseBallLeft"), saved.get("CollapseBallTop"))))
+            abs(saved["CollapseBallLeft"] - (r3[0] + inset)) <= 6,
+            "saved=%s, window=%s inset=%d" %
+            (str((saved.get("CollapseBallLeft"), saved.get("CollapseBallTop"))), r3[:2], inset))
 
         # 5) 重启恢复
         kill()
