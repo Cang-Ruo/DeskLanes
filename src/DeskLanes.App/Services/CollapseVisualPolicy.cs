@@ -11,21 +11,19 @@ public enum CollapseVisual
     /// <summary>侧边栏：常驻 0.5cm 半透明边栏，悬停即展开、移开收束。</summary>
     SidebarBar,
 
-    /// <summary>悬浮窗：常驻直径 3cm 的半透明小球，点击展开。</summary>
+    /// <summary>悬浮窗：DeskLanes Glass Orb，冰川蓝双轨流线冰晶球。</summary>
     FloatingBall,
 }
 
 /// <summary>
-/// 阶段 34：收束尺寸与交互策略的纯计算（不碰 WPF，冒烟可直接覆盖）。
-/// 尺寸一律用物理像素表达，再按显示器 DPI 换算成 DIP，混合 DPI 下不会变形。
+/// 阶段 34 起：收束尺寸与交互策略的纯计算（不碰 WPF，冒烟可直接覆盖）。
+/// 侧栏 / 全屏窄条仍用物理像素；阶段 38 的 Glass Orb 统一用 DIP 表达，
+/// 只有落盘位置和 SetWindowPos 用物理像素，避免混用 Window.Left/Top。
 /// </summary>
 public static class CollapseVisualPolicy
 {
     /// <summary>侧栏边栏 / 全屏窄条的可见宽度：0.5cm。</summary>
     public const double BarCentimeters = 0.5;
-
-    /// <summary>悬浮窗小球直径：3cm。</summary>
-    public const double BallCentimeters = 3.0;
 
     private const double PixelsPerCentimeter = 96.0 / 2.54;
 
@@ -35,14 +33,36 @@ public static class CollapseVisualPolicy
     /// <summary>0.5cm ≈ 19 物理像素。</summary>
     public static int BarPixels => (int)Math.Round(CentimetersToPixels(BarCentimeters));
 
-    /// <summary>3cm ≈ 113 物理像素。</summary>
-    public static int BallPixels => (int)Math.Round(CentimetersToPixels(BallCentimeters));
-
     /// <summary>
-    /// 全屏的热区宽度（窄条的两倍）：鼠标「靠近」左边界而不是精确压在 19px 上才触发，
-    /// 否则太难点。可见窄条仍只有 0.5cm，靠左对齐。
+    /// 全屏的热区宽度（窄条的两倍）：鼠标「靠近」左边界而不是精确压在 19px 上才触发。
     /// </summary>
     public static int FullHotZonePixels => BarPixels * 2;
+
+    // ---------- 阶段 38：DeskLanes Glass Orb ----------
+
+    /// <summary>可视直径 44 DIP（静止 / 悬停）。</summary>
+    public const double OrbVisualDip = 44;
+
+    /// <summary>拖动时可视直径 46 DIP，配合 1.05 缩放。</summary>
+    public const double OrbDragVisualDip = 46;
+
+    /// <summary>
+    /// 透明热区 56 DIP：大于规格要求的 48 DIP，给 1.05 缩放与柔和光晕留余量，
+    /// 但仍只是一颗小球，不会用大透明矩形盖住桌面。
+    /// </summary>
+    public const double OrbHitDip = 56;
+
+    /// <summary>长按 350ms 后才具备拖动资格。</summary>
+    public const int OrbLongPressMs = 350;
+
+    /// <summary>长按成立后还要移动 6 DIP 才真正进入拖动。</summary>
+    public const double OrbDragThresholdDip = 6;
+
+    /// <summary>三态之间的颜色 / 缩放缓动时长。</summary>
+    public const double OrbTransitionSeconds = 0.14;
+
+    /// <summary>Tooltip 延迟 550ms（规格 500~600ms 中值）。</summary>
+    public const int OrbTooltipDelayMs = 550;
 
     public static CollapseVisual ForMode(WindowMode mode) => mode switch
     {
@@ -63,23 +83,35 @@ public static class CollapseVisualPolicy
 
     /// <summary>
     /// 阶段 35：勾了「失焦自动隐藏 / 自动收起」时，必须统一走收束入口
-    /// （隐藏窗口 + 对应的半透明指示器），不能再用老的两条局部路径：
-    /// 悬浮窗「完全隐藏到托盘」、侧边栏「只收成 44px 窄条」。
-    /// 那两条路径会让用户切到别的软件后既看不到窗口、也看不到阶段 34 的小球/边栏。
+    /// （隐藏窗口 + 对应的半透明指示器），不能再用老的两条局部路径。
     /// 设置窗口打开期间（suppress=true）保持展开，优先级最高。
     /// </summary>
     public static bool ShouldUseCollapseIndicator(bool autoCollapse, bool suppress)
         => autoCollapse && !suppress;
 
-    /// <summary>阶段 36：只有悬浮窗小球可以拖动，边栏 / 窄条固定在左边界。</summary>
+    /// <summary>只有悬浮窗小球可以拖动，边栏 / 窄条固定在左边界。</summary>
     public static bool CanDrag(CollapseVisual visual) => visual == CollapseVisual.FloatingBall;
 
-    /// <summary>阶段 37：小球 A「细环玻璃球」的三种视觉状态。</summary>
-    public enum BallVisualState { Idle, Hover, Dragging }
+    // ---------- 阶段 38：交互状态机 ----------
 
-    /// <summary>拖动优先于悬停，避免拖动时被 MouseLeave 打断。</summary>
-    public static BallVisualState ForBall(bool hovered, bool dragging)
-        => dragging ? BallVisualState.Dragging
-            : hovered ? BallVisualState.Hover
-            : BallVisualState.Idle;
+    /// <summary>Glass Orb 的交互状态：Idle → Hover → PressPending → Dragging。</summary>
+    public enum OrbInteractionState { Idle, Hover, PressPending, Dragging }
+
+    /// <summary>Glass Orb 的三种视觉状态。</summary>
+    public enum OrbVisualState { Idle, Hover, Dragging }
+
+    /// <summary>
+    /// 长按达标（≥350ms）且移动超过 6 DIP 才允许进入拖动。
+    /// 两个条件缺一不可，避免手抖或快速点击误触。
+    /// </summary>
+    public static bool CanBeginOrbDrag(long elapsedMs, double distanceDip)
+        => elapsedMs >= OrbLongPressMs && distanceDip >= OrbDragThresholdDip;
+
+    /// <summary>PressPending 沿用 Hover 的视觉，不额外闪烁。</summary>
+    public static OrbVisualState VisualForInteraction(OrbInteractionState state) => state switch
+    {
+        OrbInteractionState.Dragging => OrbVisualState.Dragging,
+        OrbInteractionState.Idle => OrbVisualState.Idle,
+        _ => OrbVisualState.Hover,
+    };
 }

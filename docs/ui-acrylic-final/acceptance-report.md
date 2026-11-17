@@ -482,3 +482,18 @@ Release 0/0、冒烟 578/578、启动 7/7、e2e 两次 37/37、
 Release 0/0、冒烟 582/582、启动 7/7、e2e 两次 37/37、
 阶段31 8/8、阶段34 19/19、阶段35 9/9、阶段36 9/9、阶段37 8/8、
 焦点 0.52/0/0，正式 `73251d3e…` 已覆盖安装。详见 `phase37-report.md`。
+
+### 阶段 38（DeskLanes Glass Orb，按用户最终规格）
+
+只改悬浮窗收起小球：44 DIP 冰晶球（多层 RadialGradientBrush + 银蓝描边 +
+内高光 + 柔光晕），自绘双轨流线 Path（不做九宫格/点阵/Grip/Waves）；
+三态 140ms 过渡 + 状态化 Tooltip（550ms 延迟）。
+交互状态机 350ms 长按 + 6 DIP 位移才拖，`CaptureMouse` 与
+`LostMouseCapture` 安全收尾，拖过保存位置、没拖过才点击；
+位置沿用 `CollapseBallLeft/Top`，物理像素 SetWindowPos 不与 Window.Left/Top 混用。
+侧边栏 / 全屏把手 / 悬浮窗主体未改，完成后暂停。
+`tools/phase38-orb-probe.py` 12/12（点击、不误开、移出仍可拖、
+位置保存/重启恢复/边界钳制/快捷键）。
+Release 0/0、冒烟 586/586、启动 7/7、e2e 最终 37/37（偶发重跑通过）、
+阶段31 8/8、阶段34 19/19、阶段35 9/9、阶段36 9/9、阶段37 8/8、
+焦点 0/0/0，正式 `46d90bd6…` 已覆盖安装。详见 `phase38-report.md`。

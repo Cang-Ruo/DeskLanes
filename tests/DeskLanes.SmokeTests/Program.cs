@@ -3832,12 +3832,13 @@ Console.WriteLine("== 26. 大桌面：项目数超过图标缓存上限时的表
 
 // ---------------------------------------------------------------- 41. 阶段 34：三种收束指示器的尺寸与交互策略
 {
-    // 0.5cm / 3cm 用物理像素表达，与 DPI 无关
-    Check(Math.Abs(CollapseVisualPolicy.CentimetersToPixels(0.5) - 18.90) < 0.1 &&
-          Math.Abs(CollapseVisualPolicy.CentimetersToPixels(3.0) - 113.39) < 0.1,
-        "0.5cm ≈ 19px、3cm ≈ 113px（物理像素）");
-    Check(CollapseVisualPolicy.BarPixels == 19 && CollapseVisualPolicy.BallPixels == 113,
-        "边栏 / 小球像素尺寸取整正确");
+    // 0.5cm 用物理像素表达；阶段 38 的 Glass Orb 改用 DIP 表达
+    Check(Math.Abs(CollapseVisualPolicy.CentimetersToPixels(0.5) - 18.90) < 0.1,
+        "0.5cm ≈ 19px（物理像素）");
+    Check(CollapseVisualPolicy.BarPixels == 19, "边栏像素尺寸取整正确");
+    Check(CollapseVisualPolicy.OrbVisualDip == 44 && CollapseVisualPolicy.OrbHitDip == 56 &&
+          CollapseVisualPolicy.OrbDragVisualDip == 46,
+        "Glass Orb 可视 44 / 热区 56 / 拖动 46 DIP");
     Check(CollapseVisualPolicy.FullHotZonePixels == 38,
         "全屏热区是窄条两倍宽（鼠标『靠近』即可触发）");
 
@@ -3912,16 +3913,36 @@ Console.WriteLine("== 26. 大桌面：项目数超过图标缓存上限时的表
         "收起态玻璃与本体共用 BrushShellGlass（不再是粉灰白）");
 }
 
-// ---------------------------------------------------------------- 44. 阶段 37：小球 A 细环玻璃球的三态判定
+// ---------------------------------------------------------------- 44. 阶段 38：Glass Orb 交互状态机与三态视觉
 {
-    Check(CollapseVisualPolicy.ForBall(false, false) ==
-          CollapseVisualPolicy.BallVisualState.Idle, "静止态：细环 + 小菱形");
-    Check(CollapseVisualPolicy.ForBall(true, false) ==
-          CollapseVisualPolicy.BallVisualState.Hover, "悬停态：粗环 + 光环 + 放大菱形");
-    Check(CollapseVisualPolicy.ForBall(false, true) ==
-          CollapseVisualPolicy.BallVisualState.Dragging, "拖动态：虚线环 + 方块");
-    Check(CollapseVisualPolicy.ForBall(true, true) ==
-          CollapseVisualPolicy.BallVisualState.Dragging, "拖动优先于悬停（不被 MouseLeave 打断）");
+    Check(CollapseVisualPolicy.OrbLongPressMs == 350 &&
+          CollapseVisualPolicy.OrbDragThresholdDip == 6 &&
+          CollapseVisualPolicy.OrbTooltipDelayMs == 550,
+        "长按 350ms / 位移 6 DIP / Tooltip 550ms");
+    Check(CollapseVisualPolicy.OrbTransitionSeconds >= 0.12 &&
+          CollapseVisualPolicy.OrbTransitionSeconds <= 0.16,
+        "三态缓动 140ms 落在规格 120~160ms 内");
+
+    Check(!CollapseVisualPolicy.CanBeginOrbDrag(349, 10) &&
+          CollapseVisualPolicy.CanBeginOrbDrag(350, 10),
+        "350ms 是拖动资格硬门槛");
+    Check(!CollapseVisualPolicy.CanBeginOrbDrag(600, 5.9) &&
+          CollapseVisualPolicy.CanBeginOrbDrag(600, 6),
+        "长按后仍需移动 6 DIP 才进拖动");
+    Check(!CollapseVisualPolicy.CanBeginOrbDrag(100, 30),
+        "快速大幅移动也不误触拖动");
+
+    Check(CollapseVisualPolicy.VisualForInteraction(
+              CollapseVisualPolicy.OrbInteractionState.PressPending) ==
+          CollapseVisualPolicy.OrbVisualState.Hover,
+        "PressPending 沿用悬停视觉，不闪烁");
+    Check(CollapseVisualPolicy.VisualForInteraction(
+              CollapseVisualPolicy.OrbInteractionState.Dragging) ==
+          CollapseVisualPolicy.OrbVisualState.Dragging &&
+          CollapseVisualPolicy.VisualForInteraction(
+              CollapseVisualPolicy.OrbInteractionState.Idle) ==
+          CollapseVisualPolicy.OrbVisualState.Idle,
+        "交互态正确映射到视觉态");
 }
 
 // ---------------------------------------------------------------- 汇总

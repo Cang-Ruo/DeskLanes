@@ -29,7 +29,7 @@ CFG = os.path.join(os.environ.get("LOCALAPPDATA", "",), "DeskLanes", "settings.j
 OUT = os.path.join(REPO, "docs", "ui-acrylic-final")
 STRIP = "DeskLanes 边缘细线"
 FLOATING = "DeskLanes 快速启动"
-BALL = 113
+BALL = 70
 VK_ESCAPE, KEYUP = 0x1B, 0x0002
 LEFTDOWN, LEFTUP = 0x0002, 0x0004
 
@@ -117,7 +117,7 @@ def move(x, y, pause=0.5):
 def drag(x0, y0, x1, y1):
     move(x0, y0, 0.3)
     u.mouse_event(LEFTDOWN, 0, 0, 0, 0)
-    time.sleep(0.15)
+    time.sleep(0.42)   # 阶段38：长按 350ms 后才具备拖动资格
     steps = 12
     for i in range(1, steps + 1):
         u.SetCursorPos(int(x0 + (x1 - x0) * i / steps),
@@ -210,7 +210,7 @@ def main():
             kill()
             return 1
         x0, y0, bw, bh = r0
-        say("ball is 3cm round", abs(bw - BALL) <= 6 and abs(bh - BALL) <= 6,
+        say("orb is round (DPI-scaled hit area)", bw == bh and 50 <= bw <= 95,
             "%dx%d" % (bw, bh))
 
         capture(max(0, x0 - 40), max(0, y0 - 40), BALL + 80, BALL + 80,

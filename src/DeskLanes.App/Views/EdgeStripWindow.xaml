@@ -5,36 +5,105 @@
         WindowStyle="None" AllowsTransparency="True" Background="#01000000"
         Topmost="True" ShowInTaskbar="False" ShowActivated="False"
         ResizeMode="NoResize" WindowStartupLocation="Manual"
-        Width="19" Height="900" Cursor="Hand"
-        ToolTip="展开 DeskLanes">
-    <!-- 阶段 34：一个窗口承载三种收束指示器。
+        Width="56" Height="56" Cursor="Hand">
+    <!-- 一个窗口承载三种收束指示器：
          · 侧边栏：0.5cm 半透明边栏，常驻可见，悬停展开
          · 全屏  ：热区常驻但可见窄条默认隐藏，鼠标靠近左边界才弹出，点击展开
-         · 悬浮窗：直径 3cm 半透明小球，贴在左边缘中部，点击展开
+         · 悬浮窗：阶段 38 DeskLanes Glass Orb（冰川蓝 / 双轨流线 / 清透冰晶）
          Root 的 alpha≠0 保证分层窗口下鼠标不会穿透。 -->
     <Grid x:Name="Root" Background="#01000000"
+          ToolTipService.InitialShowDelay="550"
           MouseEnter="OnMouseEnter" MouseLeave="OnMouseLeave"
           MouseLeftButtonDown="OnMouseDown" MouseMove="OnMouseMove"
-          MouseLeftButtonUp="OnMouseUp">
+          MouseLeftButtonUp="OnMouseUp" LostMouseCapture="OnLostMouseCapture">
         <Border x:Name="Bar" HorizontalAlignment="Left" VerticalAlignment="Stretch"
                 CornerRadius="0,3,3,0" />
-    <!-- 阶段 37：小球 A「细环玻璃球」——本体同款半透明玻璃 + 1px 冷蓝细环 +
-         中心小菱形；悬停加粗细环并浮出淡光环；拖动时细环变虚线、中心收成方块。
-         主体玻璃 / 细环都留 4px 内边距，光环才能完整落在 3cm 窗口里不被裁掉。 -->
-    <Grid x:Name="BallGroup" HorizontalAlignment="Center" VerticalAlignment="Center"
-          Visibility="Collapsed">
-        <Ellipse x:Name="BallHalo" Margin="0" Stretch="Fill" StrokeThickness="0.5"
-                 Visibility="Collapsed" />
-        <Ellipse x:Name="BallGlass" Margin="4" Stretch="Fill" />
-        <Ellipse x:Name="BallRing" Margin="4" Stretch="Fill" StrokeThickness="1" />
-        <Path x:Name="CoreIdle" Data="M 6 0 L 12 6 L 6 12 L 0 6 Z"
-              HorizontalAlignment="Center" VerticalAlignment="Center" />
-        <Path x:Name="CoreHover" Data="M 9 0 L 18 9 L 9 18 L 0 9 Z"
+
+        <!-- 阶段 38：Glass Orb —— 44 DIP 可视、56 DIP 透明热区。
+             冰晶材质用多层 RadialGradientBrush，三态靠交叉淡入淡出 + 缩放过渡；
+             侧边栏 / 全屏窄条仍用上面的 Bar，未做任何改造。 -->
+        <Grid x:Name="OrbGroup" Width="44" Height="44"
               HorizontalAlignment="Center" VerticalAlignment="Center"
-              Visibility="Collapsed" />
-        <Rectangle x:Name="CoreDrag" Width="8" Height="8"
-                   HorizontalAlignment="Center" VerticalAlignment="Center"
-                   Visibility="Collapsed" />
-    </Grid>
+              Visibility="Collapsed" IsHitTestVisible="False">
+            <Grid.RenderTransform>
+                <ScaleTransform x:Name="OrbScale" ScaleX="1" ScaleY="1" />
+            </Grid.RenderTransform>
+
+            <!-- 柔和冰蓝外光晕：只在悬停 / 拖动时淡入，不做霓虹 -->
+            <Ellipse x:Name="OrbHalo" Margin="-6" Stroke="#BDE6FF" StrokeThickness="1.2"
+                     Fill="#00000000" Opacity="0">
+                <Ellipse.Effect>
+                    <BlurEffect Radius="5" />
+                </Ellipse.Effect>
+            </Ellipse>
+
+            <!-- 柔和阴影：稍微内缩，模糊后从冰晶边缘透出一点层次 -->
+            <Ellipse x:Name="OrbShadow" Margin="3" Fill="#0A1E30" Opacity="0.42">
+                <Ellipse.Effect>
+                    <BlurEffect Radius="5" />
+                </Ellipse.Effect>
+            </Ellipse>
+
+            <!-- 静止：低透明度冰川蓝，左上微弱白反射，底部深蓝收底 -->
+            <Ellipse x:Name="OrbGlassIdle">
+                <Ellipse.Fill>
+                    <RadialGradientBrush GradientOrigin="0.30,0.24" Center="0.42,0.38"
+                                         RadiusX="0.82" RadiusY="0.82">
+                        <GradientStop Color="#8FC4E8" Offset="0" />
+                        <GradientStop Color="#527FA9" Offset="0.42" />
+                        <GradientStop Color="#294E72" Offset="1" />
+                    </RadialGradientBrush>
+                </Ellipse.Fill>
+            </Ellipse>
+
+            <!-- 悬停：亮度提高一档 -->
+            <Ellipse x:Name="OrbGlassHover" Opacity="0">
+                <Ellipse.Fill>
+                    <RadialGradientBrush GradientOrigin="0.30,0.24" Center="0.42,0.38"
+                                         RadiusX="0.82" RadiusY="0.82">
+                        <GradientStop Color="#C6E9FF" Offset="0" />
+                        <GradientStop Color="#6FA3C9" Offset="0.42" />
+                        <GradientStop Color="#315D85" Offset="1" />
+                    </RadialGradientBrush>
+                </Ellipse.Fill>
+            </Ellipse>
+
+            <!-- 拖动：更饱和的冰川蓝 -->
+            <Ellipse x:Name="OrbGlassDrag" Opacity="0">
+                <Ellipse.Fill>
+                    <RadialGradientBrush GradientOrigin="0.30,0.24" Center="0.42,0.38"
+                                         RadiusX="0.82" RadiusY="0.82">
+                        <GradientStop Color="#BDE6FF" Offset="0" />
+                        <GradientStop Color="#3489C2" Offset="0.45" />
+                        <GradientStop Color="#24567A" Offset="1" />
+                    </RadialGradientBrush>
+                </Ellipse.Fill>
+            </Ellipse>
+
+            <!-- 内侧极细高光线，做出晶体厚度感 -->
+            <Ellipse x:Name="OrbInnerHighlight" Margin="2.5" Stroke="#BDE6FF"
+                     StrokeThickness="0.6" Opacity="0.35" />
+
+            <!-- 银蓝细描边；悬停 / 拖动切到明亮冰蓝 -->
+            <Ellipse x:Name="OrbBorderIdle" Stroke="#9EC4DE" StrokeThickness="1" />
+            <Ellipse x:Name="OrbBorderActive" Stroke="#BDE6FF" StrokeThickness="1.2"
+                     Opacity="0" />
+
+            <!-- 双轨流线：两条独立平行的 S 形曲线，左下 → 右上，圆润线端 -->
+            <Viewbox x:Name="OrbIcon" Width="22" Height="22">
+                <Canvas Width="24" Height="24">
+                    <Path x:Name="OrbTrackMain"
+                          Data="M3,15 C7,15 8,8 12,8 C15,8 16,6 19,3"
+                          Stroke="#F1FAFF" StrokeThickness="2.1"
+                          StrokeStartLineCap="Round" StrokeEndLineCap="Round"
+                          Fill="Transparent" />
+                    <Path x:Name="OrbTrackSub"
+                          Data="M3,20 C8,20 9,13 14,13 C17,13 18,11 21,8"
+                          Stroke="#BDE6FF" StrokeThickness="2.1"
+                          StrokeStartLineCap="Round" StrokeEndLineCap="Round"
+                          Fill="Transparent" />
+                </Canvas>
+            </Viewbox>
+        </Grid>
     </Grid>
 </Window>

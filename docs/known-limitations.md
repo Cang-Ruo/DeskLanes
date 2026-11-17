@@ -484,3 +484,27 @@ Release 0/0、冒烟 472/472、启动 7/7。详见 `docs/ui-acrylic-final/phase1
   焦点 0.52/0/0；正式 `73251d3e…` 已覆盖安装。详见 `phase37-report.md`。
 - **下一步**：确认三态观感（细环亮度 / 菱形大小）；
   悬浮窗本体与其它界面的视觉改造等用户说开始再做。
+
+### 阶段 38 追加（2026-11-16 02:48 用户最终规格）
+
+- **DeskLanes Glass Orb**：冰川蓝 / 双轨流线 / 清透冰晶。只改收起小球，
+  侧边栏、全屏把手、悬浮窗主体均未动；完成后按用户要求暂停。
+- 44 DIP 可视 + 56 DIP 透明热区；多层 `RadialGradientBrush` +
+  银蓝细描边 + 内高光 + 柔和阴影；双轨流线用自绘 WPF Path（24×24、
+  两条平行 S 曲线、Round LineCap、主线 `#F1FAFF` / 副线 `#BDE6FF`）。
+- 三态 140ms CubicEase 过渡；Idle 无 Tooltip，Hover 550ms 后
+  「打开 DeskLanes」，拖动「拖动以移动」；不用 Window.Opacity。
+- 交互状态机 Idle → Hover → PressPending → Dragging：
+  **≥350ms 且 ≥6 DIP** 才进拖动；`CaptureMouse` + `LostMouseCapture`
+  安全收尾，拖过保存位置、没拖过才点击。位置沿用
+  `CollapseBallLeft/Top`，不新增字段；全程物理像素 SetWindowPos，
+  不与 `Window.Left/Top` 混用。
+- `tools/phase38-orb-probe.py` **12/12**：点击 / 长按不误开 /
+  鼠标移出仍可拖 / 位置保存 / 重启恢复 / 边界钳制 / Ctrl+Alt+Space 仍有效。
+  截图 `phase38-orb-{idle,hover,hover-tooltip,dragging}.png`。
+- Release 0/0、冒烟 586/586、启动 7/7、e2e 最终 37/37（期间两次偶发失败
+  重跑通过，未删断言）、阶段31 8/8、阶段34 19/19、阶段35 9/9、
+  阶段36 9/9、阶段37 8/8、焦点 0/0/0；
+  正式 `46d90bd6…` 已覆盖安装。详见 `phase38-report.md`。
+- **未验证**：拖动 Tooltip 单独截图、140ms 动画中间帧、
+  混合 DPI 全部组合、长期驻留 / 睡眠 / 远程桌面 / 热插拔。

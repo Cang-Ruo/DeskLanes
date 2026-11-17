@@ -175,8 +175,8 @@ def main():
                 move_to(x + 8, y + min(300, h // 2), 1.2)
                 say("sidebar: hovering bar restores sidebar", visible(title))
             else:
-                say("floating: indicator is the 3cm ball form",
-                    abs(w - 113) <= 8 and abs(h - 113) <= 8, "rect=%dx%d" % (w, h))
+                say("floating: indicator is the Glass Orb form",
+                    w == h and 50 <= w <= 95, "rect=%dx%d" % (w, h))
                 move_to(x + w // 2, y + h // 2, 0.8)
                 say("floating: hovering ball does NOT auto-expand", not visible(title))
                 click_at(x + w // 2, y + h // 2)

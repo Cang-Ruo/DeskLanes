@@ -1,72 +1,66 @@
 using System;
+using System.Diagnostics;
 using System.Windows;
+using System.Windows.Controls;
 using System.Windows.Input;
 using System.Windows.Interop;
 using System.Windows.Media;
+using System.Windows.Media.Animation;
 using DeskLanes.App.Services;
 using DeskLanes.Core;
 
 namespace DeskLanes.App.Views;
 
 /// <summary>
-/// 阶段 31 起：收束后留在屏幕最左侧的指示器；阶段 34 扩展成三种形态
-/// （侧栏半透明边栏 / 全屏靠近边界才弹出的窄条 / 悬浮窗半透明小球）。
+/// 收束后留在屏幕最左侧的指示器：侧栏半透明边栏 / 全屏靠近边界才弹出的窄条 /
+/// 悬浮窗的 DeskLanes Glass Orb（阶段 38）。
 /// 不抢焦点、不进任务栏、常驻置顶，否则被启动的软件盖住就找不回来了。
-/// 阶段 36：小球可拖动并记住位置；玻璃配色与三窗口本体共用同一支画刷。
 /// </summary>
 public partial class EdgeStripWindow : Window
 {
-    /// <summary>阶段 36：小球被拖动后的新位置（物理像素），由外壳落盘。</summary>
+    /// <summary>小球被拖动后的新位置（物理像素），由外壳落盘。</summary>
     public event Action<double, double>? BallMoved;
 
-    /// <summary>鼠标移到指示器上（侧边栏据此展开；全屏据此弹出窄条；小球据此提亮）。</summary>
+    /// <summary>鼠标移到指示器上（侧边栏据此展开；全屏据此弹出窄条）。</summary>
     public event EventHandler? HoverRequested;
 
     /// <summary>点击指示器（全屏 / 悬浮窗据此展开；拖动过则不算点击）。</summary>
     public event EventHandler? ClickRequested;
 
     private static readonly SolidColorBrush HoverShellGlass =
-        new(Color.FromArgb(0x66, 0x20, 0x33, 0x4A));   // 同色系，稍浓一点
+        new(Color.FromArgb(0x66, 0x20, 0x33, 0x4A));
+    private static readonly SolidColorBrush ColdWhite =
+        new(Color.FromArgb(0xFF, 0xF1, 0xFA, 0xFF));
+    private static readonly SolidColorBrush PureWhite = new(Colors.White);
 
-    // 阶段 37：小球 A 的冷蓝点缀色
-    private static readonly SolidColorBrush AccentBlue =
-        new(Color.FromArgb(0xFF, 0x7F, 0xD8, 0xFF));
-    private static readonly SolidColorBrush HoverAccentBlue =
-        new(Color.FromArgb(0xFF, 0xB4, 0xE4, 0xFF));
-    private static readonly SolidColorBrush HaloBlue =
-        new(Color.FromArgb(0x4D, 0x7F, 0xD8, 0xFF));
-    private static readonly DoubleCollection DragDash = new() { 4, 5 };
+    private readonly ToolTip _openTip = new() { Content = "打开 DeskLanes" };
+    private readonly ToolTip _dragTip = new() { Content = "拖动以移动" };
+    private readonly Stopwatch _pressStopwatch = new();
 
     private CollapseVisual _visual = CollapseVisual.FullStrip;
+    private CollapseVisualPolicy.OrbInteractionState _interaction =
+        CollapseVisualPolicy.OrbInteractionState.Idle;
     private MonitorInterop.RECT _work;
+    private double _dpiScale = 1;
     private int _widthPx;
     private int _heightPx;
     private int _currentLeft;
     private int _currentTop;
-    private bool _pressed;
-    private bool _moved;
     private int _startCursorX;
     private int _startCursorY;
     private int _startLeft;
     private int _startTop;
+    private bool _pressed;
+    private bool _dragging;
 
     public EdgeStripWindow()
     {
         InitializeComponent();
         Bar.Background = ShellGlass();
-        BallGlass.Fill = ShellGlass();
-        BallHalo.Stroke = HaloBlue;
-        BallRing.Stroke = AccentBlue;
-        CoreIdle.Fill = AccentBlue;
-        CoreHover.Fill = HoverAccentBlue;
-        CoreDrag.Fill = AccentBlue;
-        ApplyBallVisualState(CollapseVisualPolicy.BallVisualState.Idle);
+        ApplyOrbVisualState(CollapseVisualPolicy.OrbVisualState.Idle);
     }
 
-    /// <summary>
-    /// 阶段 36：与悬浮窗 / 全屏 / 侧边栏本体共用 GlassTheme 的 BrushShellGlass，
-    /// 收起态不再是一块粉灰白玻璃。取不到资源时（设计时 / 独立宿主）用同色兜底。
-    /// </summary>
+    /// <summary>侧栏 / 全屏窄条仍与三窗口本体共用同一支玻璃画刷。</summary>
     private static Brush ShellGlass()
         => Application.Current?.Resources["BrushShellGlass"] is Brush brush
             ? brush
@@ -75,35 +69,100 @@ public partial class EdgeStripWindow : Window
     /// <summary>鼠标是否还停在指示器上（侧栏移开自动收束的判定用）。</summary>
     public bool IsPointerOver => Root.IsMouseOver;
 
-    /// <summary>
-    /// 阶段 37：小球的三态。主体玻璃始终与窗口本体共用同一支画刷，
-    /// 只是冷蓝细环 / 光环 / 中心符号随状态切换 —— 不破坏「统一」的材质。
-    /// </summary>
-    private void ApplyBallVisualState(CollapseVisualPolicy.BallVisualState state)
+    // ---------- 阶段 38：Glass Orb 视觉 ----------
+
+    private static void AnimateOpacity(UIElement element, double target)
+    {
+        var animation = new DoubleAnimation(target,
+            TimeSpan.FromSeconds(CollapseVisualPolicy.OrbTransitionSeconds))
+        {
+            FillBehavior = FillBehavior.HoldEnd,
+            EasingFunction = new CubicEase { EasingMode = EasingMode.EaseOut },
+        };
+        element.BeginAnimation(UIElement.OpacityProperty, animation);
+    }
+
+    private void AnimateScale(double target)
+    {
+        var duration = TimeSpan.FromSeconds(CollapseVisualPolicy.OrbTransitionSeconds);
+        var ease = new CubicEase { EasingMode = EasingMode.EaseOut };
+        OrbScale.BeginAnimation(ScaleTransform.ScaleXProperty,
+            new DoubleAnimation(target, duration) { FillBehavior = FillBehavior.HoldEnd, EasingFunction = ease });
+        OrbScale.BeginAnimation(ScaleTransform.ScaleYProperty,
+            new DoubleAnimation(target, duration) { FillBehavior = FillBehavior.HoldEnd, EasingFunction = ease });
+    }
+
+    /// <summary>三态视觉：只淡入淡出材质层与描边，双轨图标始终清晰可见。</summary>
+    private void ApplyOrbVisualState(CollapseVisualPolicy.OrbVisualState state)
     {
         if (_visual != CollapseVisual.FloatingBall)
         {
             return;
         }
 
-        bool hover = state == CollapseVisualPolicy.BallVisualState.Hover;
-        bool drag = state == CollapseVisualPolicy.BallVisualState.Dragging;
+        bool hover = state == CollapseVisualPolicy.OrbVisualState.Hover;
+        bool drag = state == CollapseVisualPolicy.OrbVisualState.Dragging;
+        bool active = hover || drag;
 
-        BallGlass.Fill = ShellGlass();
-        BallRing.Stroke = hover ? HoverAccentBlue : AccentBlue;
-        BallRing.StrokeThickness = hover ? 2 : 1;
-        BallRing.StrokeDashArray = drag ? DragDash : null;
-        BallHalo.Visibility = hover ? Visibility.Visible : Visibility.Collapsed;
-
-        CoreIdle.Visibility = (!hover && !drag) ? Visibility.Visible : Visibility.Collapsed;
-        CoreHover.Visibility = hover ? Visibility.Visible : Visibility.Collapsed;
-        CoreDrag.Visibility = drag ? Visibility.Visible : Visibility.Collapsed;
+        AnimateOpacity(OrbGlassIdle, active ? 0 : 1);
+        AnimateOpacity(OrbGlassHover, hover ? 1 : 0);
+        AnimateOpacity(OrbGlassDrag, drag ? 1 : 0);
+        AnimateOpacity(OrbHalo, drag ? 0.85 : hover ? 0.55 : 0);
+        AnimateOpacity(OrbBorderIdle, active ? 0 : 1);
+        AnimateOpacity(OrbBorderActive, active ? 1 : 0);
+        AnimateOpacity(OrbInnerHighlight, hover ? 0.6 : drag ? 0.75 : 0.35);
+        OrbBorderActive.StrokeThickness = drag ? 1.5 : hover ? 1.2 : 1;
+        OrbTrackMain.Stroke = active ? PureWhite : ColdWhite;
+        AnimateScale(drag ? 1.05 : hover ? 1.04 : 1.0);
     }
 
-    /// <summary>
-    /// 悬停反馈：全屏模式负责把窄条「弹出 / 收回去」；
-    /// 边栏提亮玻璃；小球切到悬停态。拖动中不许被 MouseLeave 打断。
-    /// </summary>
+    private void SetOrbTooltip(ToolTip? tip)
+    {
+        if (ReferenceEquals(Root.ToolTip, tip))
+        {
+            return;
+        }
+
+        if (Root.ToolTip is ToolTip previous && previous.IsOpen)
+        {
+            previous.IsOpen = false;
+        }
+
+        Root.ToolTip = tip;
+    }
+
+    private void SetInteraction(CollapseVisualPolicy.OrbInteractionState state)
+    {
+        if (_visual != CollapseVisual.FloatingBall)
+        {
+            return;
+        }
+
+        _interaction = state;
+        ApplyOrbVisualState(CollapseVisualPolicy.VisualForInteraction(state));
+
+        switch (state)
+        {
+            case CollapseVisualPolicy.OrbInteractionState.Idle:
+                SetOrbTooltip(null);
+                Cursor = Cursors.Hand;
+                Root.Cursor = Cursors.Hand;
+                break;
+            case CollapseVisualPolicy.OrbInteractionState.Hover:
+                SetOrbTooltip(_openTip);
+                Cursor = Cursors.Hand;
+                Root.Cursor = Cursors.Hand;
+                break;
+            case CollapseVisualPolicy.OrbInteractionState.Dragging:
+                SetOrbTooltip(_dragTip);
+                Cursor = Cursors.SizeAll;
+                Root.Cursor = Cursors.SizeAll;
+                break;
+            // PressPending 沿用 Hover 的视觉与提示，不额外闪烁
+        }
+    }
+
+    /// <summary>全屏窄条弹出 / 收起；侧栏提亮；小球仅在非按下态响应悬停。</summary>
     public void SetHover(bool hovered)
     {
         if (_visual == CollapseVisual.FullStrip)
@@ -113,29 +172,34 @@ public partial class EdgeStripWindow : Window
 
         Bar.Background = hovered ? HoverShellGlass : ShellGlass();
 
-        if (_visual == CollapseVisual.FloatingBall && !(_pressed && _moved))
+        if (_visual == CollapseVisual.FloatingBall &&
+            _interaction is CollapseVisualPolicy.OrbInteractionState.Idle
+                        or CollapseVisualPolicy.OrbInteractionState.Hover)
         {
-            ApplyBallVisualState(hovered ? CollapseVisualPolicy.BallVisualState.Hover : CollapseVisualPolicy.BallVisualState.Idle);
+            SetInteraction(hovered
+                ? CollapseVisualPolicy.OrbInteractionState.Hover
+                : CollapseVisualPolicy.OrbInteractionState.Idle);
         }
     }
 
+    // ---------- 定位 ----------
+
     /// <summary>
-    /// 按当前模式的形态摆到指定显示器工作区（物理像素定位）。
-    /// 尺寸来自 CollapseVisualPolicy：0.5cm 边栏 / 3cm 小球 / 全屏两倍宽热区。
-    /// ballLeft/ballTop 为上次拖动后保存的位置（物理像素），null 用默认左边缘中部。
+    /// 按当前形态摆到指定显示器工作区。侧栏 / 窄条用物理像素；
+    /// Glass Orb 的 44 DIP 可视 / 56 DIP 热区全部在 WPF 侧用 DIP 表达，
+    /// 只有传给 SetWindowPos 和落盘的位置是物理像素。
     /// </summary>
     public void ShowAtWorkArea(CollapseVisual visual, MonitorInterop.RECT work, uint dpi,
         double? ballLeft = null, double? ballTop = null)
     {
         _visual = visual;
         _work = work;
-        double scale = Math.Max(dpi / 96.0, 0.5);
+        _dpiScale = Math.Max(dpi / 96.0, 0.5);
         int bar = CollapseVisualPolicy.BarPixels;
-        int ball = CollapseVisualPolicy.BallPixels;
+        int orbPx = (int)Math.Round(CollapseVisualPolicy.OrbHitDip * _dpiScale);
 
-        // 小球是 3cm 圆；边栏 / 窄条都用 2 倍宽的透明热区，可见玻璃恒为 0.5cm。
         int widthPx = visual == CollapseVisual.FloatingBall
-            ? ball
+            ? orbPx
             : CollapseVisualPolicy.FullHotZonePixels;
         int heightPx = work.Height;
         int x = work.Left;
@@ -143,8 +207,8 @@ public partial class EdgeStripWindow : Window
 
         if (visual == CollapseVisual.FloatingBall)
         {
-            heightPx = ball;
-            y = work.Top + Math.Max(0, (work.Height - ball) / 2);
+            heightPx = orbPx;
+            y = work.Top + Math.Max(0, (work.Height - orbPx) / 2);
             if (ballLeft.HasValue && ballTop.HasValue)
             {
                 x = (int)Math.Round(ballLeft.Value);
@@ -158,22 +222,28 @@ public partial class EdgeStripWindow : Window
 
         bool isBall = visual == CollapseVisual.FloatingBall;
         Bar.Visibility = isBall ? Visibility.Collapsed : Visibility.Visible;
-        BallGroup.Visibility = isBall ? Visibility.Visible : Visibility.Collapsed;
+        OrbGroup.Visibility = isBall ? Visibility.Visible : Visibility.Collapsed;
 
-        Bar.Width = bar / scale;   // 可见玻璃恒为 0.5cm，与窗口热区宽度无关
-        BallGroup.Width = ball / scale;
-        BallGroup.Height = ball / scale;
-
-        Width = widthPx / scale;
-        Height = heightPx / scale;
+        Bar.Width = bar / _dpiScale;
+        Width = widthPx / _dpiScale;
+        Height = heightPx / _dpiScale;
         _widthPx = widthPx;
         _heightPx = heightPx;
         _currentLeft = x;
         _currentTop = y;
         _pressed = false;
-        _moved = false;
+        _dragging = false;
+        _pressStopwatch.Reset();
         Show();
-        SetHover(false);   // 全屏窄条默认隐藏；边栏 / 小球保持半透明常驻
+
+        if (isBall)
+        {
+            SetInteraction(CollapseVisualPolicy.OrbInteractionState.Idle);
+        }
+        else
+        {
+            SetHover(false);
+        }
 
         IntPtr hwnd = new WindowInteropHelper(this).Handle;
         if (hwnd == IntPtr.Zero)
@@ -195,10 +265,11 @@ public partial class EdgeStripWindow : Window
         return pt;
     }
 
-    // ---------- 阶段 36：只有小球可拖动 ----------
+    // ---------- 长按 / 拖动状态机 ----------
 
     private void OnMouseDown(object sender, MouseButtonEventArgs e)
     {
+        // 侧栏 / 全屏窄条不拖动，但 OnMouseUp 仍按原有方式处理点击
         if (!CollapseVisualPolicy.CanDrag(_visual))
         {
             return;
@@ -210,7 +281,9 @@ public partial class EdgeStripWindow : Window
         _startLeft = _currentLeft;
         _startTop = _currentTop;
         _pressed = true;
-        _moved = false;
+        _dragging = false;
+        _pressStopwatch.Restart();
+        SetInteraction(CollapseVisualPolicy.OrbInteractionState.PressPending);
         Root.CaptureMouse();
         e.Handled = true;
     }
@@ -225,17 +298,19 @@ public partial class EdgeStripWindow : Window
         MonitorInterop.POINT pt = CursorPos();
         int dx = pt.X - _startCursorX;
         int dy = pt.Y - _startCursorY;
-        if (!_moved && Math.Abs(dx) + Math.Abs(dy) < 4)
+
+        if (!_dragging)
         {
-            return;   // 小于 4px 仍算点击，避免手抖误判成拖动
+            double distanceDip = (Math.Abs(dx) + Math.Abs(dy)) / _dpiScale;
+            if (!CollapseVisualPolicy.CanBeginOrbDrag(_pressStopwatch.ElapsedMilliseconds, distanceDip))
+            {
+                return;   // 350ms 未到，或位移不足 6 DIP：仍算点击候选
+            }
+
+            _dragging = true;
+            SetInteraction(CollapseVisualPolicy.OrbInteractionState.Dragging);
         }
 
-        if (!_moved)
-        {
-            ApplyBallVisualState(CollapseVisualPolicy.BallVisualState.Dragging);   // 阶段 37：拖动中 = 虚线环 + 方块
-        }
-
-        _moved = true;
         int left = Clamp(_startLeft + dx, _work.Left, _work.Left + _work.Width - _widthPx);
         int top = Clamp(_startTop + dy, _work.Top, _work.Top + _work.Height - _heightPx);
         if (left == _currentLeft && top == _currentTop)
@@ -248,6 +323,7 @@ public partial class EdgeStripWindow : Window
         IntPtr hwnd = new WindowInteropHelper(this).Handle;
         if (hwnd != IntPtr.Zero)
         {
+            // 全程用物理像素 SetWindowPos，不与 Window.Left/Top 混用
             _ = MonitorInterop.SetWindowPos(hwnd, IntPtr.Zero, left, top, 0, 0,
                 MonitorInterop.SwpNoSize | MonitorInterop.SwpNoZOrder |
                 MonitorInterop.SwpNoActivate);
@@ -256,14 +332,17 @@ public partial class EdgeStripWindow : Window
 
     private void OnMouseUp(object sender, MouseButtonEventArgs e)
     {
+        bool isBall = _visual == CollapseVisual.FloatingBall;
+        bool dragged = isBall && _dragging;
+
+        // 先把状态复位再释放捕获，LostMouseCapture 就不会重复保存位置
+        _pressed = false;
+        _dragging = false;
+        _pressStopwatch.Stop();
         if (Root.IsMouseCaptured)
         {
             Root.ReleaseMouseCapture();
         }
-
-        bool dragged = _moved;
-        _pressed = false;
-        _moved = false;
 
         if (dragged)
         {
@@ -274,11 +353,39 @@ public partial class EdgeStripWindow : Window
             ClickRequested?.Invoke(this, EventArgs.Empty);
         }
 
-        // 拖动结束回到悬停 / 静止态；此刻 _pressed/_moved 已复位，
-        // 所以不会被 SetHover 的保护分支拦住。
-        ApplyBallVisualState(Root.IsMouseOver ? CollapseVisualPolicy.BallVisualState.Hover : CollapseVisualPolicy.BallVisualState.Idle);
+        if (isBall)
+        {
+            SetInteraction(IsMouseOver
+                ? CollapseVisualPolicy.OrbInteractionState.Hover
+                : CollapseVisualPolicy.OrbInteractionState.Idle);
+        }
 
         e.Handled = true;
+    }
+
+    /// <summary>捕获意外丢失（Alt+Tab、系统弹窗等）时安全收尾，绝不误触发点击。</summary>
+    private void OnLostMouseCapture(object sender, MouseEventArgs e)
+    {
+        if (!_pressed && !_dragging)
+        {
+            return;
+        }
+
+        bool dragged = _dragging;
+        _pressed = false;
+        _dragging = false;
+        _pressStopwatch.Stop();
+        if (dragged)
+        {
+            BallMoved?.Invoke(_currentLeft, _currentTop);
+        }
+
+        if (_visual == CollapseVisual.FloatingBall)
+        {
+            SetInteraction(IsMouseOver
+                ? CollapseVisualPolicy.OrbInteractionState.Hover
+                : CollapseVisualPolicy.OrbInteractionState.Idle);
+        }
     }
 
     private void OnMouseEnter(object sender, MouseEventArgs e)
