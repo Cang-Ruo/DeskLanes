@@ -13,7 +13,7 @@ namespace DeskLanes.App.Views;
 
 /// <summary>
 /// 收束后留在屏幕最左侧的指示器：侧栏半透明边栏 / 全屏靠近边界才弹出的窄条 /
-/// 悬浮窗的 DeskLanes 珍珠冰晶玻璃球（阶段 39）。
+/// 悬浮窗的 DeskLanes 珍珠冰晶玻璃球（阶段 40：低 Alpha 主体 + 三层边缘）。
 /// 不抢焦点、不进任务栏、常驻置顶，否则被启动的软件盖住就找不回来了。
 /// </summary>
 public partial class EdgeStripWindow : Window
@@ -90,8 +90,9 @@ public partial class EdgeStripWindow : Window
     }
 
     /// <summary>
-    /// 阶段 39：同一颗珍珠冰晶球，三态只改材质透明度与轻微光晕，
-    /// 波浪线的形状 / 位置 / 颜色保持不变，不存在状态间跳变。
+    /// 阶段 40：主体画刷自带低 Alpha，三态用 Visibility 切换，
+    /// 亮度差异来自边缘 / 高光 / 光带，不再靠加深主体填充。
+    /// 波浪形状三态完全一致，只调透明度。
     /// </summary>
     private void ApplyOrbVisualState(CollapseVisualPolicy.OrbVisualState state)
     {
@@ -104,29 +105,32 @@ public partial class EdgeStripWindow : Window
         bool drag = state == CollapseVisualPolicy.OrbVisualState.Dragging;
         bool active = hover || drag;
 
-        // 主体：静止 74% → 悬停 84% → 拖动 88%（整体略微变亮）
-        AnimateOpacity(OrbGlassIdle, active ? 0 : 0.74);
-        AnimateOpacity(OrbGlassHover, hover ? 0.84 : 0);
-        AnimateOpacity(OrbGlassDrag, drag ? 0.88 : 0);
+        OrbGlassIdle.Visibility = active ? Visibility.Collapsed : Visibility.Visible;
+        OrbGlassHover.Visibility = hover ? Visibility.Visible : Visibility.Collapsed;
+        OrbGlassDrag.Visibility = drag ? Visibility.Visible : Visibility.Collapsed;
 
-        // 外光晕只在激活态出现；浅色环境阴影常驻
-        AnimateOpacity(OrbHalo, drag ? 0.7 : hover ? 0.5 : 0);
-        AnimateOpacity(OrbShadow, drag ? 0.34 : hover ? 0.3 : 0.26);
+        // 外光晕只在激活态出现，主体保持通透
+        AnimateOpacity(OrbHalo, drag ? 0.55 : hover ? 0.4 : 0);
+        AnimateOpacity(OrbShadow, drag ? 0.3 : hover ? 0.27 : 0.24);
 
-        // 虹彩：激活态略微增强，但仍是局部折射，不做彩虹灯球
-        AnimateOpacity(OrbIris, active ? 0.9 : 0.8);
-        AnimateOpacity(OrbIrisGlow, active ? 0.58 : 0.45);
-        AnimateOpacity(OrbInnerRim, hover ? 0.7 : drag ? 0.75 : 0.5);
+        // 边缘反射：三态的主要差异来源
+        AnimateOpacity(OrbRimOuter, drag ? 1.0 : hover ? 0.96 : 0.88);
+        AnimateOpacity(OrbRimInner, drag ? 0.62 : hover ? 0.52 : 0.4);
+        AnimateOpacity(OrbIrisLeft, drag ? 0.9 : hover ? 0.78 : 0.62);
+        AnimateOpacity(OrbIrisRight, drag ? 0.9 : hover ? 0.78 : 0.62);
+        AnimateOpacity(OrbIrisBottom, drag ? 0.85 : hover ? 0.72 : 0.56);
+        AnimateOpacity(OrbTopHighlight, drag ? 1.0 : hover ? 0.94 : 0.8);
 
-        // 两条波浪光带：形状不变，只提亮；光带始终清晰可辨
+        // 内部光影始终保持极淡，避免糊成实心
+        AnimateOpacity(OrbFlowPearl, active ? 0.56 : 0.5);
+        AnimateOpacity(OrbFlowCyan, active ? 0.5 : 0.45);
+        AnimateOpacity(OrbFlowLavender, active ? 0.54 : 0.48);
+
+        // 两条光带：形状不变，只提亮；两端由渐变自然淡出
         AnimateOpacity(OrbWaveMain, active ? 1.0 : 0.92);
-        AnimateOpacity(OrbWaveSub, active ? 0.96 : 0.88);
-        AnimateOpacity(OrbWaveMainGlow, drag ? 0.5 : hover ? 0.44 : 0.36);
-        AnimateOpacity(OrbWaveSubGlow, drag ? 0.46 : hover ? 0.42 : 0.34);
-
-        // 左上高光 / 底部粉蓝折射
-        AnimateOpacity(OrbTopHighlight, active ? 1.0 : 0.85);
-        AnimateOpacity(OrbBottomRefraction, active ? 0.68 : 0.55);
+        AnimateOpacity(OrbWaveSub, active ? 0.96 : 0.9);
+        AnimateOpacity(OrbWaveMainGlow, drag ? 0.38 : hover ? 0.34 : 0.28);
+        AnimateOpacity(OrbWaveSubGlow, drag ? 0.34 : hover ? 0.3 : 0.26);
 
         AnimateScale(drag ? 1.05 : hover ? 1.04 : 1.0);
     }
