@@ -1,0 +1,68 @@
+<Window x:Class="DeskLanes.App.Views.OrbPickerWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        Title="DeskLanes 分类"
+        WindowStyle="None" AllowsTransparency="True" Background="#00000000"
+        Topmost="True" ShowInTaskbar="False" ShowActivated="True"
+        ResizeMode="NoResize" WindowStartupLocation="Manual"
+        Width="220" Height="Auto" SizeToContent="Height"
+        Deactivated="OnDeactivated" KeyDown="OnKeyDown">
+    <Border Margin="8" Background="{StaticResource BrushMenuGlass}"
+            BorderBrush="{StaticResource BrushBorderStrongGlass}" BorderThickness="1"
+            CornerRadius="10" Padding="6">
+        <StackPanel>
+            <TextBlock Text="打开分类" FontSize="11"
+                       Foreground="{StaticResource BrushTextTertiary}"
+                       Margin="10,6,10,8" />
+            <ListBox x:Name="CategoryList" ItemsSource="{Binding Entries}"
+                     Background="Transparent" BorderThickness="0"
+                     ScrollViewer.HorizontalScrollBarVisibility="Disabled"
+                     MaxHeight="360" MouseDoubleClick="OnListDoubleClick"
+                     SelectionChanged="OnSelectionChanged">
+                <ListBox.ItemContainerStyle>
+                    <Style TargetType="ListBoxItem">
+                        <Setter Property="Padding" Value="10,7" />
+                        <Setter Property="Margin" Value="0,1" />
+                        <Setter Property="Foreground" Value="{StaticResource BrushTextPrimary}" />
+                        <Setter Property="HorizontalContentAlignment" Value="Stretch" />
+                        <Setter Property="Template">
+                            <Setter.Value>
+                                <ControlTemplate TargetType="ListBoxItem">
+                                    <Border x:Name="Bd" Background="Transparent"
+                                            CornerRadius="6" Padding="{TemplateBinding Padding}">
+                                        <Grid>
+                                            <Grid.ColumnDefinitions>
+                                                <ColumnDefinition Width="*" />
+                                                <ColumnDefinition Width="Auto" />
+                                            </Grid.ColumnDefinitions>
+                                            <TextBlock Text="{Binding Name}" FontSize="13"
+                                                       TextTrimming="CharacterEllipsis"
+                                                       VerticalAlignment="Center" />
+                                            <TextBlock Grid.Column="1" Text="{Binding Count}"
+                                                       FontSize="11"
+                                                       Foreground="{StaticResource BrushTextSecondary}"
+                                                       VerticalAlignment="Center" Margin="10,0,0,0" />
+                                        </Grid>
+                                    </Border>
+                                    <ControlTemplate.Triggers>
+                                        <Trigger Property="IsMouseOver" Value="True">
+                                            <Setter TargetName="Bd" Property="Background"
+                                                    Value="{StaticResource BrushHoverStrongGlass}" />
+                                        </Trigger>
+                                        <Trigger Property="IsSelected" Value="True">
+                                            <Setter TargetName="Bd" Property="Background"
+                                                    Value="{StaticResource BrushSelectedGlass}" />
+                                        </Trigger>
+                                    </ControlTemplate.Triggers>
+                                </ControlTemplate>
+                            </Setter.Value>
+                        </Setter>
+                    </Style>
+                </ListBox.ItemContainerStyle>
+            </ListBox>
+            <TextBlock Text="单击分类直接打开 · Esc 关闭" FontSize="10"
+                       Foreground="{StaticResource BrushTextTertiary}"
+                       Margin="10,6,10,4" />
+        </StackPanel>
+    </Border>
+</Window>

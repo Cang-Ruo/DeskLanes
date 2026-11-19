@@ -153,6 +153,16 @@ def click_at(x, y):
     time.sleep(0.6)
 
 
+def double_click_at(x, y):
+    move_to(x, y, 0.3)
+    for _ in range(2):
+        u.mouse_event(LEFTDOWN, 0, 0, 0, 0)
+        time.sleep(0.05)
+        u.mouse_event(LEFTUP, 0, 0, 0, 0)
+        time.sleep(0.08)
+    time.sleep(0.8)
+
+
 def mean_diff(a, b):
     wa, ha, ra = read_png(a)
     wb, hb, rb = read_png(b)
@@ -260,9 +270,9 @@ def main():
                 say("floating: hovering ball does NOT expand", not visible(title))
                 capture(max(0, x - 30), max(0, y - 30), BALL + 60, BALL + 60,
                         os.path.join(OUT, "phase34-floating-ball.png"))
-                click_at(x + w // 2, y + h // 2)
+                double_click_at(x + w // 2, y + h // 2)
                 time.sleep(1.4)
-                say("floating: clicking ball restores floating window", visible(title))
+                say("floating: double-clicking ball restores floating window (single opens picker)", visible(title))
 
             else:  # full
                 say("full: hidden-until-near hot zone is ≈38px wide",
