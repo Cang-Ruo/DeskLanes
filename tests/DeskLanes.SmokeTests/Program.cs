@@ -3961,8 +3961,21 @@ Console.WriteLine("== 26. 大桌面：项目数超过图标缓存上限时的表
     Check(orb45.Contains("OrbAuraTintBrush") && orb45.Contains("OrbAuraMaskBrush") &&
           orb45.Contains("StartPoint=\"0,0\"") && orb45.Contains("EndPoint=\"1,1\""),
         "方向性渐变（左上珍珠白→右下淡青蓝）+ 径向遮罩，非均匀发光");
-    Check(code45.Contains("drag ? 0.17 : hover ? 0.10 : 0.02"),
-        "光晕强度收敛到 2% / 10% / 17%");
+    Check(code45.Contains("drag ? 0.18 : hover ? 0.12 : 0.015"),
+        "光晕强度辅助化：1.5% / 12% / 18%");
+    Check(!orb45.Contains("x:Name=\"OrbRimInner\"") &&
+          !orb45.Contains("x:Name=\"OrbIrisLeft\"") &&
+          !orb45.Contains("x:Name=\"OrbIrisRight\"") &&
+          !orb45.Contains("x:Name=\"OrbIrisBottom\"") &&
+          orb45.Contains("x:Name=\"OrbRimOuter\""),
+        "边缘只留一条珍珠白主轮廓，移除重复同心圆与虹彩弧");
+    Check(!orb45.Contains("x:Name=\"OrbWaveMainGlow\"") &&
+          orb45.Contains("Stroke=\"#F7FCFF\" StrokeThickness=\"2.1\"") &&
+          orb45.Contains("Stroke=\"#BDE8FF\" StrokeThickness=\"2\""),
+        "双轨波浪纯色清晰描边 2.1 / 2 DIP，去掉模糊柔光底");
+    Check(orb45.Contains("ToolTipService.Placement=\"Bottom\"") &&
+          orb45.Contains("ToolTipService.VerticalOffset=\"26\""),
+        "Tooltip 放到球下方并留 26 偏移，不遮挡球体");
     Check(CollapseVisualPolicy.OrbRenderDip == 76 &&
           CollapseVisualPolicy.OrbHitDip == 56 &&
           CollapseVisualPolicy.OrbVisualDip == 44,

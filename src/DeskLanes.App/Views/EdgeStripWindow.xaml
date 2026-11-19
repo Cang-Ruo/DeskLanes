@@ -9,29 +9,28 @@
     <!-- 一个窗口承载三种收束指示器：侧栏边栏 / 全屏窄条 / 悬浮窗珍珠冰晶球。
          Root 的 alpha≠0 保证分层窗口下鼠标不会穿透。 -->
     <Window.Resources>
-        <!-- 阶段 40：色值本身带低 Alpha（#AARRGGBB），元素 Opacity 保持 1，
-             避免「不透明色 × 元素透明度」双重衰减把中心做成实心蓝珠。
-             中心 8~13%、边缘 22~29%，桌面能透过球体。 -->
+        <!-- 阶段 45：主体恢复清晰度 —— 中心约 30%、中段 14%、边缘 32%，
+             仍有适度淡蓝玻璃质感，桌面能透出但球体一眼可辨。 -->
         <RadialGradientBrush x:Key="OrbBodyIdleBrush" GradientOrigin="0.34,0.24"
                              Center="0.46,0.44" RadiusX="0.78" RadiusY="0.78">
-            <GradientStop Color="#35F5FBFF" Offset="0" />
-            <GradientStop Color="#18D9EEFF" Offset="0.42" />
-            <GradientStop Color="#269CC8EB" Offset="0.78" />
-            <GradientStop Color="#38B7AFE9" Offset="1" />
+            <GradientStop Color="#4DF5FBFF" Offset="0" />
+            <GradientStop Color="#24D9EEFF" Offset="0.42" />
+            <GradientStop Color="#36A8D2F0" Offset="0.78" />
+            <GradientStop Color="#52B7AFE9" Offset="1" />
         </RadialGradientBrush>
         <RadialGradientBrush x:Key="OrbBodyHoverBrush" GradientOrigin="0.34,0.24"
                              Center="0.46,0.44" RadiusX="0.78" RadiusY="0.78">
-            <GradientStop Color="#42F5FBFF" Offset="0" />
-            <GradientStop Color="#20D9EEFF" Offset="0.42" />
-            <GradientStop Color="#309CC8EB" Offset="0.78" />
-            <GradientStop Color="#44B7AFE9" Offset="1" />
+            <GradientStop Color="#57F5FBFF" Offset="0" />
+            <GradientStop Color="#2CD9EEFF" Offset="0.42" />
+            <GradientStop Color="#3EA8D2F0" Offset="0.78" />
+            <GradientStop Color="#5AB7AFE9" Offset="1" />
         </RadialGradientBrush>
         <RadialGradientBrush x:Key="OrbBodyDragBrush" GradientOrigin="0.34,0.24"
                              Center="0.46,0.44" RadiusX="0.78" RadiusY="0.78">
-            <GradientStop Color="#4AF5FBFF" Offset="0" />
-            <GradientStop Color="#26D9EEFF" Offset="0.42" />
-            <GradientStop Color="#389CC8EB" Offset="0.78" />
-            <GradientStop Color="#4CB7AFE9" Offset="1" />
+            <GradientStop Color="#5CF5FBFF" Offset="0" />
+            <GradientStop Color="#32D9EEFF" Offset="0.42" />
+            <GradientStop Color="#46A8D2F0" Offset="0.78" />
+            <GradientStop Color="#5EB7AFE9" Offset="1" />
         </RadialGradientBrush>
 
         <!-- 内部流动光影：同样带低 Alpha，避免叠加成实心 -->
@@ -136,6 +135,8 @@
 
     <Grid x:Name="Root" Background="#01000000"
           ToolTipService.InitialShowDelay="550"
+          ToolTipService.Placement="Bottom"
+          ToolTipService.VerticalOffset="26"
           MouseEnter="OnMouseEnter" MouseLeave="OnMouseLeave"
           MouseLeftButtonDown="OnMouseDown" MouseMove="OnMouseMove"
           MouseLeftButtonUp="OnMouseUp" LostMouseCapture="OnLostMouseCapture">
@@ -174,61 +175,30 @@
 
                 <!-- 2. 极淡的内部流动光影（几不可察，只提供层次） -->
                 <Path x:Name="OrbFlowPearl" Data="M2,13 C10,5 24,7 42,11 C30,16 16,13 2,20 Z"
-                      Fill="{StaticResource OrbFlowPearlBrush}" Opacity="0.5">
-                    <Path.Effect><BlurEffect Radius="2.5" /></Path.Effect>
+                      Fill="{StaticResource OrbFlowPearlBrush}" Opacity="0.32">
+                    <Path.Effect><BlurEffect Radius="2" /></Path.Effect>
                 </Path>
                 <Path x:Name="OrbFlowCyan" Data="M0,29 C10,20 20,32 30,25 C36,21 41,25 44,23 L44,44 L0,44 Z"
-                      Fill="{StaticResource OrbFlowCyanBrush}" Opacity="0.45">
-                    <Path.Effect><BlurEffect Radius="3" /></Path.Effect>
+                      Fill="{StaticResource OrbFlowCyanBrush}" Opacity="0.28">
+                    <Path.Effect><BlurEffect Radius="2" /></Path.Effect>
                 </Path>
                 <Path x:Name="OrbFlowLavender" Data="M12,44 C20,33 30,41 44,27 L44,44 Z"
-                      Fill="{StaticResource OrbFlowLavenderBrush}" Opacity="0.48">
-                    <Path.Effect><BlurEffect Radius="3" /></Path.Effect>
+                      Fill="{StaticResource OrbFlowLavenderBrush}" Opacity="0.3">
+                    <Path.Effect><BlurEffect Radius="2" /></Path.Effect>
                 </Path>
 
                 <!-- 3. 玻璃边缘：外轮廓（细珍珠白）+ 内折射（淡冰蓝）+ 局部虹彩 -->
                 <Ellipse x:Name="OrbRimOuter" Margin="0.4" Stroke="#DCEEFF"
                          StrokeThickness="0.9" Opacity="0.88" />
-                <Ellipse x:Name="OrbRimInner" Margin="2.2" Stroke="#BDE6FF"
-                         StrokeThickness="1.2" Opacity="0.4">
-                    <Ellipse.Effect><BlurEffect Radius="1.2" /></Ellipse.Effect>
-                </Ellipse>
-                <Path x:Name="OrbIrisLeft" Data="M5,25 A17,17 0 0 0 13,38"
-                      Stroke="{StaticResource OrbIrisLeftBrush}" StrokeThickness="2.6"
-                      StrokeStartLineCap="Round" StrokeEndLineCap="Round">
-                    <Path.Effect><BlurEffect Radius="2" /></Path.Effect>
-                </Path>
-                <Path x:Name="OrbIrisRight" Data="M36,13 A17,17 0 0 1 39,31"
-                      Stroke="{StaticResource OrbIrisRightBrush}" StrokeThickness="2.6"
-                      StrokeStartLineCap="Round" StrokeEndLineCap="Round">
-                    <Path.Effect><BlurEffect Radius="2" /></Path.Effect>
-                </Path>
-                <Path x:Name="OrbIrisBottom" Data="M13,39 A17,17 0 0 0 33,38"
-                      Stroke="{StaticResource OrbIrisBottomBrush}" StrokeThickness="2.4"
-                      StrokeStartLineCap="Round" StrokeEndLineCap="Round">
-                    <Path.Effect><BlurEffect Radius="2" /></Path.Effect>
-                </Path>
 
                 <!-- 4. 两条波浪光带：柔光底 + 两端淡出的清晰主体 -->
-                <Path x:Name="OrbWaveMainGlow"
-                      Data="M6,31 C13,30 16,22 23,21 C30,20 33,13 39,9"
-                      Stroke="{StaticResource OrbWaveMainBrush}" StrokeThickness="5"
-                      StrokeStartLineCap="Round" StrokeEndLineCap="Round" Opacity="0.28">
-                    <Path.Effect><BlurEffect Radius="2" /></Path.Effect>
-                </Path>
-                <Path x:Name="OrbWaveSubGlow"
-                      Data="M5,37 C13,35 17,28 24,27 C31,26 35,19 40,15"
-                      Stroke="{StaticResource OrbWaveSubBrush}" StrokeThickness="4.8"
-                      StrokeStartLineCap="Round" StrokeEndLineCap="Round" Opacity="0.26">
-                    <Path.Effect><BlurEffect Radius="2" /></Path.Effect>
-                </Path>
                 <Path x:Name="OrbWaveMain"
                       Data="M6,31 C13,30 16,22 23,21 C30,20 33,13 39,9"
-                      Stroke="{StaticResource OrbWaveMainBrush}" StrokeThickness="2.2"
+                      Stroke="#F7FCFF" StrokeThickness="2.1"
                       StrokeStartLineCap="Round" StrokeEndLineCap="Round" />
                 <Path x:Name="OrbWaveSub"
                       Data="M5,37 C13,35 17,28 24,27 C31,26 35,19 40,15"
-                      Stroke="{StaticResource OrbWaveSubBrush}" StrokeThickness="2"
+                      Stroke="#BDE8FF" StrokeThickness="2"
                       StrokeStartLineCap="Round" StrokeEndLineCap="Round" />
 
                 <!-- 5. 左上珍珠白高光 -->

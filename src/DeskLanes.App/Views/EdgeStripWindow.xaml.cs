@@ -110,31 +110,22 @@ public partial class EdgeStripWindow : Window
         OrbGlassHover.Visibility = hover ? Visibility.Visible : Visibility.Collapsed;
         OrbGlassDrag.Visibility = drag ? Visibility.Visible : Visibility.Collapsed;
 
-        // 阶段 44：紧贴球缘的收敛光晕 —— Idle 2% / Hover 10% / Drag 17%。
-        // 只有一层、直径 1.14×球，方向性渐变替代均匀发光。
-        AnimateOpacity(OrbAura, drag ? 0.17 : hover ? 0.10 : 0.02);
+        // 阶段 45：光晕只是辅助，三态强度收敛
+        AnimateOpacity(OrbAura, drag ? 0.18 : hover ? 0.12 : 0.015);
+        AnimateOpacity(OrbShadow, drag ? 0.28 : hover ? 0.26 : 0.24);
 
-        // 浅色环境阴影托住球体
-        AnimateOpacity(OrbShadow, drag ? 0.3 : hover ? 0.27 : 0.24);
+        // 只留一条主要珍珠白轮廓 + 左上局部高光，不再有多层同心圆
+        AnimateOpacity(OrbRimOuter, drag ? 1.0 : hover ? 0.98 : 0.94);
+        AnimateOpacity(OrbTopHighlight, drag ? 1.0 : hover ? 0.96 : 0.88);
 
-        // 边缘反射：三态的主要差异来源
-        AnimateOpacity(OrbRimOuter, drag ? 1.0 : hover ? 0.96 : 0.88);
-        AnimateOpacity(OrbRimInner, drag ? 0.62 : hover ? 0.52 : 0.4);
-        AnimateOpacity(OrbIrisLeft, drag ? 0.9 : hover ? 0.78 : 0.62);
-        AnimateOpacity(OrbIrisRight, drag ? 0.9 : hover ? 0.78 : 0.62);
-        AnimateOpacity(OrbIrisBottom, drag ? 0.85 : hover ? 0.72 : 0.56);
-        AnimateOpacity(OrbTopHighlight, drag ? 1.0 : hover ? 0.94 : 0.8);
+        // 内部丝绸光影压低，只提供层次，不糊住主体
+        AnimateOpacity(OrbFlowPearl, active ? 0.36 : 0.32);
+        AnimateOpacity(OrbFlowCyan, active ? 0.31 : 0.28);
+        AnimateOpacity(OrbFlowLavender, active ? 0.33 : 0.3);
 
-        // 内部光影始终保持极淡，避免糊成实心
-        AnimateOpacity(OrbFlowPearl, active ? 0.56 : 0.5);
-        AnimateOpacity(OrbFlowCyan, active ? 0.5 : 0.45);
-        AnimateOpacity(OrbFlowLavender, active ? 0.54 : 0.48);
-
-        // 两条光带：形状不变，只提亮；两端由渐变自然淡出
-        AnimateOpacity(OrbWaveMain, active ? 1.0 : 0.92);
-        AnimateOpacity(OrbWaveSub, active ? 0.96 : 0.9);
-        AnimateOpacity(OrbWaveMainGlow, drag ? 0.38 : hover ? 0.34 : 0.28);
-        AnimateOpacity(OrbWaveSubGlow, drag ? 0.34 : hover ? 0.3 : 0.26);
+        // 双轨波浪是核心标志：纯色清晰描边，始终全亮，不用模糊柔光
+        AnimateOpacity(OrbWaveMain, 1.0);
+        AnimateOpacity(OrbWaveSub, 1.0);
 
         AnimateScale(drag ? 1.05 : hover ? 1.04 : 1.0);
     }
