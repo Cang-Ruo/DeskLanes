@@ -137,6 +137,16 @@ def click(x, y):
     time.sleep(0.8)
 
 
+def double_click(x, y):
+    move(x, y, 0.3)
+    for _ in range(2):
+        u.mouse_event(LEFTDOWN, 0, 0, 0, 0)
+        time.sleep(0.05)
+        u.mouse_event(LEFTUP, 0, 0, 0, 0)
+        time.sleep(0.08)
+    time.sleep(0.8)
+
+
 def press_drag(x0, y0, dx, dy, hold=0.45):
     move(x0, y0, 0.3)
     u.mouse_event(LEFTDOWN, 0, 0, 0, 0)
@@ -256,8 +266,8 @@ def main():
         move(cx, cy, 0.3)
 
         # 1) 普通点击打开
-        click(cx, cy)
-        say("plain click opens floating window", visible(FLOATING))
+        double_click(cx, cy)
+        say("double click opens floating window (single opens picker)", visible(FLOATING))
         esc(FLOATING)
         time.sleep(1.4)
 
@@ -276,7 +286,8 @@ def main():
         say("dragging visual differs from idle",
             mean_diff(idle, dragging) is not None and mean_diff(idle, dragging) > 2,
             "pixel diff=%s" % mean_diff(idle, dragging))
-        say("long-press drag does NOT open floating window", not visible(FLOATING))
+        say("long-press drag does NOT open floating window or picker",
+            not visible(FLOATING) and not visible("DeskLanes 分类"))
         release()
         r3 = rect(STRIP)
         positions["after_drag"] = [r3[0], r3[1]] if r3 else None

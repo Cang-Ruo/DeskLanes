@@ -3,6 +3,7 @@ using System.IO;
 using System.Runtime.InteropServices;
 using System.Windows;
 using System.Windows.Interop;
+using System.Windows.Media;
 using System.Windows.Threading;
 using DeskLanes.App.ViewModels;
 using DeskLanes.App.Views;
@@ -70,6 +71,7 @@ public sealed class AppController : IDisposable
     private SidebarWindow? _sidebarWindow;
     private SettingsWindow? _settingsWindow;
     private EdgeStripWindow? _edgeStrip;
+    private OrbPickerWindow? _orbPicker;
     private Window? _messageHost;
 
     private HotkeyService? _hotkeyService;
@@ -171,7 +173,12 @@ public sealed class AppController : IDisposable
         _edgeStrip = new EdgeStripWindow();
         _edgeStrip.HoverRequested += OnEdgeStripHover;
         _edgeStrip.ClickRequested += OnEdgeStripClick;
+        _edgeStrip.SingleClickRequested += OnEdgeStripSingleClick;
+        _edgeStrip.OrbPressed += (_, _) => _orbPicker?.Hide();
         _edgeStrip.BallMoved += OnCollapseBallMoved;
+        // 阶段 46：悬浮球单击的分类选择窗
+        _orbPicker = new OrbPickerWindow();
+        _orbPicker.CategoryPicked += OnOrbCategoryPicked;
         _peekTimer = new DispatcherTimer { Interval = TimeSpan.FromMilliseconds(350) };
         _peekTimer.Tick += OnPeekTimerTick;
 
@@ -456,6 +463,44 @@ public sealed class AppController : IDisposable
     }
 
     private void OnEdgeStripClick(object? sender, EventArgs e) => ExpandFromEdge(activate: true);
+
+    /// <summary>阶段 46：悬浮球单击 → 弹分类选择窗（双击仍走 OnEdgeStripClick 展开全窗）。</summary>
+    private void OnEdgeStripSingleClick(object? sender, EventArgs e)
+    {
+        if (_orbPicker is null || _floatingViewModel is null ||
+            CurrentMode != WindowMode.Floating || !_isCollapsed)
+        {
+            return;
+        }
+
+        _orbPicker.ResetSelection();
+        _orbPicker.SetEntries(_floatingViewModel.Categories);
+
+        // 小球在左边缘中部，选择窗摆在它右侧；PrimaryScreenHeight 是物理像素，换算成 DIP
+        double scale = Math.Max(VisualTreeHelper.GetDpi(_edgeStrip).DpiScaleX, 0.5);
+        double left = 76 + 6;
+        double top = Math.Max(8, (SystemParameters.PrimaryScreenHeight / scale - 200) / 2);
+        _orbPicker.PlaceAt(left, top);
+        _orbPicker.Show();
+    }
+
+    /// <summary>阶段 46：选中分类 → 展开悬浮窗并定位到该分组。</summary>
+    private void OnOrbCategoryPicked(object? sender, string? groupId)
+    {
+        ExpandFromEdge(activate: true);
+        if (_floatingViewModel is null)
+        {
+            return;
+        }
+
+        var category = groupId is null
+            ? _floatingViewModel.Categories.FirstOrDefault()
+            : _floatingViewModel.Categories.FirstOrDefault(c => c.GroupId == groupId);
+        if (category is not null)
+        {
+            _floatingViewModel.SelectedCategory = category;
+        }
+    }
 
     private void OnPeekTimerTick(object? sender, EventArgs e)
     {

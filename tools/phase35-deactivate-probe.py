@@ -108,6 +108,16 @@ def click_at(x, y):
     time.sleep(0.6)
 
 
+def double_click_at(x, y):
+    move_to(x, y, 0.3)
+    for _ in range(2):
+        u.mouse_event(0x0002, 0, 0, 0, 0)
+        time.sleep(0.05)
+        u.mouse_event(0x0004, 0, 0, 0, 0)
+        time.sleep(0.08)
+    time.sleep(0.8)
+
+
 def kill():
     subprocess.run(["taskkill", "/F", "/IM", "DeskLanes.exe"],
                    stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
@@ -179,9 +189,9 @@ def main():
                     w == h and 50 <= w <= 95, "rect=%dx%d" % (w, h))
                 move_to(x + w // 2, y + h // 2, 0.8)
                 say("floating: hovering ball does NOT auto-expand", not visible(title))
-                click_at(x + w // 2, y + h // 2)
+                double_click_at(x + w // 2, y + h // 2)
                 time.sleep(1.4)
-                say("floating: clicking ball restores floating window", visible(title))
+                say("floating: double-clicking ball restores floating window (single opens picker)", visible(title))
 
             kill()
     finally:

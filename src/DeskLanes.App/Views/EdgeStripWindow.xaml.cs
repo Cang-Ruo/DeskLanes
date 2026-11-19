@@ -6,6 +6,7 @@ using System.Windows.Input;
 using System.Windows.Interop;
 using System.Windows.Media;
 using System.Windows.Media.Animation;
+using System.Windows.Threading;
 using DeskLanes.App.Services;
 using DeskLanes.Core;
 
@@ -24,8 +25,16 @@ public partial class EdgeStripWindow : Window
     /// <summary>鼠标移到指示器上（侧边栏据此展开；全屏据此弹出窄条）。</summary>
     public event EventHandler? HoverRequested;
 
-    /// <summary>点击指示器（全屏 / 悬浮窗据此展开；拖动过则不算点击）。</summary>
+    /// <summary>点击指示器（全屏 / 悬浮窗双击据此展开；拖动过则不算点击）。</summary>
     public event EventHandler? ClickRequested;
+
+    /// <summary>
+    /// 阶段 46：悬浮球**单击**请求分类选择窗（双击才走 ClickRequested 展开完整悬浮窗）。
+    /// </summary>
+    public event EventHandler? SingleClickRequested;
+
+    /// <summary>阶段 46：小球被按下时通知外壳关闭已打开的分类选择窗。</summary>
+    public event EventHandler? OrbPressed;
 
     private static readonly SolidColorBrush HoverShellGlass =
         new(Color.FromArgb(0x66, 0x20, 0x33, 0x4A));
@@ -33,6 +42,20 @@ public partial class EdgeStripWindow : Window
     private readonly ToolTip _openTip = new() { Content = "打开 DeskLanes" };
     private readonly ToolTip _dragTip = new() { Content = "拖动以移动" };
     private readonly Stopwatch _pressStopwatch = new();
+    private DispatcherTimer? _clickTimer;
+    private bool _secondClickPending;
+
+    private void OnClickTimerTick(object? sender, EventArgs e)
+    {
+        if (_clickTimer is { } timer)
+        {
+            timer.Stop();
+            timer.Tick -= OnClickTimerTick;
+        }
+
+        _secondClickPending = false;
+        SingleClickRequested?.Invoke(this, EventArgs.Empty);
+    }
 
     private CollapseVisual _visual = CollapseVisual.FullStrip;
     private CollapseVisualPolicy.OrbInteractionState _interaction =
@@ -314,6 +337,14 @@ public partial class EdgeStripWindow : Window
             return;
         }
 
+        OrbPressed?.Invoke(this, EventArgs.Empty);
+
+        if (_secondClickPending)
+        {
+            // 双击窗口内第二次按下：取消单击计时，等 up 时走双击
+            _clickTimer?.Stop();
+        }
+
         MonitorInterop.POINT pt = CursorPos();
         _startCursorX = pt.X;
         _startCursorY = pt.Y;
@@ -347,6 +378,8 @@ public partial class EdgeStripWindow : Window
             }
 
             _dragging = true;
+            _clickTimer?.Stop();
+            _secondClickPending = false;
             SetInteraction(CollapseVisualPolicy.OrbInteractionState.Dragging);
         }
 
@@ -393,8 +426,27 @@ public partial class EdgeStripWindow : Window
         {
             BallMoved?.Invoke(_currentLeft + _hitInsetPx, _currentTop + _hitInsetPx);
         }
+        else if (isBall && _secondClickPending)
+        {
+            // 第二次 up：取消单击计时，走双击展开
+            _clickTimer?.Stop();
+            _secondClickPending = false;
+            ClickRequested?.Invoke(this, EventArgs.Empty);
+        }
+        else if (isBall)
+        {
+            // 第一次 up：等一个双击时间窗，超时才弹分类选择窗
+            _secondClickPending = true;
+            _clickTimer ??= new DispatcherTimer
+            {
+                Interval = TimeSpan.FromMilliseconds(250),   // 双击判定窗口
+            };
+            _clickTimer.Tick += OnClickTimerTick;
+            _clickTimer.Start();
+        }
         else
         {
+            // 侧栏 / 全屏窄条仍是单击展开，行为不变
             ClickRequested?.Invoke(this, EventArgs.Empty);
         }
 
