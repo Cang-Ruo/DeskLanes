@@ -26,9 +26,14 @@ sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 from screenshot import capture, read_png, _set_dpi_aware  # noqa: E402
 
 REPO = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-EXE = os.path.join(REPO, "publish", "win-x64-selfcontained", "DeskLanes.exe")
+EXE = os.environ.get(
+    "DESKLANES_EXE",
+    os.path.join(REPO, "publish", "win-x64-selfcontained", "DeskLanes.exe"))
 CFG = os.path.join(os.environ.get("LOCALAPPDATA", ""), "DeskLanes", "settings.json")
 OUT = os.path.join(REPO, "docs", "ui-acrylic-final")
+TAG = os.environ.get("SHOT_TAG", "phase38-orb")
+BALL_X = float(os.environ.get("BALL_X", "300"))
+BALL_Y = float(os.environ.get("BALL_Y", "300"))
 STRIP = "DeskLanes 边缘细线"
 FLOATING = "DeskLanes 快速启动"
 VK_ESCAPE, KEYUP = 0x1B, 0x0002
@@ -193,8 +198,8 @@ def main():
     cfg["WindowMode"] = 0
     cfg["CollapseOnLaunch"] = True
     cfg["FloatingHideOnDeactivate"] = False
-    cfg.pop("CollapseBallLeft", None)
-    cfg.pop("CollapseBallTop", None)
+    cfg["CollapseBallLeft"] = BALL_X
+    cfg["CollapseBallTop"] = BALL_Y
     with open(CFG, "w", encoding="utf-8") as f:
         json.dump(cfg, f, ensure_ascii=False, indent=2)
     kill()
@@ -225,9 +230,9 @@ def main():
             w == h and abs(w - expected_render) <= 4,
             "%dx%d px, expected ~%d (hit inset %d)" % (w, h, expected_render, inset))
 
-        idle = os.path.join(OUT, "phase38-orb-idle.png")
-        hover = os.path.join(OUT, "phase38-orb-hover.png")
-        dragging = os.path.join(OUT, "phase38-orb-dragging.png")
+        idle = os.path.join(OUT, f"{TAG}-idle.png")
+        hover = os.path.join(OUT, f"{TAG}-hover.png")
+        dragging = os.path.join(OUT, f"{TAG}-dragging.png")
 
         # 三态截图统一裁切同一尺寸，才能逐像素比对
         move(x + w / 2 + 280, y + h / 2 + 180, 0.8)
@@ -239,7 +244,7 @@ def main():
         move(cx, cy, 0.9)
         capture(x - 25, y - 25, w + 50, h + 50, hover)
         capture(x - 110, y - 30, w + 220, h + 190,
-                os.path.join(OUT, "phase38-orb-hover-tooltip.png"))
+                os.path.join(OUT, f"{TAG}-hover-tooltip.png"))
         say("hover visual differs from idle",
             mean_diff(idle, hover) is not None and mean_diff(idle, hover) > 2,
             "pixel diff=%s" % mean_diff(idle, hover))
@@ -327,7 +332,7 @@ def main():
         restored.pop("CollapseBallTop", None)
         with open(CFG, "w", encoding="utf-8") as f:
             json.dump(restored, f, ensure_ascii=False, indent=2)
-        with open(os.path.join(OUT, "phase38-orb-positions.json"), "w", encoding="utf-8") as f:
+        with open(os.path.join(OUT, f"{TAG}-positions.json"), "w", encoding="utf-8") as f:
             json.dump(positions, f, ensure_ascii=False, indent=2)
 
     passed = sum(1 for _, ok in results if ok)
