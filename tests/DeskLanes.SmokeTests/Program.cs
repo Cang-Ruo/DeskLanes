@@ -3945,6 +3945,30 @@ Console.WriteLine("== 26. 大桌面：项目数超过图标缓存上限时的表
         "交互态正确映射到视觉态");
 }
 
+// ---------------------------------------------------------------- 45. 阶段 44：收敛光晕（单层 / 1.14×球 / 强度收敛）
+{
+    string root45 = AppContext.BaseDirectory;
+    for (int i = 0; i < 8 && !Directory.Exists(Path.Combine(root45, "src", "DeskLanes.App")); i++)
+        root45 = Path.GetFullPath(Path.Combine(root45, ".."));
+    string orb45 = File.ReadAllText(Path.Combine(root45, "src", "DeskLanes.App", "Views", "EdgeStripWindow.xaml"));
+    string code45 = File.ReadAllText(Path.Combine(root45, "src", "DeskLanes.App", "Views", "EdgeStripWindow.xaml.cs"));
+
+    // 单层光晕、50 DIP（Margin -3 相对 44 DIP 球）= 1.14×球；不再有 76 DIP 的三层同心圆
+    Check(orb45.Contains("x:Name=\"OrbAura\"") && orb45.Contains("Margin=\"-3\"") &&
+          !orb45.Contains("OrbAuraIdle") && !orb45.Contains("OrbAuraHover") &&
+          !orb45.Contains("OrbAuraDrag") && !orb45.Contains("Margin=\"-16\""),
+        "收敛为单层 50 DIP 光晕，移除旧的三层 76 DIP 同心圆");
+    Check(orb45.Contains("OrbAuraTintBrush") && orb45.Contains("OrbAuraMaskBrush") &&
+          orb45.Contains("StartPoint=\"0,0\"") && orb45.Contains("EndPoint=\"1,1\""),
+        "方向性渐变（左上珍珠白→右下淡青蓝）+ 径向遮罩，非均匀发光");
+    Check(code45.Contains("drag ? 0.17 : hover ? 0.10 : 0.02"),
+        "光晕强度收敛到 2% / 10% / 17%");
+    Check(CollapseVisualPolicy.OrbRenderDip == 76 &&
+          CollapseVisualPolicy.OrbHitDip == 56 &&
+          CollapseVisualPolicy.OrbVisualDip == 44,
+        "渲染窗口 76 / 命中区 56 / 可视球 44 全部保持不变");
+}
+
 // ---------------------------------------------------------------- 汇总
 Console.WriteLine();
 Console.WriteLine($"===== 冒烟测试结果：通过 {passed} 项，失败 {failed} 项 =====");

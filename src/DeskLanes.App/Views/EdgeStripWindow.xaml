@@ -97,32 +97,20 @@
             <GradientStop Color="#00B7AFE9" Offset="1" />
         </LinearGradientBrush>
 
-        <!-- 阶段 42：Crystal Aura 冰晶柔光。
-             外缘 alpha=0 正好落在 56 DIP 窗口边界，既没有第二道圆边、也不会被裁切；
-             峰值放在球体边缘（offset≈0.79）附近，向内向外都柔和衰减。 -->
-        <RadialGradientBrush x:Key="OrbAuraIdleBrush" Center="0.5,0.5" RadiusX="0.5" RadiusY="0.5">
-            <GradientStop Color="#00BDEEFF" Offset="0" />
-            <GradientStop Color="#00BDEEFF" Offset="0.30" />
-            <GradientStop Color="#03BDEEFF" Offset="0.46" />
-            <GradientStop Color="#0ABDEEFF" Offset="0.58" />
-            <GradientStop Color="#04BDEEFF" Offset="0.80" />
-            <GradientStop Color="#00BDEEFF" Offset="1" />
-        </RadialGradientBrush>
-        <RadialGradientBrush x:Key="OrbAuraHoverBrush" Center="0.5,0.5" RadiusX="0.5" RadiusY="0.5">
-            <GradientStop Color="#00BDEEFF" Offset="0" />
-            <GradientStop Color="#00BDEEFF" Offset="0.30" />
-            <GradientStop Color="#11BDEEFF" Offset="0.46" />
-            <GradientStop Color="#36BDEEFF" Offset="0.58" />
-            <GradientStop Color="#16BDEEFF" Offset="0.80" />
-            <GradientStop Color="#00BDEEFF" Offset="1" />
-        </RadialGradientBrush>
-        <RadialGradientBrush x:Key="OrbAuraDragBrush" Center="0.5,0.5" RadiusX="0.5" RadiusY="0.5">
-            <GradientStop Color="#00A8EEF0" Offset="0" />
-            <GradientStop Color="#00A8EEF0" Offset="0.30" />
-            <GradientStop Color="#1AA8EEF0" Offset="0.46" />
-            <GradientStop Color="#4FA8EEF0" Offset="0.58" />
-            <GradientStop Color="#20A8EEF0" Offset="0.80" />
-            <GradientStop Color="#00A8EEF0" Offset="1" />
+        <!-- 阶段 44：收敛光晕，已合并。直径 50 DIP（球 44 的 1.14 倍），
+             方向性渐变：左上珍珠白 → 左冰蓝 → 右下淡青蓝，其余透明；
+             OpacityMask 径向收边缘，不做均匀发光、不做第二道圆边。 -->
+        <LinearGradientBrush x:Key="OrbAuraTintBrush" StartPoint="0,0" EndPoint="1,1">
+            <GradientStop Color="#F2FAFF" Offset="0" />
+            <GradientStop Color="#C5ECFF" Offset="0.34" />
+            <GradientStop Color="#BDEEFF" Offset="0.66" />
+            <GradientStop Color="#9FD8F0" Offset="1" />
+        </LinearGradientBrush>
+        <RadialGradientBrush x:Key="OrbAuraMaskBrush" Center="0.5,0.5" RadiusX="0.5" RadiusY="0.5">
+            <GradientStop Color="#00000000" Offset="0" />
+            <GradientStop Color="#00000000" Offset="0.62" />
+            <GradientStop Color="#FFFFFFFF" Offset="0.86" />
+            <GradientStop Color="#00000000" Offset="1" />
         </RadialGradientBrush>
 
         <!-- 浅色冰晶 Tooltip，只在此窗口生效 -->
@@ -162,14 +150,12 @@
                 <ScaleTransform x:Name="OrbScale" ScaleX="1" ScaleY="1" />
             </Grid.RenderTransform>
 
-            <!-- 阶段 42：Crystal Aura —— 从球体向外散开的柔光，无独立描边圆环。
-                 Margin=-6 让渐变层正好铺满 56 DIP 窗口，外缘 alpha=0 不与窗口边界重合。 -->
-            <Ellipse x:Name="OrbAuraIdle" Margin="-16" Fill="{StaticResource OrbAuraIdleBrush}"
-                     IsHitTestVisible="False" />
-            <Ellipse x:Name="OrbAuraHover" Margin="-16" Fill="{StaticResource OrbAuraHoverBrush}"
-                     Opacity="0" IsHitTestVisible="False" />
-            <Ellipse x:Name="OrbAuraDrag" Margin="-16" Fill="{StaticResource OrbAuraDragBrush}"
-                     Opacity="0" IsHitTestVisible="False" />
+            <!-- 阶段 44：单层收敛光晕，直径 50 DIP（Margin=-3 相对 44 DIP 球）。
+                 外缘 alpha=0，不做外部描边，不与窗口边界相交。 -->
+            <Ellipse x:Name="OrbAura" Margin="-3"
+                     Fill="{StaticResource OrbAuraTintBrush}"
+                     OpacityMask="{StaticResource OrbAuraMaskBrush}"
+                     Opacity="0.02" IsHitTestVisible="False" />
 
             <!-- 浅色环境阴影托住球体 -->
             <Ellipse x:Name="OrbShadow" Margin="-3" Fill="#6B7DB8" Opacity="0.24">

@@ -110,11 +110,9 @@ public partial class EdgeStripWindow : Window
         OrbGlassHover.Visibility = hover ? Visibility.Visible : Visibility.Collapsed;
         OrbGlassDrag.Visibility = drag ? Visibility.Visible : Visibility.Collapsed;
 
-        // 阶段 42：Crystal Aura —— 静止几乎不可见，悬停淡冰蓝、拖动稍明显的青蓝柔光。
-        // 渐变层外缘 alpha=0，不形成第二道圆边，也不被窗口边界裁切。
-        AnimateOpacity(OrbAuraIdle, active ? 0 : 1);
-        AnimateOpacity(OrbAuraHover, hover ? 1 : 0);
-        AnimateOpacity(OrbAuraDrag, drag ? 1 : 0);
+        // 阶段 44：紧贴球缘的收敛光晕 —— Idle 2% / Hover 10% / Drag 17%。
+        // 只有一层、直径 1.14×球，方向性渐变替代均匀发光。
+        AnimateOpacity(OrbAura, drag ? 0.17 : hover ? 0.10 : 0.02);
 
         // 浅色环境阴影托住球体
         AnimateOpacity(OrbShadow, drag ? 0.3 : hover ? 0.27 : 0.24);
