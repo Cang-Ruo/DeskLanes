@@ -1,0 +1,8 @@
+blank_issues_enabled: false
+contact_links:
+  - name: 文档与已知限制
+    url: https://github.com/Cang-Ruo/DeskLanes#readme
+    about: 先看 README 与 docs/known-limitations.md，很多问题已有说明
+  - name: 下载与版本说明
+    url: https://github.com/Cang-Ruo/DeskLanes/releases
+    about: 版本下载、更新记录与 SHA256 校验值
