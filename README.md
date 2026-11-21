@@ -79,7 +79,7 @@ DeskLanes 的做法是：文件一个字节都不移动，只在自己的库里�
 ## 安装
 
 **直接用**：到 [Releases](https://github.com/Cang-Ruo/DeskLanes/releases) 下载
-`DeskLanes-v0.2.0-selfcontained.zip`（约 62 MB，自带运行时），解压双击 `DeskLanes.exe` 即可。
+`DeskLanes-v0.10-selfcontained.zip`（约 62 MB，自带运行时），解压双击 `DeskLanes.exe` 即可。
 
 分发物是一个单文件 exe，有**两个版本**：
 
@@ -160,7 +160,7 @@ python tools/soak-8h.py --exe <exe> --hours 6                        # 长时驻
 | [`docs/project-overview-and-roadmap.md`](docs/project-overview-and-roadmap.md) | 项目总览、功能清单、验证状态与后续建议（唯一基线） |
 | [`docs/install-and-uninstall.md`](docs/install-and-uninstall.md) | 安装 / 卸载、两个版本怎么选、跨机器操作步骤 |
 | [`docs/known-limitations.md`](docs/known-limitations.md) | 发布用已知限制完整清单 |
-| [`docs/release-notes-v0.2.0.md`](docs/release-notes-v0.2.0.md) | v0.2.0 的 Release 说明（界面视觉改版） |
+| [`docs/release-notes-v0.10.md`](docs/release-notes-v0.10.md) | v0.10 的 Release 说明（冰晶球与分类选择窗） |
 | [`docs/ui-acrylic-probe/`](docs/ui-acrylic-probe/) | 玻璃材质取证：Acrylic 与 Mica 的 A/B 对照与截图 |
 | `docs/stage9-4-*.md`、`stage9-5-*.md`、`stage9-6-*.md` | 悬浮窗拖动缩放、竖屏适配、图标缓存有界的实施与验收记录 |
 | `docs/stage8-*.md` | 分发兼容性与跨设备验收（发布产物、干净环境、系统级验收、DPI 边界） |

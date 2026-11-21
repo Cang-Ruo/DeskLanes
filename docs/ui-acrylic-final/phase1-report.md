@@ -20,7 +20,7 @@
 
 - Windows `10.0.26300`，主屏 **2560×1440 @125%**（DPI 120），显示器 2 台
   （虚拟屏 `(-1080,-90) 3640×1920`，副屏为竖屏）
-- 壁纸：`C:\Users\<用户名>\Pictures\Camera Roll\wallpaper.jpg`（深红底 + 白色花枝）
+- 壁纸：`C:\Users\<用户名>\Pictures\wallpaper.jpg`（深红底 + 白色花枝）
 
 ---
 
