@@ -1,0 +1,32 @@
+name: 使用问题 (Question)
+description: 不知道怎么操作、快捷键、设置相关疑问
+title: "[问题] "
+labels: ["question"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        使用前可以先看 README 与文档索引。若仍不清楚，在这里提问。
+
+  - type: textarea
+    id: question
+    attributes:
+      label: 你想做什么？遇到了什么？
+      placeholder: "例如：怎么把项目移到另一个分类？悬浮球怎么收起？"
+    validations:
+      required: true
+
+  - type: dropdown
+    id: mode
+    attributes:
+      label: 相关模式
+      options:
+        - 全屏工作空间
+        - 悬浮窗
+        - 侧边栏
+        - 悬浮球
+        - 设置
+        - 安装/卸载
+        - 其它
+    validations:
+      required: false

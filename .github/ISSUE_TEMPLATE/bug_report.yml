@@ -1,0 +1,82 @@
+name: 报告问题 (Bug Report)
+description: 窗口错位、闪烁、启动异常、扫描问题等
+title: "[Bug] "
+labels: ["bug"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        感谢反馈！请尽量填写以下信息——**诊断包**能极大帮助定位问题。
+        诊断包：设置 → 导出诊断包（会生成一个 zip 放到桌面）。
+
+  - type: input
+    id: version
+    attributes:
+      label: DeskLanes 版本
+      description: 设置里可查看；或 Release 标签名
+      placeholder: "v0.10"
+    validations:
+      required: true
+
+  - type: input
+    id: windows
+    attributes:
+      label: Windows 版本
+      placeholder: "Windows 11 23H2 (22631.xxxx)"
+    validations:
+      required: true
+
+  - type: input
+    id: monitors
+    attributes:
+      label: 显示器数量与 DPI
+      description: 几块屏、各是多少缩放比例？多屏问题务必填写
+      placeholder: "2 屏：主屏 100%，副屏 125%"
+    validations:
+      required: false
+
+  - type: dropdown
+    id: mode
+    attributes:
+      label: 出问题的窗口模式
+      options:
+        - 全屏工作空间
+        - 悬浮窗
+        - 侧边栏
+        - 悬浮球
+        - 托盘/全局
+        - 不确定
+    validations:
+      required: true
+
+  - type: textarea
+    id: steps
+    attributes:
+      label: 复现步骤
+      placeholder: |
+        1. 按 Ctrl+Alt+Space
+        2. 拖项目到某分类
+        3. 出现闪烁
+    validations:
+      required: true
+
+  - type: textarea
+    id: expected
+    attributes:
+      label: 期望行为 / 实际行为
+    validations:
+      required: true
+
+  - type: checkboxes
+    id: diagnostic
+    attributes:
+      label: 诊断包
+      options:
+        - label: 我已导出诊断包，并在下面说明（如无法上传可描述关键配置）
+          required: false
+
+  - type: textarea
+    id: extra
+    attributes:
+      label: 补充说明
+      description: 日志片段、截图等（请勿包含私人文件路径与个人信息）

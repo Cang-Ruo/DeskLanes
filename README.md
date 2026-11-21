@@ -162,10 +162,25 @@ python tools/soak-8h.py --exe <exe> --hours 6                        # 长时驻
 
 ---
 
+## 反馈与支持
+
+遇到问题或有建议，欢迎提 [GitHub Issue](https://github.com/Cang-Ruo/DeskLanes/issues)：
+
+- **报告问题**：窗口错位、闪烁、启动异常、扫描问题 —— 请先到「设置 → 导出诊断包」，
+  把生成的 zip 一并说明（诊断包包含配置 + 日志 + 备份清单，能快速定位问题）。
+- **功能建议**：描述你想解决的实际问题，而不只是想要的功能。
+- **使用问题**：不知道怎么操作时直接问。
+
+> 提示：提交 Issue 前可先看 [已知限制](docs/known-limitations.md) 与下方文档，很多问题已有说明。
+
+---
+
 ## 文档
 
 | 文档 | 内容 |
 |---|---|
+| [`docs/RELEASE-AUDIT.md`](docs/RELEASE-AUDIT.md) | 项目详细说明（定位/形态/特性/现状/版本/合规） |
+| [`docs/post-release-30day-plan.md`](docs/post-release-30day-plan.md) | v0.10 发布后 30 天行动计划 |
 | [`docs/project-overview-and-roadmap.md`](docs/project-overview-and-roadmap.md) | 项目总览、功能清单、验证状态与后续建议（唯一基线） |
 | [`docs/install-and-uninstall.md`](docs/install-and-uninstall.md) | 安装 / 卸载、两个版本怎么选、跨机器操作步骤 |
 | [`docs/known-limitations.md`](docs/known-limitations.md) | 发布用已知限制完整清单 |
