@@ -54,11 +54,24 @@ public partial class OrbPickerWindow : Window
         _suppressPick = false;
     }
 
-    /// <summary>把选择窗摆到小球旁边（物理像素定位由外壳负责）。</summary>
-    public void PlaceAt(double leftDip, double topDip)
+    /// <summary>把选择窗摆到小球右侧，并按实际高度垂直中心对齐球的中心（DIP）。</summary>
+    public void PlaceBesideBall(double leftDip, double ballCenterYDip)
     {
         Left = leftDip;
-        Top = topDip;
+        _ballCenterYDip = ballCenterYDip;
+        // 复用窗口时 ActualHeight 已有值，直接对齐；首次为 0，Loaded 时再校正
+        double h = ActualHeight > 0 ? ActualHeight : 200;
+        Top = Math.Max(8, ballCenterYDip - h / 2);
+        Loaded -= OnLoadedAlign;
+        Loaded += OnLoadedAlign;
+    }
+
+    private double _ballCenterYDip;
+
+    private void OnLoadedAlign(object sender, RoutedEventArgs e)
+    {
+        Loaded -= OnLoadedAlign;
+        Top = Math.Max(8, _ballCenterYDip - ActualHeight / 2);
     }
 
     private void Pick(Entry? entry)

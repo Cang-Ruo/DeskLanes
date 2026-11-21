@@ -90,6 +90,13 @@ public partial class EdgeStripWindow : Window
     /// <summary>鼠标是否还停在指示器上（侧栏移开自动收束的判定用）。</summary>
     public bool IsPointerOver => Root.IsMouseOver;
 
+    /// <summary>
+    /// 阶段 47：小球当前窗口矩形（物理像素）。拖动时实时更新，
+    /// 外壳据此把分类选择窗贴在球右侧——小球在哪，窗就在哪。
+    /// </summary>
+    public (double Left, double Top, double Width, double Height) CurrentBoundsPx
+        => (_currentLeft, _currentTop, _widthPx, _heightPx);
+
     // ---------- 阶段 38：Glass Orb 视觉 ----------
 
     private static void AnimateOpacity(UIElement element, double target)

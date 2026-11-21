@@ -88,10 +88,23 @@ def dblclick(x, y):
 def esc(title):
     h = find(title)
     if h:
+        k = ctypes.windll.kernel32
+        k.GetCurrentThreadId.restype = ctypes.c_ulong
+        me = k.GetCurrentThreadId()
+        fg = u.GetForegroundWindow()
+        attached = []
+        for wh in (fg, h):
+            if wh:
+                t = u.GetWindowThreadProcessId(ctypes.c_void_p(wh), None)
+                if t and t != me and u.AttachThreadInput(me, t, True):
+                    attached.append(t)
+        u.ShowWindow(ctypes.c_void_p(h), 5)
         u.SetForegroundWindow(ctypes.c_void_p(h))
-        time.sleep(0.2)
+        time.sleep(0.3)
         u.keybd_event(0x1B, 0, 0, 0)
         u.keybd_event(0x1B, 0, 2, 0)
+        for t in attached:
+            u.AttachThreadInput(me, t, False)
     time.sleep(1.2)
 
 
@@ -163,6 +176,26 @@ def main():
             "%s -> %s" % (r[:2], r2[:2] if r2 else None))
         say("long-press drag does NOT open picker/window",
             not any("分类" in w or "快速启动" in w for w in visible_windows()))
+
+        # 6) 阶段 47：拖动后单击，选择窗必须贴在新球位右侧（不是旧位置）
+        ncx, ncy = r2[0] + r2[2] / 2, r2[1] + r2[3] / 2
+        click(ncx, ncy)
+        time.sleep(0.7)
+        pr2 = rect("DeskLanes 分类")
+        if pr2:
+            expected_left = r2[0] + r2[2] + 6   # 物理像素，间隙 6 DIP@125%≈7.5px
+            ball_center_y = r2[1] + r2[3] / 2
+            picker_center_y = pr2[1] + pr2[3] / 2
+            say("picker follows ball to new position (right side)",
+                abs(pr2[0] - expected_left) <= 16 and
+                abs(picker_center_y - ball_center_y) <= 40,
+                "ball=%s picker=%s expected_left≈%d" %
+                (r2[:2], pr2[:2], expected_left))
+            say("picker still does not cover the ball",
+                pr2[0] >= r2[0] + r2[2] - 2)
+        else:
+            say("picker follows ball to new position (right side)", False, "no picker")
+            say("picker still does not cover the ball", False)
 
         subprocess.run(["taskkill", "/F", "/IM", "DeskLanes.exe"], capture_output=True)
     finally:
