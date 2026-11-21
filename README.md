@@ -29,6 +29,10 @@ DeskLanes 的做法是：文件一个字节都不移动，只在自己的库里�
 
 ![自由分区](docs/screenshots/panels.png)
 
+收起后的悬浮球（单击弹分类选择窗、双击展开悬浮窗）：
+
+![悬浮球与分类选择窗](docs/screenshots/orb-picker.png)
+
 设置窗口（含快捷键、开机自启、桌面图标隐藏等开关）：
 
 ![设置](docs/screenshots/settings.png)
