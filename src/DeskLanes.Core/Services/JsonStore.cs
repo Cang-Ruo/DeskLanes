@@ -28,6 +28,7 @@ public class JsonStore<T> where T : class, IVersionedData, new()
     private readonly string _backupDir;
     private readonly string _fileLabel;
     private readonly List<string> _warnings = new();
+    private readonly object _saveGate = new();   // 串行化 Save，避免并发 File.Replace 竞争
 
     public JsonStore(string baseDir, string fileName, string fileLabel)
     {
@@ -125,6 +126,14 @@ public class JsonStore<T> where T : class, IVersionedData, new()
     /// 失败时抛出 IOException，由调用方决定如何提示用户。
     /// </summary>
     public void Save()
+    {
+        lock (_saveGate)
+        {
+            SaveCore();
+        }
+    }
+
+    private void SaveCore()
     {
         string? dir = Path.GetDirectoryName(_filePath);
         if (!string.IsNullOrEmpty(dir))

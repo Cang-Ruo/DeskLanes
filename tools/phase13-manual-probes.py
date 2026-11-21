@@ -291,7 +291,7 @@ PLAN = """\
 
 2) 跨天 24h+ 长时驻留（新开一个终端挂着别关）
    mkdir docs\\stage13-soak
-   python tools/soak-8h.py --exe publish/win-x64-selfcontained/DeskLanes.exe --out docs/stage13-soak/soak-24h.csv --hours 24 --interval-min 5 --errorlog "C:/Users/<username>/AppData/Local/DeskLanes/logs/errors.log"
+   python tools/soak-8h.py --exe publish/win-x64-selfcontained/DeskLanes.exe --out docs/stage13-soak/soak-24h.csv --hours 24 --interval-min 5 --errorlog "%USERPROFILE%/AppData/Local/DeskLanes/logs/errors.log"
    判据：私有内存走平、句柄/GDI/USER/线程不涨、errors.log 零增长。
    已有 6 小时 72 点结论（docs/stage9-8-soak/report.md），24h+ 仍需补。
    注意：这个脚本会阻止机器睡眠，别和第 1 条的"睡眠唤醒"同时做。

@@ -603,8 +603,23 @@ try:
         restored[:40].replace("\n", " "))
 finally:
     if original_settings is not None:
-        with open(settings_path, "w", encoding="utf-8") as f:
+        # 原子恢复：写临时文件后替换，避免恢复中途被应用读到半截
+        tmp_restore = settings_path + ".restore-tmp"
+        with open(tmp_restore, "w", encoding="utf-8") as f:
             f.write(original_settings)
+        os.replace(tmp_restore, settings_path)
+    # 清理本轮测试制造的 corrupt 备份（只删内容为测试样本的，避免误删真实备份）
+    if os.path.isdir(BACKUPS):
+        for name in os.listdir(BACKUPS):
+            if not name.startswith("settings-corrupt-"):
+                continue
+            fp = os.path.join(BACKUPS, name)
+            try:
+                with open(fp, "r", encoding="utf-8", errors="replace") as f:
+                    if "this is not a valid mode" in f.read():
+                        os.remove(fp)
+            except OSError:
+                pass
 
 # ======== Round H: a saved position that is no longer on screen =====================
 # Cannot unplug a monitor from a script, but the failure it causes is testable: the

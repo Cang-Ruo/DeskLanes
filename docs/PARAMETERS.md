@@ -205,7 +205,7 @@
 | `HideDesktopIcons` | false | false | 隐藏桌面图标 |
 | `HotkeyModifiers / Key` | 3 / 32 | 3 / 32 | `Ctrl+Alt+Space` |
 
-> 配置目录：`C:\Users\<username>\AppData\Local\DeskLanes\`
+> 配置目录：`C:\Users\<用户名>\AppData\Local\DeskLanes\`
 > 项目库当前 **70 个项目 / 8 个分组 / 8 个分区**。
 
 ---
@@ -248,7 +248,7 @@
 | 版本 | `0.1.0`（Assembly/File `0.1.0.0`） |
 | 目标框架 | .NET 10 Windows (`net10.0-windows`) |
 | 当前正式构建 | selfcontained `46D90BD6871BFD85D5558F3334F3644D`，portable `D9238B461703AC7A3373DB73774852A5` |
-| 安装目录 | `C:\Users\<username>\AppData\Local\Programs\DeskLanes` |
+| 安装目录 | `C:\Users\<用户名>\AppData\Local\Programs\DeskLanes` |
 | 安装大小 | 约 65 MB（自包含版，无需装 .NET） |
 
 ---

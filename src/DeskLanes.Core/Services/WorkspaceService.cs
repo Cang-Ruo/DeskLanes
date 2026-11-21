@@ -13,6 +13,7 @@ public sealed class WorkspaceService : IWorkspaceService
     private readonly LibraryStore _libraryStore;
     private readonly ConfigStore _configStore;
     private readonly IShortcutResolver _shortcutResolver;
+    private readonly object _saveGate = new();   // 串行化 library+settings 两次写入，避免交错
 
     public WorkspaceService(
         LibraryStore libraryStore,
@@ -807,6 +808,14 @@ public sealed class WorkspaceService : IWorkspaceService
     // ---------- 内部实现 ----------
 
     private void SaveCore()
+    {
+        lock (_saveGate)
+        {
+            SaveCoreLocked();
+        }
+    }
+
+    private void SaveCoreLocked()
     {
         try
         {

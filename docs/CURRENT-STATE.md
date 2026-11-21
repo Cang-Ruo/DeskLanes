@@ -52,7 +52,7 @@ cae74b2 38 Glass Orb 最终规格实现
 | 发布配置 | `win-x64-selfcontained.pubxml`（.NET 10 + WPF 自带运行时） |
 | 发布目录 | `publish/win-x64-selfcontained/`（63 MB） |
 | 发布 exe MD5 | `50e6dc6ef2efc3befc7d0a7d02e11b31` |
-| 安装目录 | `C:\Users\<username>\AppData\Local\Programs\DeskLanes\` |
+| 安装目录 | `C:\Users\<用户名>\AppData\Local\Programs\DeskLanes\` |
 | 安装 exe MD5 | `50e6dc6e…`（**与发布一致**） |
 | exe 大小 | 65,144,624 字节（约 62 MB） |
 | 运行状态 | **正在运行**（PID 108900，占用约 378 MB） |
