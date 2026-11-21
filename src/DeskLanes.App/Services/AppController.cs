@@ -476,11 +476,12 @@ public sealed class AppController : IDisposable
         _orbPicker.ResetSelection();
         _orbPicker.SetEntries(_floatingViewModel.Categories);
 
-        // 小球在左边缘中部，选择窗摆在它右侧；PrimaryScreenHeight 是物理像素，换算成 DIP
+        // 阶段 47：贴着小球右缘展开，垂直中心对齐；小球拖到哪，窗就跟到哪
         double scale = Math.Max(VisualTreeHelper.GetDpi(_edgeStrip).DpiScaleX, 0.5);
-        double left = 76 + 6;
-        double top = Math.Max(8, (SystemParameters.PrimaryScreenHeight / scale - 200) / 2);
-        _orbPicker.PlaceAt(left, top);
+        var (ballLeft, ballTop, ballWidth, ballHeight) = _edgeStrip.CurrentBoundsPx;
+        double left = (ballLeft + ballWidth) / scale + 6;
+        double ballCenterY = (ballTop + ballHeight / 2.0) / scale;
+        _orbPicker.PlaceBesideBall(left, ballCenterY);
         _orbPicker.Show();
     }
 
