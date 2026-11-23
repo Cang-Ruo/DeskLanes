@@ -65,7 +65,7 @@ L      （窗口最上 5 DIP 拉高）  R
 |---|---|
 | 构建 | 0 警告 0 错误 |
 | 冒烟 | **356/356**，失败 0 |
-| 端到端 | **23/23**（`tools/verify-floating-interaction.py`，日志 `docs/stage9-5-evidence/interaction-check.log`） |
+| 端到端 | **23/23**（`tools/verify-floating-interaction.py`） |
 
 端到端要点（真实 exe + 合成鼠标，主屏 125% + 竖屏副屏 150%）：
 

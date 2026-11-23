@@ -70,7 +70,7 @@ settings.json 实测就是这个值）。直接照搬会把 XAML 的默认值顶
 | 构建 | **0 警告 0 错误**（`DeskLanes.sln -c Release`） |
 | 冒烟 | **343 → 356（+13），失败 0**（新增第 19 节 悬浮窗几何持久化） |
 | 快照 | `docs/stage9-4-evidence/floating-92c-drag-resize.png`（780×540，手柄在右下角，布局未被热区破坏） |
-| 端到端 | **18/18 通过**，日志 `docs/stage9-4-evidence/interaction-check.log` |
+| 端到端 | **18/18 通过** |
 
 端到端脚本 `tools/verify-floating-interaction.py`：真实启动发布版 exe，用合成鼠标事件驱动。
 
