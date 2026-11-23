@@ -1,6 +1,6 @@
 # DeskLanes 完整参数手册
 
-> 全部数值取自当前源码（阶段 38）与你本机 `settings.json` 的实际值。
+> 全部数值取自当前源码与你本机 `settings.json` 的实际值。
 > 单位约定：**DIP** = 设备无关像素（WPF 布局单位，96 DPI 下 1 DIP = 1 px）；
 > **px** = 物理像素。颜色为 ARGB，括号内是 alpha 百分比。
 
@@ -31,7 +31,7 @@
 
 ## 2. 收束指示器
 
-### 2.1 悬浮球 Glass Orb（阶段 38）
+### 2.1 悬浮球 Glass Orb
 
 | 参数 | 值 |
 |---|---|
@@ -94,7 +94,7 @@
 
 | 画刷 | 色值 | alpha | 用途 |
 |---|---|---|---|
-| `BrushShellGlass` / `BrushWindowBaseGlass` | `#4A20334A` | 29% | 三窗口共享根玻璃（阶段 33 统一） |
+| `BrushShellGlass` / `BrushWindowBaseGlass` | `#4A20334A` | 29% | 三窗口共享根玻璃 |
 | `BrushSidebarGlass` | `#E61E2F46` | 90% | 遗留未用 |
 | `BrushFloatingGlass` | `#E620334A` | 90% | 遗留未用 |
 | `BrushMenuGlass` | `#F21B2B3F` | 95% | Tooltip / 右键菜单 |
@@ -187,11 +187,11 @@
 | `WindowMode` | 0 悬浮 | **0 悬浮** | 悬浮 / 全屏 / 侧栏 |
 | `LayoutMode` | — | 1 | 分类导航 / 自由分区 |
 | `WindowWidth × Height` | 1100 × 720 | **2048 × 1104** | 全屏窗口偏好；最大化=True |
-| `FloatingWindowWidth × Height` | 620 × 430 | **504.56 × 369.24** | 悬浮窗尺寸（阶段 36 从 593.6×434.4 缩 15%） |
+| `FloatingWindowWidth × Height` | 620 × 430 | **504.56 × 369.24** | 悬浮窗尺寸 |
 | `FloatingWindowLeft/Top` | null | 738.4 / 360.8 | 悬浮窗位置 |
 | `CollapseBallLeft/Top` | null | **2079 / 951** | 小球位置（测试拖动残留，见文末） |
 | `FloatingCompactSizeMigrated` | false | true | 尺寸一次性迁移标记 |
-| `FloatingHideOnDeactivate` | false | **true** | 勾了→失焦收束成小球（阶段 35 统一） |
+| `FloatingHideOnDeactivate` | false | **true** | 勾了→失焦收束成小球 |
 | `CollapseOnLaunch` | true | **true** | 打开软件后自动收起 |
 | `FloatingTopmost` | false | false | 悬浮窗常驻置顶；小球始终置顶 |
 | `SidebarDock` | 0 左 | 0 左 | 停靠侧 |

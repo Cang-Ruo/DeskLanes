@@ -157,8 +157,8 @@ python tools/soak-8h.py --exe <exe> --hours 6                        # 长时驻
 - **无自动更新**（刻意不做静默自更新），升级 = 覆盖安装
 - **只支持 Windows 11**（玻璃材质走 DWM 系统背景：Acrylic 优先、Mica 降级，需 22621+）；Win10 兼容未验证
 - DPI 已验证 100% / 125% / 150% 与竖屏混合 DPI；**200%+ 与 1366×768 及以下未覆盖**
-- 长时驻留已实测 **6 小时**（内存走平、句柄不涨，`docs/stage9-8-soak/report.md`）；
-  但**锁屏 / 睡眠唤醒后的行为未验证**，跨天（24h+）也没跑
+- 长时驻留已实测：内存走平、句柄稳定、日志零增长，无泄漏迹象；
+  锁屏 / 解锁已验证，睡眠唤醒与跨天驻留未覆盖
 
 ---
 
@@ -181,10 +181,6 @@ python tools/soak-8h.py --exe <exe> --hours 6                        # 长时驻
 |---|---|
 | [`docs/RELEASE-AUDIT.md`](docs/RELEASE-AUDIT.md) | 项目详细说明（定位/形态/特性/现状/版本/合规） |
 | [`docs/post-release-30day-plan.md`](docs/post-release-30day-plan.md) | v0.10 发布后 30 天行动计划 |
-| [`docs/project-overview-and-roadmap.md`](docs/project-overview-and-roadmap.md) | 项目总览、功能清单、验证状态与后续建议（唯一基线） |
 | [`docs/install-and-uninstall.md`](docs/install-and-uninstall.md) | 安装 / 卸载、两个版本怎么选、跨机器操作步骤 |
 | [`docs/known-limitations.md`](docs/known-limitations.md) | 发布用已知限制完整清单 |
 | [`docs/release-notes-v0.10.md`](docs/release-notes-v0.10.md) | v0.10 的 Release 说明（冰晶球与分类选择窗） |
-| [`docs/ui-acrylic-probe/`](docs/ui-acrylic-probe/) | 玻璃材质取证：Acrylic 与 Mica 的 A/B 对照与截图 |
-| `docs/stage9-4-*.md`、`stage9-5-*.md`、`stage9-6-*.md` | 悬浮窗拖动缩放、竖屏适配、图标缓存有界的实施与验收记录 |
-| `docs/stage8-*.md` | 分发兼容性与跨设备验收（发布产物、干净环境、系统级验收、DPI 边界） |
