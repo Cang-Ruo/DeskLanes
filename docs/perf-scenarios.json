@@ -1,0 +1,37 @@
+[
+  {
+    "scene": "startup+idle",
+    "ws": 352.5,
+    "private": 258.0
+  },
+  {
+    "scene": "tray only",
+    "ws": 351.4,
+    "private": 257.6
+  },
+  {
+    "scene": "floating ball",
+    "ws": 338.6,
+    "private": 246.5
+  },
+  {
+    "scene": "floating window",
+    "ws": 339.4,
+    "private": 247.2
+  },
+  {
+    "scene": "full workspace",
+    "ws": 359.0,
+    "private": 308.9
+  },
+  {
+    "scene": "sidebar",
+    "ws": 368.6,
+    "private": 272.9
+  },
+  {
+    "scene": "sidebar idle 30s",
+    "ws": 368.4,
+    "private": 272.5
+  }
+]
